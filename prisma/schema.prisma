@@ -1,0 +1,132 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Wallets ───────────────────────────────────────────────
+
+model Wallet {
+  id        String   @id @default(uuid())
+  apiKey    String   @unique @map("api_key")
+  name      String   @unique
+  xHandle   String?  @map("x_handle")
+  balance   Int      @default(1000)
+  gas       Int      @default(500)
+  reputation Int     @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  puzzlesCreated Puzzle[]       @relation("SmithPuzzles")
+  puzzlesSolving Puzzle[]       @relation("SolverPuzzles")
+  sentTx         Transaction[]  @relation("FromWallet")
+  receivedTx     Transaction[]  @relation("ToWallet")
+  solveAttempts  SolveAttempt[]
+
+  @@map("wallets")
+}
+
+// ─── Puzzles ───────────────────────────────────────────────
+
+enum PuzzleStatus {
+  OPEN
+  PICKED
+  SOLVED
+  EXPIRED
+  REVEALED
+  SLASHED
+}
+
+enum AnswerType {
+  STRING
+  NUMBER
+  CHOICE
+}
+
+model Puzzle {
+  id                String       @id @default(uuid())
+  smithId           String       @map("smith_id")
+  title             String
+  prompt            String
+  answerHash        String       @map("answer_hash")
+  answerType        AnswerType   @default(STRING) @map("answer_type")
+  difficultyTier    Int          @map("difficulty_tier") @db.SmallInt
+  stake             Int
+  timeWindowSeconds Int          @map("time_window_seconds")
+  maxAttempts       Int          @default(3) @map("max_attempts")
+  status            PuzzleStatus @default(OPEN)
+  solverId          String?      @map("solver_id")
+  attemptsUsed      Int          @default(0) @map("attempts_used")
+  pickedAt          DateTime?    @map("picked_at")
+  solvedAt          DateTime?    @map("solved_at")
+  expiredAt         DateTime?    @map("expired_at")
+  revealedAnswer    String?      @map("revealed_answer")
+  revealDeadline    DateTime?    @map("reveal_deadline")
+  createdAt         DateTime     @default(now()) @map("created_at")
+
+  smith         Wallet         @relation("SmithPuzzles", fields: [smithId], references: [id])
+  solver        Wallet?        @relation("SolverPuzzles", fields: [solverId], references: [id])
+  transactions  Transaction[]
+  solveAttempts SolveAttempt[]
+
+  @@index([status])
+  @@index([smithId])
+  @@index([solverId])
+  @@index([pickedAt])
+  @@map("puzzles")
+}
+
+// ─── Solve Attempts ────────────────────────────────────────
+
+model SolveAttempt {
+  id              String   @id @default(uuid())
+  puzzleId        String   @map("puzzle_id")
+  solverId        String   @map("solver_id")
+  submittedAnswer String   @map("submitted_answer")
+  correct         Boolean
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  puzzle Puzzle @relation(fields: [puzzleId], references: [id])
+  solver Wallet @relation(fields: [solverId], references: [id])
+
+  @@index([puzzleId])
+  @@map("solve_attempts")
+}
+
+// ─── Transactions ──────────────────────────────────────────
+
+enum TransactionType {
+  REGISTRATION
+  SOLVE_REWARD
+  SMITH_REWARD
+  STAKE_LOCK
+  STAKE_RETURN
+  STAKE_SLASH
+  TRANSFER
+  GAS_SPEND
+}
+
+model Transaction {
+  id        String          @id @default(uuid())
+  fromId    String?         @map("from_id")
+  toId      String?         @map("to_id")
+  amount    Int
+  type      TransactionType
+  puzzleId  String?         @map("puzzle_id")
+  memo      String?
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  from   Wallet? @relation("FromWallet", fields: [fromId], references: [id])
+  to     Wallet? @relation("ToWallet", fields: [toId], references: [id])
+  puzzle Puzzle? @relation(fields: [puzzleId], references: [id])
+
+  @@index([fromId])
+  @@index([toId])
+  @@index([puzzleId])
+  @@map("transactions")
+}
