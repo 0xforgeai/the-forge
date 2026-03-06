@@ -10,6 +10,7 @@ import logger from '../logger.js';
 
 const router = Router();
 const bc = config.bout;
+const burnCfg = config.burns;
 
 // ─── List Bouts ────────────────────────────────────────────
 
@@ -186,7 +187,10 @@ router.post('/:id/enter', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'You are already entered in this bout.' });
     }
 
-    // Enter + deduct fee
+    // Enter + deduct fee + burn 10%
+    const burnAmount = Math.floor(bout.entryFee * burnCfg.entryFeePercent / 100);
+    const netEntryFee = bout.entryFee - burnAmount;
+
     const [entrant] = await prisma.$transaction([
         prisma.boutEntrant.create({
             data: { boutId: bout.id, walletId: wallet.id, entryFeePaid: bout.entryFee },
@@ -197,7 +201,7 @@ router.post('/:id/enter', authenticate, async (req, res) => {
         }),
         prisma.bout.update({
             where: { id: bout.id },
-            data: { totalEntryFees: { increment: bout.entryFee } },
+            data: { totalEntryFees: { increment: netEntryFee } },
         }),
         prisma.transaction.create({
             data: {
@@ -206,6 +210,14 @@ router.post('/:id/enter', authenticate, async (req, res) => {
                 type: 'BOUT_ENTRY',
                 boutId: bout.id,
                 memo: `Entry fee for bout: ${bout.title}`,
+            },
+        }),
+        // Burn record
+        prisma.treasuryLedger.create({
+            data: {
+                action: 'ENTRY_FEE_BURN',
+                amount: burnAmount,
+                memo: `Burned ${burnAmount} from ${wallet.name}'s entry fee (${burnCfg.entryFeePercent}%)`,
             },
         }),
     ]);
@@ -223,7 +235,8 @@ router.post('/:id/enter', authenticate, async (req, res) => {
         entrantId: entrant.id,
         boutId: bout.id,
         entryFeePaid: bout.entryFee,
-        message: `Entered "${bout.title}". Entry fee: ${bout.entryFee} $FORGE.`,
+        burned: burnAmount,
+        message: `Entered "${bout.title}". Entry fee: ${bout.entryFee} $FORGE (${burnAmount} burned).`,
     });
 });
 
@@ -286,10 +299,13 @@ router.post('/:id/bet', authenticate, async (req, res) => {
         return res.status(400).json({ error: `Insufficient balance. Need ${amount}, have ${wallet.balance}.` });
     }
 
-    // Place bet
+    // Place bet + burn 2%
+    const betBurn = Math.floor(amount * burnCfg.betPercent / 100);
+    const netBetAmount = amount - betBurn;
+
     const [bet] = await prisma.$transaction([
         prisma.bet.create({
-            data: { boutId: bout.id, bettorId: wallet.id, entrantId, amount },
+            data: { boutId: bout.id, bettorId: wallet.id, entrantId, amount: netBetAmount },
         }),
         prisma.wallet.update({
             where: { id: wallet.id },
@@ -297,7 +313,7 @@ router.post('/:id/bet', authenticate, async (req, res) => {
         }),
         prisma.bout.update({
             where: { id: bout.id },
-            data: { totalBetPool: { increment: amount } },
+            data: { totalBetPool: { increment: netBetAmount } },
         }),
         prisma.transaction.create({
             data: {
@@ -305,7 +321,15 @@ router.post('/:id/bet', authenticate, async (req, res) => {
                 amount,
                 type: 'BOUT_BET',
                 boutId: bout.id,
-                memo: `Bet on entrant in: ${bout.title}`,
+                memo: `Bet on entrant in: ${bout.title} (${betBurn} burned)`,
+            },
+        }),
+        // Burn record
+        prisma.treasuryLedger.create({
+            data: {
+                action: 'BET_BURN',
+                amount: betBurn,
+                memo: `Burned ${betBurn} from ${wallet.name}'s bet (${burnCfg.betPercent}%)`,
             },
         }),
     ]);
@@ -321,8 +345,9 @@ router.post('/:id/bet', authenticate, async (req, res) => {
         betId: bet.id,
         boutId: bout.id,
         entrantId,
-        amount,
-        message: `Bet ${amount} $FORGE placed.`,
+        amount: netBetAmount,
+        burned: betBurn,
+        message: `Bet ${amount} $FORGE placed (${betBurn} burned, ${netBetAmount} in pool).`,
     });
 });
 

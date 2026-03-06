@@ -195,6 +195,35 @@ async function transitionBouts() {
                 }));
             }
         }
+        // Losing bet burns
+        if (payouts.losingBetBurn > 0) {
+            ops.push(prisma.treasuryLedger.create({
+                data: {
+                    action: 'LOSING_BET_BURN',
+                    amount: payouts.losingBetBurn,
+                    memo: `${payouts.losingBets.length} losing bet(s) burned: ${bout.title}`,
+                },
+            }));
+        }
+
+        // Mark losing bets with 0 payout
+        for (const lb of payouts.losingBets) {
+            ops.push(prisma.bet.update({
+                where: { id: lb.betId },
+                data: { payout: 0 },
+            }));
+        }
+
+        // Rake to vault stakers
+        if (payouts.rakeToVault > 0) {
+            ops.push(prisma.treasuryLedger.create({
+                data: {
+                    action: 'VAULT_RAKE_DEPOSIT',
+                    amount: payouts.rakeToVault,
+                    memo: `Vault staker share of rake: ${bout.title}`,
+                },
+            }));
+        }
 
         await prisma.$transaction(ops);
 

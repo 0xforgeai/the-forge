@@ -13,6 +13,7 @@ import { authenticate } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { startJobs } from './jobs/expiry.js';
 import { startBoutScheduler } from './jobs/bout-scheduler.js';
+import { startBootstrapJob } from './jobs/bootstrap.js';
 
 // Route handlers
 import walletRouter from './routes/wallet.js';
@@ -136,6 +137,7 @@ async function start() {
 
         startJobs();
         startBoutScheduler();
+        startBootstrapJob();
 
         app.listen(config.port, () => {
             logger.info({ port: config.port, env: config.nodeEnv }, '🔥 The Forge is live');

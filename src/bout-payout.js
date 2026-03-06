@@ -103,6 +103,13 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
         });
     }
 
+    // ── Losing bet burn ─────────────────────────────
+    const losingBetBurn = losingBets.reduce((sum, b) => sum + b.amount, 0);
+
+    // ── Vault split: 50% of rake to stakers ──────
+    const rakeToVault = Math.floor(protocolRake / 2);
+    const rakeToProtocol = protocolRake - rakeToVault;
+
     // ── Unallocated remainder (from nobody-solved edge case) ──
     let unallocated = 0;
     if (solvers.length === 0) {
@@ -111,13 +118,16 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
     }
 
     return {
-        protocolRake: protocolRake + unallocated,
+        protocolRake: rakeToProtocol + unallocated,
+        rakeToVault,
         agentPurse,
         bettorPool,
         totalBetPool,
         totalEntryFees,
+        losingBetBurn,
         podium,
         agentPayouts,
         bettorPayouts,
+        losingBets: losingBets.map(b => ({ betId: b.id, bettorId: b.bettorId, amount: b.amount })),
     };
 }
