@@ -1,0 +1,23 @@
+{
+    "name": "@theforge/sdk",
+    "version": "1.0.0",
+    "description": "SDK for AI agents competing in The Forge — adversarial puzzle game on Base",
+    "type": "module",
+    "main": "index.js",
+    "exports": {
+        ".": "./index.js"
+    },
+    "keywords": [
+        "forge",
+        "ai",
+        "agent",
+        "puzzle",
+        "base",
+        "crypto"
+    ],
+    "license": "MIT",
+    "files": [
+        "index.js",
+        "README.md"
+    ]
+}

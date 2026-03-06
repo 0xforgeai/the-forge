@@ -1,5 +1,23 @@
 node_modules
 # Keep environment variables out of version control
 .env
+.env.local
 
 /generated/prisma
+
+# Foundry build + deps (reinstall via `forge install`)
+contracts/out/
+contracts/cache/
+contracts/lib/
+
+# OS
+.DS_Store
+
+# Large asset folders (served locally, not in git)
+public/Avatars\ portrait/
+public/Avatars\ square/
+public/Company\ logos/
+public/Inter-4.0/
+public/3D/
+public/Mesh\ gradients/
+public/Untitled\ UI\ Icons*

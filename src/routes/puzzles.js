@@ -3,6 +3,7 @@ import { z } from 'zod';
 import prisma from '../db.js';
 import config from '../config.js';
 import { hashAnswer, verifyAnswer, validateTier } from '../utils.js';
+import { generatePuzzle, verifyCryptoPuzzle, isComputational, PUZZLE_TYPES } from '../crypto-puzzles.js';
 import { authenticate } from '../middleware/auth.js';
 import sse from '../sse.js';
 import logger from '../logger.js';
@@ -112,6 +113,107 @@ router.post('/', authenticate, async (req, res) => {
     });
 });
 
+// ─── Generate Computational Puzzle ─────────────────────────
+
+const generateSchema = z.object({
+    puzzleType: z.enum(['HASH_PREFIX', 'ITERATED_HASH', 'PROOF_OF_WORK', 'FACTORING']),
+    difficultyTier: z.number().int().min(1).max(5),
+    stake: z.number().int().min(100),
+    timeWindowSeconds: z.number().int().min(3600),
+    maxAttempts: z.number().int().min(1).max(10).default(3),
+});
+
+router.post('/generate', authenticate, async (req, res) => {
+    const parsed = generateSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues[0].message });
+    }
+
+    const { puzzleType, difficultyTier, stake, timeWindowSeconds, maxAttempts } = parsed.data;
+    const wallet = req.wallet;
+
+    // Validate tier
+    const tierCheck = validateTier(difficultyTier, stake, timeWindowSeconds);
+    if (!tierCheck.valid) {
+        return res.status(400).json({ error: tierCheck.error });
+    }
+
+    // Check gas & balance
+    if (wallet.gas < config.game.gasCostCreate) {
+        return res.status(400).json({ error: `Insufficient gas. Need ${config.game.gasCostCreate}, have ${wallet.gas}.` });
+    }
+    if (wallet.balance < stake) {
+        return res.status(400).json({ error: `Insufficient balance to stake ${stake}. Have ${wallet.balance}.` });
+    }
+
+    // Generate the puzzle
+    const generated = generatePuzzle(puzzleType, difficultyTier);
+
+    const [puzzle] = await prisma.$transaction([
+        prisma.puzzle.create({
+            data: {
+                smithId: wallet.id,
+                title: generated.title,
+                prompt: generated.prompt,
+                answerHash: generated.answerHash,
+                answerType: 'HASH',
+                puzzleType,
+                challengeData: generated.challenge,
+                difficultyTier,
+                stake,
+                timeWindowSeconds,
+                maxAttempts,
+            },
+        }),
+        prisma.wallet.update({
+            where: { id: wallet.id },
+            data: {
+                balance: { decrement: stake },
+                gas: { decrement: config.game.gasCostCreate },
+            },
+        }),
+        prisma.transaction.create({
+            data: {
+                fromId: wallet.id,
+                amount: stake,
+                type: 'STAKE_LOCK',
+                memo: `Staked ${stake} on ${puzzleType}: ${generated.title}`,
+            },
+        }),
+        prisma.transaction.create({
+            data: {
+                fromId: wallet.id,
+                amount: config.game.gasCostCreate,
+                type: 'GAS_SPEND',
+                memo: 'Gas: create puzzle',
+            },
+        }),
+    ]);
+
+    logger.info({ puzzleId: puzzle.id, smith: wallet.name, puzzleType, tier: difficultyTier, stake }, 'Computational puzzle created');
+
+    sse.broadcast('puzzle.created', {
+        id: puzzle.id,
+        title: puzzle.title,
+        tier: puzzle.difficultyTier,
+        stake: puzzle.stake,
+        smith: wallet.name,
+        puzzleType,
+    });
+
+    res.status(201).json({
+        id: puzzle.id,
+        title: puzzle.title,
+        puzzleType,
+        tier: puzzle.difficultyTier,
+        stake: puzzle.stake,
+        status: puzzle.status,
+        timeWindowSeconds: puzzle.timeWindowSeconds,
+        maxAttempts: puzzle.maxAttempts,
+        message: `${puzzleType} puzzle created. Stake locked.`,
+    });
+});
+
 // ─── List Puzzles ──────────────────────────────────────────
 
 router.get('/', async (req, res) => {
@@ -134,6 +236,8 @@ router.get('/', async (req, res) => {
         title: p.title,
         prompt: p.status === 'OPEN' ? null : p.prompt,
         answerType: p.answerType,
+        puzzleType: p.puzzleType,
+        challengeData: p.status === 'OPEN' ? null : p.challengeData,
         tier: p.difficultyTier,
         stake: p.stake,
         status: p.status,
@@ -178,6 +282,8 @@ router.get('/:id', async (req, res) => {
         title: puzzle.title,
         prompt: puzzle.status === 'OPEN' ? null : puzzle.prompt,
         answerType: puzzle.answerType,
+        puzzleType: puzzle.puzzleType,
+        challengeData: puzzle.status === 'OPEN' ? null : puzzle.challengeData,
         tier: puzzle.difficultyTier,
         stake: puzzle.stake,
         status: puzzle.status,
@@ -254,6 +360,8 @@ router.post('/:id/pick', authenticate, async (req, res) => {
         title: updated.title,
         prompt: puzzle.prompt,
         answerType: puzzle.answerType,
+        puzzleType: puzzle.puzzleType,
+        challengeData: puzzle.challengeData,
         tier: puzzle.difficultyTier,
         stake: puzzle.stake,
         maxAttempts: puzzle.maxAttempts,
@@ -293,8 +401,13 @@ router.post('/:id/solve', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'Time window expired. Puzzle will be marked expired by the system.' });
     }
 
-    // Verify answer
-    const correct = verifyAnswer(answer, puzzle.answerType, puzzle.answerHash);
+    // Verify answer — use crypto verification for computational puzzles
+    let correct;
+    if (isComputational(puzzle.puzzleType)) {
+        correct = verifyCryptoPuzzle(answer, puzzle.puzzleType, puzzle.challengeData, puzzle.answerHash);
+    } else {
+        correct = verifyAnswer(answer, puzzle.answerType, puzzle.answerHash);
+    }
 
     // Record attempt
     await prisma.solveAttempt.create({

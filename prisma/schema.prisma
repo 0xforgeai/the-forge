@@ -27,11 +27,14 @@ model Wallet {
   sentTx         Transaction[]  @relation("FromWallet")
   receivedTx     Transaction[]  @relation("ToWallet")
   solveAttempts  SolveAttempt[]
+  boutEntries    BoutEntrant[]
+  bets           Bet[]
+  stakePositions StakePosition[]
 
   @@map("wallets")
 }
 
-// ─── Puzzles ───────────────────────────────────────────────
+// ─── Puzzles (Open Arena — practice) ───────────────────────
 
 enum PuzzleStatus {
   OPEN
@@ -46,6 +49,15 @@ enum AnswerType {
   STRING
   NUMBER
   CHOICE
+  HASH
+}
+
+enum PuzzleType {
+  CUSTOM
+  HASH_PREFIX
+  ITERATED_HASH
+  PROOF_OF_WORK
+  FACTORING
 }
 
 model Puzzle {
@@ -54,7 +66,9 @@ model Puzzle {
   title             String
   prompt            String
   answerHash        String       @map("answer_hash")
-  answerType        AnswerType   @default(STRING) @map("answer_type")
+  answerType        AnswerType   @default(HASH) @map("answer_type")
+  puzzleType        PuzzleType   @default(CUSTOM) @map("puzzle_type")
+  challengeData     Json?        @map("challenge_data")
   difficultyTier    Int          @map("difficulty_tier") @db.SmallInt
   stake             Int
   timeWindowSeconds Int          @map("time_window_seconds")
@@ -98,6 +112,205 @@ model SolveAttempt {
   @@map("solve_attempts")
 }
 
+// ─── Bouts (Scheduled Arena Events) ────────────────────────
+
+enum BoutStatus {
+  SCHEDULED
+  REGISTRATION
+  BETTING
+  LIVE
+  RESOLVING
+  RESOLVED
+  CANCELLED
+}
+
+// Phase 2 hooks
+enum BoutSource {
+  PROTOCOL
+  USER
+}
+
+enum JudgeType {
+  AUTO
+  POSTER
+  JURY
+}
+
+enum SubmissionType {
+  ANSWER
+  FILE
+  DATA
+}
+
+model Bout {
+  id                  String         @id @default(uuid())
+  title               String
+  puzzleType          PuzzleType
+  difficultyTier      Int            @map("difficulty_tier") @db.SmallInt
+  challengeData       Json?          @map("challenge_data")
+  answerHash          String?        @map("answer_hash")
+  prompt              String?
+
+  // Phase 2 hooks
+  source              BoutSource     @default(PROTOCOL)
+  judgeType           JudgeType      @default(AUTO)
+  submissionType      SubmissionType @default(ANSWER)
+
+  // Lifecycle
+  status              BoutStatus     @default(SCHEDULED)
+  scheduledAt         DateTime       @map("scheduled_at")
+  registrationOpensAt DateTime       @map("registration_opens_at")
+  bettingOpensAt      DateTime       @map("betting_opens_at")
+  bettingClosesAt     DateTime       @map("betting_closes_at")
+  liveAt              DateTime?      @map("live_at")
+  resolvedAt          DateTime?      @map("resolved_at")
+
+  // Economics
+  entryFee            Int            @default(500) @map("entry_fee")
+  solveDurationSecs   Int            @default(3600) @map("solve_duration_secs")
+  totalEntryFees      Int            @default(0) @map("total_entry_fees")
+  totalBetPool        Int            @default(0) @map("total_bet_pool")
+  protocolRake        Int            @default(0) @map("protocol_rake")
+  agentPurse          Int            @default(0) @map("agent_purse")
+  bettorPool          Int            @default(0) @map("bettor_pool")
+
+  createdAt           DateTime       @default(now()) @map("created_at")
+
+  entrants            BoutEntrant[]
+  bets                Bet[]
+  submissions         BoutSubmission[]
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("bouts")
+}
+
+model BoutEntrant {
+  id            String    @id @default(uuid())
+  boutId        String    @map("bout_id")
+  walletId      String    @map("wallet_id")
+  entryFeePaid  Int       @map("entry_fee_paid")
+
+  // Commit-reveal
+  commitHash    String?   @map("commit_hash")
+  committedAt   DateTime? @map("committed_at")
+  revealedAnswer String?  @map("revealed_answer")
+  revealedAt    DateTime? @map("revealed_at")
+
+  // Results
+  solveTime     Int?      @map("solve_time")  // seconds from puzzle live
+  placement     Int?      // 1, 2, 3, or null
+  payout        Int       @default(0)
+  solved        Boolean   @default(false)
+
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  bout   Bout   @relation(fields: [boutId], references: [id])
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  betsReceived Bet[] @relation("BetOnEntrant")
+
+  @@unique([boutId, walletId])
+  @@index([boutId])
+  @@index([walletId])
+  @@map("bout_entrants")
+}
+
+model Bet {
+  id          String   @id @default(uuid())
+  boutId      String   @map("bout_id")
+  bettorId    String   @map("bettor_id")
+  entrantId   String   @map("entrant_id")
+  amount      Int
+  payout      Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  bout     Bout        @relation(fields: [boutId], references: [id])
+  bettor   Wallet      @relation(fields: [bettorId], references: [id])
+  entrant  BoutEntrant @relation("BetOnEntrant", fields: [entrantId], references: [id])
+
+  @@unique([boutId, bettorId])  // one bet per wallet per bout
+  @@index([boutId])
+  @@index([bettorId])
+  @@index([entrantId])
+  @@map("bets")
+}
+
+// Phase 2: Rich submissions for user-created bounties
+model BoutSubmission {
+  id          String    @id @default(uuid())
+  boutId      String    @map("bout_id")
+  entrantId   String    @map("entrant_id")
+  content     String?
+  fileUrl     String?   @map("file_url")
+  score       Int?
+  judgedAt    DateTime? @map("judged_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  bout Bout @relation(fields: [boutId], references: [id])
+
+  @@index([boutId])
+  @@map("bout_submissions")
+}
+
+// ─── Arena Vault Staking ───────────────────────────────────
+
+enum CovenantType {
+  FLAME     // 7 days
+  STEEL     // 30 days
+  OBSIDIAN  // 90 days
+  ETERNAL   // 365 days, no unstake
+}
+
+model StakePosition {
+  id            String       @id @default(uuid())
+  walletId      String       @map("wallet_id")
+  amount        Int          // staked amount
+  covenant      CovenantType @default(FLAME)
+  lockDays      Int          @map("lock_days")        // 7, 30, 90, 365
+  apyBonus      Int          @default(0) @map("apy_bonus") // 0, 50, 150, 300
+  rageQuitMulti Float        @default(1.0) @map("rage_quit_multi") // 1x, 2x, 3x
+
+  // Loyalty tracking
+  loyaltyMulti  Float        @default(1.0) @map("loyalty_multi")  // 1.0 → 3.0
+  loyaltyWeek   Int          @default(0) @map("loyalty_week")     // weeks staked
+
+  // Vesting
+  vestedAmount  Int          @default(0) @map("vested_amount")
+  unvestedRewards Int        @default(0) @map("unvested_rewards")
+
+  // Lifecycle
+  stakedAt      DateTime     @default(now()) @map("staked_at")
+  lockExpiresAt DateTime     @map("lock_expires_at")
+  unstakedAt    DateTime?    @map("unstaked_at")
+  active        Boolean      @default(true)
+
+  // Totals
+  totalEarned   Int          @default(0) @map("total_earned")
+  totalTaxPaid  Int          @default(0) @map("total_tax_paid")
+
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  @@index([walletId])
+  @@index([active])
+  @@map("stake_positions")
+}
+
+// ─── Treasury / Burn Tracking ──────────────────────────────
+
+model TreasuryLedger {
+  id        String   @id @default(uuid())
+  action    String   // EMISSION, BURN, RAKE, BOUT_INJECTION, STAKER_YIELD
+  amount    Int
+  memo      String?
+  balance   Int      @default(0)  // running treasury balance
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([action])
+  @@index([createdAt])
+  @@map("treasury_ledger")
+}
+
 // ─── Transactions ──────────────────────────────────────────
 
 enum TransactionType {
@@ -109,6 +322,17 @@ enum TransactionType {
   STAKE_SLASH
   TRANSFER
   GAS_SPEND
+  BOUT_ENTRY
+  BOUT_PURSE
+  BOUT_BET
+  BOUT_BET_WIN
+  BOUT_REFUND
+  VAULT_STAKE
+  VAULT_UNSTAKE
+  VAULT_YIELD
+  VAULT_RAGE_TAX
+  VAULT_VESTING
+  BURN
 }
 
 model Transaction {
@@ -118,6 +342,7 @@ model Transaction {
   amount    Int
   type      TransactionType
   puzzleId  String?         @map("puzzle_id")
+  boutId    String?         @map("bout_id")
   memo      String?
   createdAt DateTime        @default(now()) @map("created_at")
 
@@ -128,5 +353,6 @@ model Transaction {
   @@index([fromId])
   @@index([toId])
   @@index([puzzleId])
+  @@index([boutId])
   @@map("transactions")
 }

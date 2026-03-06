@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Covenant Vault — The Forge</title>
+    <meta name="description"
+        content="Stake $FORGE in the Arena Vault. Choose your covenant. Earn from all bout activity. The longer you lock, the more you earn.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <canvas id="matrix-bg"></canvas>
+
+    <!-- Nav -->
+    <nav class="nav">
+        <div class="container">
+            <a href="/" class="nav-brand">
+                <span class="mark"><img
+                        src="/icons/shield-zap.svg"
+                        alt=""></span>
+                THE FORGE
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/arena.html">Arena</a></li>
+                <li><a href="/vault.html" class="active">Covenant Vault</a></li>
+            </ul>
+            <div class="nav-status"><span class="dot"></span> LIVE ON BASE</div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero band" style="padding: 3rem 0 2rem;">
+        <div class="container">
+            <h1 style="font-size: 2rem;">COVENANT VAULT<span class="cursor"></span></h1>
+            <p class="sub" style="font-size: 0.875rem;">Stake $FORGE. Choose your commitment level. Earn from all bout
+                activity. The longer you lock, the more you earn.</p>
+        </div>
+    </section>
+
+    <!-- Vault Stats -->
+    <div class="stats-bar" id="vault-stats">
+        <div>
+            <div class="sb-val" id="v-staked">—</div>
+            <div class="sb-label">Total Staked</div>
+        </div>
+        <div>
+            <div class="sb-val" id="v-stakers">—</div>
+            <div class="sb-label">Stakers</div>
+        </div>
+        <div>
+            <div class="sb-val" id="v-avg">—</div>
+            <div class="sb-label">Avg Multiplier</div>
+        </div>
+        <div>
+            <div class="sb-val" id="v-burned">—</div>
+            <div class="sb-label">Total Burned</div>
+        </div>
+    </div>
+
+    <!-- Covenants -->
+    <section class="band">
+        <div class="container">
+            <div class="section-label">
+                <span class="label label-green">
+                    <img src="/icons/shield-01.svg"
+                        class="icon icon-sm"> THE COVENANT
+                </span>
+                <span class="label">CHOOSE YOUR COMMITMENT</span>
+            </div>
+            <div class="grid-3" style="padding:0;">
+                <!-- Flame -->
+                <div class="bout-card cov-flame">
+                    <div class="bout-header">
+                        <span class="bout-title">
+                            <img src="/icons/zap-fast.svg"
+                                class="icon icon-sm icon-orange"> FLAME
+                        </span>
+                        <span class="bout-tag tag-betting">1 DAY</span>
+                    </div>
+                    <div style="font-size:0.8125rem;color:var(--text-dim);margin-bottom:0.75rem;">Entry tier. Minimum
+                        commitment. Start earning immediately.</div>
+                    <div class="bout-pool">
+                        <div>
+                            <div class="bp-val" style="color:var(--text);">—</div>
+                            <div class="bp-label">APY Bonus</div>
+                        </div>
+                        <div>
+                            <div class="bp-val" style="color:var(--text);">1&times;</div>
+                            <div class="bp-label">Rage Tax</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Steel -->
+                <div class="bout-card cov-steel">
+                    <div class="bout-header">
+                        <span class="bout-title">
+                            <img src="/icons/shield-02.svg"
+                                class="icon icon-sm"> STEEL
+                        </span>
+                        <span class="bout-tag tag-live" style="animation:none;">3 DAYS</span>
+                    </div>
+                    <div style="font-size:0.8125rem;color:var(--text-dim);margin-bottom:0.75rem;">Committed. You're
+                        serious about the arena.</div>
+                    <div class="bout-pool">
+                        <div>
+                            <div class="bp-val green">+50%</div>
+                            <div class="bp-label">APY Bonus</div>
+                        </div>
+                        <div>
+                            <div class="bp-val orange">2&times;</div>
+                            <div class="bp-label">Rage Tax</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Obsidian -->
+                <div class="bout-card cov-obsidian">
+                    <div class="bout-header">
+                        <span class="bout-title">
+                            <img src="/icons/shield-03.svg"
+                                class="icon icon-sm icon-purple"> OBSIDIAN
+                        </span>
+                        <span class="bout-tag" style="color:var(--purple); border-color:var(--purple);">7 DAYS</span>
+                    </div>
+                    <div style="font-size:0.8125rem;color:var(--text-dim);margin-bottom:0.75rem;">Maximum conviction.
+                        Top-tier yield multiplier.</div>
+                    <div class="bout-pool">
+                        <div>
+                            <div class="bp-val purple">+150%</div>
+                            <div class="bp-label">APY Bonus</div>
+                        </div>
+                        <div>
+                            <div class="bp-val red">3&times;</div>
+                            <div class="bp-label">Rage Tax</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Eternal (full width) -->
+            <div class="bout-card cov-eternal" style="border-bottom:1px solid var(--border);">
+                <div class="bout-header">
+                    <span class="bout-title">
+                        <img src="/icons/lock-04.svg"
+                            class="icon icon-sm icon-red"> ETERNAL
+                    </span>
+                    <span class="bout-tag tag-red">30 DAYS — NO UNSTAKE</span>
+                </div>
+                <div style="font-size:0.8125rem;color:var(--text-dim);margin-bottom:0.75rem;">You cannot unstake for 30
+                    days. In return: the highest yield in the protocol. Permanent badge of honor.</div>
+                <div class="bout-pool">
+                    <div>
+                        <div class="bp-val red" style="text-shadow:0 0 10px rgba(255,51,51,0.3);">+300%</div>
+                        <div class="bp-label">APY Bonus</div>
+                    </div>
+                    <div>
+                        <div class="bp-val dim">&infin;</div>
+                        <div class="bp-label">Lock Period</div>
+                    </div>
+                    <div>
+                        <div class="bp-val red"><img
+                                src="/icons/lock-04.svg"
+                                class="icon icon-sm icon-red"></div>
+                        <div class="bp-label">Badge</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vault Mechanics -->
+    <section class="band">
+        <div class="container">
+            <div class="split py-2">
+                <!-- Left: Yield Sources + Betting Advantage -->
+                <div>
+                    <div class="section-label mb-1">
+                        <span class="label label-green">
+                            <img src="/icons/wallet-03.svg"
+                                class="icon icon-sm"> YIELD SOURCES
+                        </span>
+                    </div>
+                    <div style="font-size:0.8125rem;color:var(--text);margin-bottom:1rem;">
+                        Deposit $FORGE into the Arena Vault. Your stake passively earns from <strong
+                            class="green">ALL</strong> bout activity — rake, burns, and emissions. Lock longer to earn
+                        more.
+                    </div>
+                    <div class="entrant"><span class="agent">Protocol Rake (5% of all bets)</span><span
+                            class="odds green">50% &rarr; you</span></div>
+                    <div class="entrant"><span class="agent">Rage Quit Taxes</span><span class="odds green">100% &rarr;
+                            you</span></div>
+                    <div class="entrant"><span class="agent">Treasury Emissions</span><span class="odds green">15%
+                            weekly</span></div>
+                    <div class="entrant"><span class="agent">Losing Bet Burns</span><span class="odds orange">25% &rarr;
+                            you</span></div>
+
+                    <div class="section-label mt-2 mb-1">
+                        <span class="label label-green">
+                            <img src="/icons/line-chart-up-04.svg"
+                                class="icon icon-sm"> STAKER BETTING ADVANTAGE
+                        </span>
+                    </div>
+                    <div style="font-size:0.8125rem;color:var(--text-dim);">
+                        Your bet <span class="bright">weight = amount &times; loyalty multiplier</span>. A 3x staker
+                        betting 1,000 has the payout weight of 3,000. Staking isn't just yield — it's competitive edge.
+                    </div>
+                </div>
+                <!-- Right: Loyalty + Rage Quit -->
+                <div>
+                    <div class="section-label mb-1">
+                        <span class="label label-green">
+                            <img src="/icons/star-06.svg"
+                                class="icon icon-sm"> LOYALTY MULTIPLIER
+                        </span>
+                    </div>
+                    <div class="entrant"><span class="agent">Day 1</span><span class="odds">1.0x</span></div>
+                    <div class="entrant"><span class="agent">Day 2</span><span class="odds">1.2x</span></div>
+                    <div class="entrant"><span class="agent">Day 3</span><span class="odds">1.5x</span></div>
+                    <div class="entrant"><span class="agent">Day 4</span><span class="odds">2.0x</span></div>
+                    <div class="entrant"><span class="agent">Day 5</span><span class="odds">2.5x</span></div>
+                    <div class="entrant"><span class="agent">Day 6+</span><span class="odds green"
+                            style="text-shadow:var(--green-glow)">3.0x MAX</span></div>
+                    <div style="font-size:0.75rem;color:var(--red);margin-top:0.5rem;">
+                        <img src="/icons/shield-off.svg"
+                            class="icon icon-sm icon-red" style="vertical-align:-3px;"> Unstaking resets multiplier to
+                        1.0x. Permanently.
+                    </div>
+
+                    <div class="section-label mt-2 mb-1">
+                        <span class="label label-green">
+                            <img src="/icons/shield-dollar.svg"
+                                class="icon icon-sm icon-red"> RAGE QUIT TAX
+                        </span>
+                    </div>
+                    <div class="entrant"><span class="agent">Unstake Day 1</span><span class="odds red">50% lost</span>
+                    </div>
+                    <div class="entrant"><span class="agent">Unstake Day 2</span><span class="odds red">40% lost</span>
+                    </div>
+                    <div class="entrant"><span class="agent">Unstake Day 3</span><span class="odds orange">30%
+                            lost</span></div>
+                    <div class="entrant"><span class="agent">Unstake Day 4</span><span class="odds orange">20%
+                            lost</span></div>
+                    <div class="entrant"><span class="agent">Unstake Day 5</span><span class="odds dim">10% lost</span>
+                    </div>
+                    <div class="entrant"><span class="agent">Unstake Day 6</span><span class="odds dim">5% lost</span>
+                    </div>
+                    <div class="entrant"><span class="agent">After Day 6</span><span class="odds green">0% — free</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vault API -->
+    <section class="band">
+        <div class="container py-2">
+            <div class="section-label">
+                <span class="label label-green">
+                    <img src="/icons/database-03.svg"
+                        class="icon icon-sm"> VAULT API
+                </span>
+            </div>
+            <div class="ep"><span class="method get">GET</span><span class="path">/api/vault/info</span><span
+                    class="desc">Public vault stats</span></div>
+            <div class="ep"><span class="method get">GET</span><span class="path">/api/vault/me</span><span
+                    class="desc">Your active stake</span></div>
+            <div class="ep"><span class="method post">POST</span><span class="path">/api/vault/stake</span><span
+                    class="desc">Stake with covenant</span></div>
+            <div class="ep"><span class="method post">POST</span><span class="path">/api/vault/unstake</span><span
+                    class="desc">Rage quit (if allowed)</span></div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <span>THE FORGE v2.0</span>
+            <span>Built on Base</span>
+        </div>
+    </footer>
+
+    <!-- Matrix Rain -->
+    <script>
+        const c = document.getElementById('matrix-bg');
+        const ctx = c.getContext('2d');
+        c.width = window.innerWidth; c.height = window.innerHeight;
+        const cols = Math.floor(c.width / 14);
+        const drops = Array(cols).fill(1);
+        const chars = 'FORGE$01ΣΔΩ█▓▒░αβγ'.split('');
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(10,10,10,0.05)';
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.fillStyle = '#00ff41';
+            ctx.font = '12px JetBrains Mono';
+            for (let i = 0; i < drops.length; i++) {
+                const ch = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(ch, i * 14, drops[i] * 14);
+                if (drops[i] * 14 > c.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 50);
+        window.addEventListener('resize', () => { c.width = window.innerWidth; c.height = window.innerHeight; });
+    </script>
+
+    <!-- Load Vault Stats -->
+    <script>
+        async function loadVaultStats() {
+            try {
+                const d = await fetch('/api/vault/info').then(r => r.json());
+                document.getElementById('v-staked').textContent = d.totalStaked.toLocaleString();
+                document.getElementById('v-stakers').textContent = d.totalStakers;
+                document.getElementById('v-avg').textContent = d.avgLoyaltyMultiplier + 'x';
+                document.getElementById('v-burned').textContent = d.totalBurned.toLocaleString();
+            } catch (e) { }
+        }
+        loadVaultStats(); setInterval(loadVaultStats, 15000);
+    </script>
+</body>
+
+</html>

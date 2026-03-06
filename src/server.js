@@ -12,6 +12,7 @@ import sse from './sse.js';
 import { authenticate } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { startJobs } from './jobs/expiry.js';
+import { startBoutScheduler } from './jobs/bout-scheduler.js';
 
 // Route handlers
 import walletRouter from './routes/wallet.js';
@@ -19,6 +20,8 @@ import puzzleRouter from './routes/puzzles.js';
 import leaderboardRouter from './routes/leaderboard.js';
 import transferRouter from './routes/transfer.js';
 import adminRouter from './routes/admin.js';
+import boutRouter from './routes/bouts.js';
+import vaultRouter from './routes/vault.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -113,6 +116,12 @@ app.use('/api/transfer', transferRouter);
 // Admin: /api/admin/* (basic auth handled inside router)
 app.use('/api/admin', adminRouter);
 
+// Bouts: /api/bouts/* — scheduled arena events with betting
+app.use('/api/bouts', boutRouter);
+
+// Vault: /api/vault/* — Arena Vault staking
+app.use('/api/vault', vaultRouter);
+
 // ─── Error Handling ────────────────────────────────────────
 
 app.use(notFoundHandler);
@@ -126,6 +135,7 @@ async function start() {
         logger.info('Connected to database');
 
         startJobs();
+        startBoutScheduler();
 
         app.listen(config.port, () => {
             logger.info({ port: config.port, env: config.nodeEnv }, '🔥 The Forge is live');

@@ -32,6 +32,57 @@ const config = {
         solveRewardMultiplier: 10,
         smithRewardMultiplier: 3,
     },
+    bout: {
+        entryFee: 500,
+        minBalanceToEnter: 1000,
+        minAccountAgeDays: 7,
+        minSolvesToEnter: 3,
+        protocolRakePercent: 5,
+        agentPursePercent: 20,
+        bettorPoolPercent: 75,
+        podiumSplit: [60, 25, 15],        // 1st/2nd/3rd % of agent purse
+        podiumThreshold: 8,                // entrants needed for podium
+        maxBetPercent: 10,                 // max % of pool per bet
+        registrationHoursBefore: 48,
+        bettingHoursBefore: 12,
+        bettingCloseHoursBefore: 1,
+        solveDurationSecs: 3600,           // 1 hour
+        boutsPerWeek: 3,
+        minPoolGuarantee: 5000,
+    },
+    vault: {
+        covenants: {
+            FLAME: { lockDays: 1, apyBonus: 0, rageQuitMulti: 1.0 },
+            STEEL: { lockDays: 3, apyBonus: 50, rageQuitMulti: 2.0 },
+            OBSIDIAN: { lockDays: 7, apyBonus: 150, rageQuitMulti: 3.0 },
+            ETERNAL: { lockDays: 30, apyBonus: 300, rageQuitMulti: Infinity },
+        },
+        rageQuitTax: [50, 40, 30, 20, 10, 5, 0],  // % per DAY (index = day - 1), 0 after day 6
+        loyaltySchedule: [1.0, 1.2, 1.5, 2.0, 2.5, 3.0],  // multiplier per DAY (max at day 6)
+        vestingDays: 5,
+        minStake: 100,
+    },
+    burns: {
+        entryFeePercent: 10,
+        betPercent: 2,
+        losingBetPercent: 100,
+        gasBurn: true,
+        registrationBurn: 50,
+    },
+    bootstrap: {
+        schedule: [
+            { dayStart: 1, dayEnd: 2, apyPercent: 2000, boutInjection: 200000, betMiningBonus: 25 },
+            { dayStart: 3, dayEnd: 4, apyPercent: 1200, boutInjection: 150000, betMiningBonus: 20 },
+            { dayStart: 5, dayEnd: 6, apyPercent: 600, boutInjection: 100000, betMiningBonus: 15 },
+            { dayStart: 7, dayEnd: 8, apyPercent: 200, boutInjection: 50000, betMiningBonus: 10 },
+            { dayStart: 9, dayEnd: 10, apyPercent: 75, boutInjection: 20000, betMiningBonus: 5 },
+        ],
+        firstStakerBonuses: [
+            { maxStaker: 100, bonus: 5000 },
+            { maxStaker: 300, bonus: 2000 },
+            { maxStaker: 500, bonus: 1000 },
+            { maxStaker: 750, bonus: 500 },
+        ],
+    },
 };
-
 export default config;
