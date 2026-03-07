@@ -40,19 +40,22 @@ router.post('/', authenticate, async (req, res) => {
         return res.status(400).json({ error: "Can't transfer to yourself." });
     }
 
-    await prisma.$transaction([
-        prisma.wallet.update({
+    // H-8 fix: use interactive transaction and return updated balance
+    const updatedSender = await prisma.$transaction(async (tx) => {
+        const sender = await tx.wallet.update({
             where: { id: wallet.id },
             data: {
                 balance: { decrement: amount },
                 gas: { decrement: config.game.gasCostTransfer },
             },
-        }),
-        prisma.wallet.update({
+        });
+
+        await tx.wallet.update({
             where: { id: recipient.id },
             data: { balance: { increment: amount } },
-        }),
-        prisma.transaction.create({
+        });
+
+        await tx.transaction.create({
             data: {
                 fromId: wallet.id,
                 toId: recipient.id,
@@ -60,16 +63,19 @@ router.post('/', authenticate, async (req, res) => {
                 type: 'TRANSFER',
                 memo: `Transfer to ${toName}`,
             },
-        }),
-        prisma.transaction.create({
+        });
+
+        await tx.transaction.create({
             data: {
                 fromId: wallet.id,
                 amount: config.game.gasCostTransfer,
                 type: 'GAS_SPEND',
                 memo: 'Gas: transfer',
             },
-        }),
-    ]);
+        });
+
+        return sender;
+    });
 
     logger.info({ from: wallet.name, to: toName, amount }, 'Token transfer');
 
@@ -77,7 +83,7 @@ router.post('/', authenticate, async (req, res) => {
         from: wallet.name,
         to: toName,
         amount,
-        newBalance: wallet.balance - amount,
+        newBalance: updatedSender.balance,
         message: `Sent ${amount} $FORGE to ${toName}.`,
     });
 });

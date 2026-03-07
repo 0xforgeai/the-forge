@@ -1,6 +1,20 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// ─── Fail-safe: require critical secrets in production ─────
+if (process.env.NODE_ENV === 'production') {
+    const required = ['HMAC_SECRET', 'ADMIN_USER', 'ADMIN_PASS'];
+    const missing = required.filter(k => !process.env[k]);
+    if (missing.length > 0) {
+        console.error(`FATAL: Missing required env vars in production: ${missing.join(', ')}`);
+        process.exit(1);
+    }
+    if (process.env.HMAC_SECRET === 'forge-dev-secret' || process.env.HMAC_SECRET === 'forge-dev-secret-change-me-in-prod') {
+        console.error('FATAL: HMAC_SECRET is using a default/dev value in production');
+        process.exit(1);
+    }
+}
+
 const config = {
     port: parseInt(process.env.PORT || '3000', 10),
     nodeEnv: process.env.NODE_ENV || 'development',

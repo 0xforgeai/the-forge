@@ -53,9 +53,9 @@ async function runBootstrapEmission() {
         return;
     }
 
-    // Check if we already emitted today
+    // Check if we already emitted today (H-5 fix: use UTC explicitly)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
     const alreadyEmitted = await prisma.treasuryLedger.findFirst({
         where: {
             action: 'BOOTSTRAP_EMISSION',
@@ -98,13 +98,22 @@ async function runBootstrapEmission() {
         }));
     }
 
-    // Treasury ledger entry
+    // Treasury ledger entries (C-8 fix: track as treasury deduction + emission)
     if (totalEmitted > 0) {
+        // Record the emission
         ops.push(prisma.treasuryLedger.create({
             data: {
                 action: 'BOOTSTRAP_EMISSION',
                 amount: totalEmitted,
                 memo: `Day ${daysSinceLaunch} emission: ${activeTier.apyPercent}% APY to ${activeStakes.length} stakers`,
+            },
+        }));
+        // Record the corresponding treasury deduction (source of funds)
+        ops.push(prisma.treasuryLedger.create({
+            data: {
+                action: 'TREASURY_DEDUCTION',
+                amount: -totalEmitted,
+                memo: `Treasury deduction for Day ${daysSinceLaunch} bootstrap emission`,
             },
         }));
     }

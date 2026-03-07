@@ -285,54 +285,86 @@ router.post('/:id/bet', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'You already placed a bet on this bout. One bet per bout.' });
     }
 
-    // Max bet: 10% of current pool
-    const currentPool = bout.totalBetPool + amount;
-    const maxBet = Math.max(Math.floor(currentPool * bc.maxBetPercent / 100), 100); // at least 100
-    if (amount > maxBet) {
-        return res.status(400).json({
-            error: `Max bet is ${maxBet} (${bc.maxBetPercent}% of pool). You tried ${amount}.`,
-        });
-    }
-
-    // Check balance
+    // Check balance (preliminary — re-checked inside transaction)
     if (wallet.balance < amount) {
         return res.status(400).json({ error: `Insufficient balance. Need ${amount}, have ${wallet.balance}.` });
     }
 
-    // Place bet + burn 2%
+    // Place bet atomically with max bet check (C-5 fix: serialized read-check-write)
     const betBurn = Math.floor(amount * burnCfg.betPercent / 100);
     const netBetAmount = amount - betBurn;
 
-    const [bet] = await prisma.$transaction([
-        prisma.bet.create({
-            data: { boutId: bout.id, bettorId: wallet.id, entrantId, amount: netBetAmount },
-        }),
-        prisma.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { decrement: amount } },
-        }),
-        prisma.bout.update({
-            where: { id: bout.id },
-            data: { totalBetPool: { increment: netBetAmount } },
-        }),
-        prisma.transaction.create({
-            data: {
-                fromId: wallet.id,
-                amount,
-                type: 'BOUT_BET',
-                boutId: bout.id,
-                memo: `Bet on entrant in: ${bout.title} (${betBurn} burned)`,
-            },
-        }),
-        // Burn record
-        prisma.treasuryLedger.create({
-            data: {
-                action: 'BET_BURN',
-                amount: betBurn,
-                memo: `Burned ${betBurn} from ${wallet.name}'s bet (${burnCfg.betPercent}%)`,
-            },
-        }),
-    ]);
+    let bet;
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            // Re-read bout inside transaction for atomic max bet check
+            const freshBout = await tx.bout.findUnique({ where: { id: bout.id } });
+            if (!freshBout || freshBout.status !== 'BETTING') {
+                throw new Error('BOUT_NOT_BETTING');
+            }
+
+            const currentPool = freshBout.totalBetPool + netBetAmount;
+            const maxBet = Math.max(Math.floor(currentPool * bc.maxBetPercent / 100), 100);
+            if (amount > maxBet) {
+                throw new Error(`MAX_BET:${maxBet}`);
+            }
+
+            // Re-check balance inside transaction
+            const freshWallet = await tx.wallet.findUnique({ where: { id: wallet.id } });
+            if (!freshWallet || freshWallet.balance < amount) {
+                throw new Error('INSUFFICIENT_BALANCE');
+            }
+
+            const createdBet = await tx.bet.create({
+                data: { boutId: bout.id, bettorId: wallet.id, entrantId, amount: netBetAmount },
+            });
+
+            await tx.wallet.update({
+                where: { id: wallet.id },
+                data: { balance: { decrement: amount } },
+            });
+
+            await tx.bout.update({
+                where: { id: bout.id },
+                data: { totalBetPool: { increment: netBetAmount } },
+            });
+
+            await tx.transaction.create({
+                data: {
+                    fromId: wallet.id,
+                    amount,
+                    type: 'BOUT_BET',
+                    boutId: bout.id,
+                    memo: `Bet on entrant in: ${bout.title} (${betBurn} burned)`,
+                },
+            });
+
+            await tx.treasuryLedger.create({
+                data: {
+                    action: 'BET_BURN',
+                    amount: betBurn,
+                    memo: `Burned ${betBurn} from ${wallet.name}'s bet (${burnCfg.betPercent}%)`,
+                },
+            });
+
+            return createdBet;
+        });
+        bet = result;
+    } catch (err) {
+        if (err.message === 'BOUT_NOT_BETTING') {
+            return res.status(400).json({ error: 'Bout is no longer in BETTING phase.' });
+        }
+        if (err.message?.startsWith('MAX_BET:')) {
+            const maxBet = err.message.split(':')[1];
+            return res.status(400).json({
+                error: `Max bet is ${maxBet} (${bc.maxBetPercent}% of pool). You tried ${amount}.`,
+            });
+        }
+        if (err.message === 'INSUFFICIENT_BALANCE') {
+            return res.status(400).json({ error: `Insufficient balance.` });
+        }
+        throw err;
+    }
 
     logger.info({ boutId: bout.id, bettor: wallet.name, amount, entrantId }, 'Bet placed');
 

@@ -3,11 +3,11 @@ import logger from '../logger.js';
 
 /**
  * API-key authentication middleware.
- * Looks for `x-api-key` header or `apiKey` query param.
+ * Looks for `x-api-key` header only (H-2 fix: removed query param to prevent URL logging exposure).
  * Attaches `req.wallet` on success.
  */
 export async function authenticate(req, res, next) {
-    const apiKey = req.headers['x-api-key'] || req.query.apiKey;
+    const apiKey = req.headers['x-api-key'];
     if (!apiKey) {
         return res.status(401).json({ error: 'Missing API key. Include x-api-key header.' });
     }

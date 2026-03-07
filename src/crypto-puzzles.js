@@ -77,11 +77,11 @@ function generateIteratedHash(tier) {
     };
 }
 
-function verifyIteratedHash(answer, challengeData) {
-    // Re-compute would be expensive — but we stored the pre-computed answer
-    // Just compare the submitted hash to the stored one
-    const stored = challengeData._computedAnswer;
-    return answer.toLowerCase() === stored.toLowerCase();
+function verifyIteratedHash(answer, challengeData, storedAnswerHash) {
+    // M-4 fix: use storedAnswerHash (the pre-computed answer) instead of
+    // non-existent challengeData._computedAnswer. This function is now
+    // only called from verifyCryptoPuzzle which passes storedAnswerHash.
+    return answer.toLowerCase().trim() === (storedAnswerHash || '').toLowerCase();
 }
 
 // ─── PROOF OF WORK ──────────────────────────────────────────

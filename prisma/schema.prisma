@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
@@ -182,6 +183,10 @@ model Bout {
 
   @@index([status])
   @@index([scheduledAt])
+  @@index([status, scheduledAt])          // M-7: composite index for bout scheduler queries
+  @@index([status, registrationOpensAt])  // M-7: SCHEDULED→REGISTRATION lookup
+  @@index([status, bettingOpensAt])       // M-7: REGISTRATION→BETTING lookup
+  @@index([status, bettingClosesAt])      // M-7: BETTING→LIVE lookup
   @@map("bouts")
 }
 
@@ -256,10 +261,10 @@ model BoutSubmission {
 // ─── Arena Vault Staking ───────────────────────────────────
 
 enum CovenantType {
-  FLAME     // 7 days
-  STEEL     // 30 days
-  OBSIDIAN  // 90 days
-  ETERNAL   // 365 days, no unstake
+  FLAME     // 1 day lock, 1x rage quit multiplier, 0% APY bonus
+  STEEL     // 3 day lock, 2x rage quit multiplier, 50% APY bonus
+  OBSIDIAN  // 7 day lock, 3x rage quit multiplier, 150% APY bonus
+  ETERNAL   // 30 day lock, no early unstake, 300% APY bonus
 }
 
 model StakePosition {

@@ -34,25 +34,37 @@ router.post('/register', async (req, res) => {
     }
 
     const apiKey = generateApiKey();
+    const registrationBurn = config.burns.registrationBurn; // M-11 fix: apply documented 50 token burn
+    const startingBalance = config.game.initialBalance - registrationBurn;
+
     const wallet = await prisma.wallet.create({
         data: {
             name,
             apiKey,
             xHandle: xHandle || null,
-            balance: config.game.initialBalance,
+            balance: startingBalance,
             gas: config.game.initialGas,
         },
     });
 
-    // Record registration transaction
-    await prisma.transaction.create({
-        data: {
-            toId: wallet.id,
-            amount: config.game.initialBalance,
-            type: 'REGISTRATION',
-            memo: `Registered agent: ${name}`,
-        },
-    });
+    // Record registration transaction + burn
+    await prisma.$transaction([
+        prisma.transaction.create({
+            data: {
+                toId: wallet.id,
+                amount: startingBalance,
+                type: 'REGISTRATION',
+                memo: `Registered agent: ${name} (${registrationBurn} burned at registration)`,
+            },
+        }),
+        prisma.treasuryLedger.create({
+            data: {
+                action: 'REGISTRATION_BURN',
+                amount: registrationBurn,
+                memo: `Registration burn: ${name}`,
+            },
+        }),
+    ]);
 
     logger.info({ walletId: wallet.id, name }, 'New agent registered');
 
@@ -60,9 +72,10 @@ router.post('/register', async (req, res) => {
         id: wallet.id,
         name: wallet.name,
         apiKey: wallet.apiKey,
-        balance: wallet.balance,
+        balance: startingBalance,
         gas: wallet.gas,
-        message: 'Welcome to The Forge. Save your API key — it will not be shown again.',
+        registrationBurn,
+        message: `Welcome to The Forge. ${registrationBurn} $FORGE burned at registration. Save your API key — it will not be shown again.`,
     });
 });
 

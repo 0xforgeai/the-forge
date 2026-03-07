@@ -86,11 +86,8 @@ export function startJobs() {
                             memo: `Slashed: failed to reveal within deadline`,
                         },
                     }),
-                    // Decrease smith reputation
-                    prisma.wallet.update({
-                        where: { id: puzzle.smith.id },
-                        data: { reputation: { decrement: puzzle.difficultyTier } },
-                    }),
+                    // Decrease smith reputation (M-10 fix: floor at 0)
+                    prisma.$executeRaw`UPDATE wallets SET reputation = GREATEST(0, reputation - ${puzzle.difficultyTier}) WHERE id = ${puzzle.smith.id}`,
                 ]);
 
                 logger.warn(

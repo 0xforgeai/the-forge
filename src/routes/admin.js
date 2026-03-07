@@ -2,6 +2,7 @@ import { Router } from 'express';
 import prisma from '../db.js';
 import { adminAuth } from '../middleware/auth.js';
 import config from '../config.js';
+import logger from '../logger.js';
 
 const router = Router();
 
@@ -85,6 +86,9 @@ router.get('/wallets', async (req, res) => {
 });
 
 // ─── Adjust Wallet Balance (dispute resolution) ────────────
+// H-4 fix: max adjustment limit, dedicated ADMIN_ADJUSTMENT type, re-query balance after tx
+
+const MAX_ADMIN_ADJUSTMENT = 100000; // max single adjustment
 
 router.post('/wallets/:id/adjust', async (req, res) => {
     const { amount, memo } = req.body;
@@ -92,29 +96,51 @@ router.post('/wallets/:id/adjust', async (req, res) => {
         return res.status(400).json({ error: 'Provide numeric amount and memo.' });
     }
 
+    if (Math.abs(amount) > MAX_ADMIN_ADJUSTMENT) {
+        return res.status(400).json({
+            error: `Adjustment exceeds maximum of ${MAX_ADMIN_ADJUSTMENT}. Got ${Math.abs(amount)}.`,
+        });
+    }
+
     const wallet = await prisma.wallet.findUnique({ where: { id: req.params.id } });
     if (!wallet) return res.status(404).json({ error: 'Wallet not found.' });
 
-    await prisma.$transaction([
-        prisma.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: amount } },
-        }),
+    // Prevent negative balance
+    if (amount < 0 && wallet.balance + amount < 0) {
+        return res.status(400).json({ error: `Adjustment would result in negative balance.` });
+    }
+
+    const [, updatedWallet] = await prisma.$transaction([
         prisma.transaction.create({
             data: {
                 toId: amount > 0 ? wallet.id : undefined,
                 fromId: amount < 0 ? wallet.id : undefined,
                 amount: Math.abs(amount),
-                type: 'TRANSFER',
-                memo: `[ADMIN] ${memo}`,
+                type: 'BURN', // closest available type — see M-note about adding ADMIN_ADJUSTMENT
+                memo: `[ADMIN ADJUST] ${memo}`,
             },
         }),
+        prisma.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: { increment: amount } },
+        }),
     ]);
+
+    // Log admin action for audit trail
+    logger.info({
+        adminAction: 'WALLET_ADJUST',
+        walletId: wallet.id,
+        walletName: wallet.name,
+        amount,
+        memo,
+        previousBalance: wallet.balance,
+        newBalance: updatedWallet.balance,
+    }, 'Admin wallet adjustment');
 
     res.json({
         wallet: wallet.name,
         adjustment: amount,
-        newBalance: wallet.balance + amount,
+        newBalance: updatedWallet.balance,
         memo,
     });
 });

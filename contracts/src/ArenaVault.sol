@@ -11,6 +11,14 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * @notice Covenant-based staking vault for $FORGE.
  *         Implements: covenants (Flame/Steel/Obsidian/Eternal), loyalty multiplier,
  *         rage quit tax, 5-day vesting, and pro-rata yield distribution.
+ *
+ * @dev Uses a pull-based yield model (MasterChef-style rewardPerToken accumulator)
+ *      instead of iterating all stakers. O(1) for deposits and claims.
+ *
+ * Fixes applied:
+ *   C-2: Replaced unbounded distributeYield loop with rewardPerToken accumulator
+ *   C-3: Replaced stakerCount + stakers[] array with simple activeStakerCount
+ *   C-7: Fixed claimYield to calculate newlyVested only once
  */
 contract ArenaVault is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -22,7 +30,7 @@ contract ArenaVault is Ownable, ReentrancyGuard {
     struct CovenantConfig {
         uint32 lockDays;       // 1, 3, 7, 30
         uint16 apyBonusBps;    // 0, 5000, 15000, 30000 (basis points)
-        uint16 rageQuitMulti;  // 100, 200, 300, 10000 (100 = 1x, 10000 = can't unstake)
+        uint16 rageQuitMulti;  // 100, 200, 300, 10000 (100 = 1x)
     }
 
     struct StakePosition {
@@ -35,6 +43,7 @@ contract ArenaVault is Ownable, ReentrancyGuard {
         uint256 stakedAt;           // timestamp
         uint256 lockExpiresAt;      // timestamp
         uint256 lastYieldClaim;     // last time yield was claimed
+        uint256 rewardDebt;         // accumulated rewardPerToken already accounted for
         Covenant covenant;
         bool active;
     }
@@ -44,8 +53,6 @@ contract ArenaVault is Ownable, ReentrancyGuard {
     IERC20 public immutable forgeToken;
 
     mapping(address => StakePosition) public positions;
-    address[] public stakers;
-    mapping(address => bool) public isStaker;
 
     // Covenant configs
     mapping(Covenant => CovenantConfig) public covenantConfigs;
@@ -59,25 +66,26 @@ contract ArenaVault is Ownable, ReentrancyGuard {
     // Vesting
     uint32 public constant VESTING_DAYS = 5;
 
-    // Yield pool: accumulated yield to distribute
-    uint256 public yieldPool;
+    // ─── Pull-based yield (MasterChef pattern) ──────────────
 
-    // Total weighted stake (for pro-rata yield)
+    /// @notice Accumulated reward per unit of weighted stake, scaled by 1e18
+    uint256 public rewardPerTokenStored;
+
+    /// @notice Total weighted stake across all active stakers
     uint256 public totalWeightedStake;
 
     // Stats
     uint256 public totalStaked;
     uint256 public totalBurned;
     uint256 public totalTaxCollected;
-    uint256 public stakerCount;
+    uint256 public activeStakerCount;
 
     // ─── Events ─────────────────────────────────────────────
 
     event Staked(address indexed user, uint256 amount, Covenant covenant, uint256 lockExpires);
     event Unstaked(address indexed user, uint256 returned, uint256 taxed, uint256 forfeitedRewards);
-    event YieldDeposited(uint256 amount);
+    event YieldDeposited(uint256 amount, uint256 newRewardPerToken);
     event YieldClaimed(address indexed user, uint256 amount);
-    event RewardsVested(address indexed user, uint256 amount);
 
     // ─── Errors ─────────────────────────────────────────────
 
@@ -87,13 +95,13 @@ contract ArenaVault is Ownable, ReentrancyGuard {
     error LockNotExpired(uint256 expiresAt);
     error EternalCannotUnstake();
     error NothingToClaim();
+    error NoStakersToReceive();
 
     // ─── Constructor ────────────────────────────────────────
 
     constructor(address _forgeToken, address _owner) Ownable(_owner) {
         forgeToken = IERC20(_forgeToken);
 
-        // Configure covenants
         covenantConfigs[Covenant.FLAME]    = CovenantConfig({ lockDays: 1,  apyBonusBps: 0,     rageQuitMulti: 100 });
         covenantConfigs[Covenant.STEEL]    = CovenantConfig({ lockDays: 3,  apyBonusBps: 5000,  rageQuitMulti: 200 });
         covenantConfigs[Covenant.OBSIDIAN] = CovenantConfig({ lockDays: 7,  apyBonusBps: 15000, rageQuitMulti: 300 });
@@ -111,6 +119,8 @@ contract ArenaVault is Ownable, ReentrancyGuard {
 
         forgeToken.safeTransferFrom(msg.sender, address(this), amount);
 
+        uint256 weight = _calcWeight(amount, 0, cfg.apyBonusBps);
+
         positions[msg.sender] = StakePosition({
             amount: amount,
             unvestedRewards: 0,
@@ -121,19 +131,14 @@ contract ArenaVault is Ownable, ReentrancyGuard {
             stakedAt: block.timestamp,
             lockExpiresAt: lockExpires,
             lastYieldClaim: block.timestamp,
+            rewardDebt: (weight * rewardPerTokenStored) / 1e18,
             covenant: covenant,
             active: true
         });
 
-        if (!isStaker[msg.sender]) {
-            stakers.push(msg.sender);
-            isStaker[msg.sender] = true;
-        }
-
-        uint256 weight = _calcWeight(amount, 0, cfg.apyBonusBps);
         totalWeightedStake += weight;
         totalStaked += amount;
-        stakerCount++;
+        activeStakerCount++;
 
         emit Staked(msg.sender, amount, covenant, lockExpires);
     }
@@ -146,15 +151,18 @@ contract ArenaVault is Ownable, ReentrancyGuard {
 
         CovenantConfig memory cfg = covenantConfigs[pos.covenant];
 
-        // Eternal check
+        // ETERNAL: can unstake only AFTER lock period
         if (pos.covenant == Covenant.ETERNAL && block.timestamp < pos.lockExpiresAt) {
             revert EternalCannotUnstake();
         }
 
-        // Lock period check
+        // Lock period check for all covenants
         if (block.timestamp < pos.lockExpiresAt) {
             revert LockNotExpired(pos.lockExpiresAt);
         }
+
+        // Settle pending yield before unstaking
+        _settleYield(msg.sender);
 
         // Calculate rage quit tax
         uint256 daysStaked = (block.timestamp - pos.stakedAt) / 1 days;
@@ -165,7 +173,7 @@ contract ArenaVault is Ownable, ReentrancyGuard {
         // Forfeit unvested rewards
         uint256 forfeitedRewards = pos.unvestedRewards;
 
-        // Remove weight before modifying
+        // Remove weight
         uint256 loyaltyMulti = _getLoyaltyMultiplier(daysStaked);
         uint256 weight = _calcWeight(pos.amount, loyaltyMulti, cfg.apyBonusBps);
         if (totalWeightedStake >= weight) {
@@ -174,29 +182,35 @@ contract ArenaVault is Ownable, ReentrancyGuard {
             totalWeightedStake = 0;
         }
 
-        // Vest any remaining claimable
-        uint256 vestedToClaim = pos.vestedRewards + _calcVestedAmount(pos);
+        // Collect any vested rewards
+        uint256 newlyVested = _calcVestedAmount(pos);
+        uint256 vestedToClaim = pos.vestedRewards + newlyVested;
 
         // Update state
         pos.active = false;
         pos.totalTaxPaid += taxAmount;
+        pos.unvestedRewards = 0;
+        pos.vestedRewards = 0;
+        pos.rewardDebt = 0;
         totalStaked -= pos.amount;
-        stakerCount--;
+        activeStakerCount--;
 
         // Transfer tokens
         if (returnAmount + vestedToClaim > 0) {
             forgeToken.safeTransfer(msg.sender, returnAmount + vestedToClaim);
         }
 
-        // Tax goes back to yield pool for remaining stakers
-        if (taxAmount > 0) {
-            yieldPool += taxAmount;
+        // Tax redistributed via accumulator to remaining stakers
+        if (taxAmount > 0 && totalWeightedStake > 0) {
+            rewardPerTokenStored += (taxAmount * 1e18) / totalWeightedStake;
             totalTaxCollected += taxAmount;
+        } else if (taxAmount > 0) {
+            totalBurned += taxAmount;
         }
 
-        // Forfeited rewards go back to yield pool
-        if (forfeitedRewards > 0) {
-            yieldPool += forfeitedRewards;
+        // Forfeited rewards also redistributed
+        if (forfeitedRewards > 0 && totalWeightedStake > 0) {
+            rewardPerTokenStored += (forfeitedRewards * 1e18) / totalWeightedStake;
         }
 
         emit Unstaked(msg.sender, returnAmount + vestedToClaim, taxAmount, forfeitedRewards);
@@ -206,70 +220,74 @@ contract ArenaVault is Ownable, ReentrancyGuard {
 
     /**
      * @notice Owner deposits yield (from bout rake, treasury emissions, etc.)
-     *         Tokens are distributed pro-rata to stakers based on weighted stake.
+     *         O(1) — updates the global rewardPerToken accumulator.
      */
     function depositYield(uint256 amount) external onlyOwner nonReentrant {
         if (amount == 0) revert InsufficientAmount();
+        if (totalWeightedStake == 0) revert NoStakersToReceive();
+
         forgeToken.safeTransferFrom(msg.sender, address(this), amount);
-        yieldPool += amount;
-        emit YieldDeposited(amount);
+        rewardPerTokenStored += (amount * 1e18) / totalWeightedStake;
+
+        emit YieldDeposited(amount, rewardPerTokenStored);
     }
 
     /**
-     * @notice Distribute accumulated yield pool to all active stakers.
-     *         Called periodically by owner (e.g., after each bout).
-     */
-    function distributeYield() external onlyOwner {
-        if (yieldPool == 0 || totalWeightedStake == 0) return;
-
-        uint256 pool = yieldPool;
-        yieldPool = 0;
-
-        for (uint256 i = 0; i < stakers.length; i++) {
-            StakePosition storage pos = positions[stakers[i]];
-            if (!pos.active) continue;
-
-            CovenantConfig memory cfg = covenantConfigs[pos.covenant];
-            uint256 daysStaked = (block.timestamp - pos.stakedAt) / 1 days;
-            uint256 loyaltyMulti = _getLoyaltyMultiplier(daysStaked);
-            uint256 weight = _calcWeight(pos.amount, loyaltyMulti, cfg.apyBonusBps);
-
-            uint256 share = (pool * weight) / totalWeightedStake;
-            if (share == 0) continue;
-
-            // Add to unvested rewards (vest over 5 days)
-            // First, vest any existing unvested
-            uint256 newlyVested = _calcVestedAmount(pos);
-            pos.vestedRewards += newlyVested;
-
-            pos.unvestedRewards = pos.unvestedRewards - newlyVested + share;
-            pos.vestingStart = block.timestamp;
-            pos.totalEarned += share;
-            pos.lastYieldClaim = block.timestamp;
-
-            // Update loyalty for weight tracking
-            uint256 newWeight = _calcWeight(pos.amount, loyaltyMulti, cfg.apyBonusBps);
-            totalWeightedStake = totalWeightedStake - weight + newWeight;
-        }
-    }
-
-    /**
-     * @notice Claim vested rewards.
+     * @notice Claim vested rewards. Settles pending accumulator yield first.
+     *         C-7 fix: newlyVested calculated exactly once.
      */
     function claimYield() external nonReentrant {
         StakePosition storage pos = positions[msg.sender];
         if (!pos.active) revert NotStaked();
 
-        uint256 vested = pos.vestedRewards + _calcVestedAmount(pos);
-        if (vested == 0) revert NothingToClaim();
+        // Settle pending yield from accumulator
+        _settleYield(msg.sender);
 
-        // Update unvested
+        // Calculate newly vested — single calculation (C-7 fix)
         uint256 newlyVested = _calcVestedAmount(pos);
+        uint256 totalClaim = pos.vestedRewards + newlyVested;
+        if (totalClaim == 0) revert NothingToClaim();
+
+        // Update state
         pos.unvestedRewards -= newlyVested;
         pos.vestedRewards = 0;
 
-        forgeToken.safeTransfer(msg.sender, vested);
-        emit YieldClaimed(msg.sender, vested);
+        // Reset vesting clock for remaining unvested
+        if (pos.unvestedRewards > 0) {
+            pos.vestingStart = block.timestamp;
+        } else {
+            pos.vestingStart = 0;
+        }
+
+        forgeToken.safeTransfer(msg.sender, totalClaim);
+        emit YieldClaimed(msg.sender, totalClaim);
+    }
+
+    // ─── Internal: Settle yield from accumulator ────────────
+
+    function _settleYield(address user) internal {
+        StakePosition storage pos = positions[user];
+        if (!pos.active) return;
+
+        CovenantConfig memory cfg = covenantConfigs[pos.covenant];
+        uint256 daysStaked = (block.timestamp - pos.stakedAt) / 1 days;
+        uint256 loyaltyMulti = _getLoyaltyMultiplier(daysStaked);
+        uint256 weight = _calcWeight(pos.amount, loyaltyMulti, cfg.apyBonusBps);
+
+        uint256 pending = (weight * rewardPerTokenStored / 1e18) - pos.rewardDebt;
+
+        if (pending > 0) {
+            // Vest any existing unvested first
+            uint256 newlyVested = _calcVestedAmount(pos);
+            pos.vestedRewards += newlyVested;
+            pos.unvestedRewards = pos.unvestedRewards - newlyVested + pending;
+            pos.vestingStart = block.timestamp;
+            pos.totalEarned += pending;
+            pos.lastYieldClaim = block.timestamp;
+        }
+
+        // Always update debt to current accumulator
+        pos.rewardDebt = (weight * rewardPerTokenStored) / 1e18;
     }
 
     // ─── Views ──────────────────────────────────────────────
@@ -301,8 +319,19 @@ contract ArenaVault is Ownable, ReentrancyGuard {
         return pos.vestedRewards + _calcVestedAmount(pos);
     }
 
+    function getPendingYield(address user) external view returns (uint256) {
+        StakePosition memory pos = positions[user];
+        if (!pos.active) return 0;
+        CovenantConfig memory cfg = covenantConfigs[pos.covenant];
+        uint256 daysStaked = (block.timestamp - pos.stakedAt) / 1 days;
+        uint256 loyaltyMulti = _getLoyaltyMultiplier(daysStaked);
+        uint256 weight = _calcWeight(pos.amount, loyaltyMulti, cfg.apyBonusBps);
+        uint256 owed = (weight * rewardPerTokenStored) / 1e18;
+        return owed > pos.rewardDebt ? owed - pos.rewardDebt : 0;
+    }
+
     function getStakerCount() external view returns (uint256) {
-        return stakerCount;
+        return activeStakerCount;
     }
 
     // ─── Internal ───────────────────────────────────────────
@@ -318,14 +347,12 @@ contract ArenaVault is Ownable, ReentrancyGuard {
         if (idx >= rageQuitTax.length) idx = rageQuitTax.length - 1;
         uint256 baseTax = uint256(rageQuitTax[idx]);
         uint256 tax = (baseTax * uint256(covenantMulti)) / 100;
-        if (tax > 10000) tax = 10000; // cap at 100%
+        if (tax > 10000) tax = 10000;
         return tax;
     }
 
     function _calcWeight(uint256 amount, uint256 loyaltyMulti, uint16 apyBonusBps) internal pure returns (uint256) {
-        // weight = amount × (loyaltyMulti / 100) × (1 + apyBonus / 10000)
-        // Simplified with fixed point:
-        if (loyaltyMulti == 0) loyaltyMulti = 100; // default 1.0x
+        if (loyaltyMulti == 0) loyaltyMulti = 100;
         uint256 bonusMulti = 10000 + uint256(apyBonusBps);
         return (amount * loyaltyMulti * bonusMulti) / (100 * 10000);
     }

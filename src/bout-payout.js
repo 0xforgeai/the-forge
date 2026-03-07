@@ -106,6 +106,10 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
     // ── Losing bet burn ─────────────────────────────
     const losingBetBurn = losingBets.reduce((sum, b) => sum + b.amount, 0);
 
+    // ── Rounding dust: account for Math.floor truncation (C-6 fix) ──
+    const allocatedFromBets = protocolRake + agentPurseFromBets + bettorPool;
+    const roundingDust = totalBetPool - allocatedFromBets;
+
     // ── Vault split: 50% of rake to stakers ──────
     const rakeToVault = Math.floor(protocolRake / 2);
     const rakeToProtocol = protocolRake - rakeToVault;
@@ -118,7 +122,7 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
     }
 
     return {
-        protocolRake: rakeToProtocol + unallocated,
+        protocolRake: rakeToProtocol + unallocated + roundingDust,
         rakeToVault,
         agentPurse,
         bettorPool,
@@ -128,6 +132,7 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
         podium,
         agentPayouts,
         bettorPayouts,
+        roundingDust,
         losingBets: losingBets.map(b => ({ betId: b.id, bettorId: b.bettorId, amount: b.amount })),
     };
 }

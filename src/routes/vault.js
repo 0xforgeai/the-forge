@@ -172,6 +172,7 @@ router.post('/stake', authenticate, async (req, res) => {
                 covenant,
                 lockDays: covConfig.lockDays,
                 apyBonus: covConfig.apyBonus,
+                // C-4 fix: use 999 as sentinel for ETERNAL (matches onchain 10000/100 = 100x cap)
                 rageQuitMulti: covConfig.rageQuitMulti === Infinity ? 999 : covConfig.rageQuitMulti,
                 lockExpiresAt,
                 loyaltyMulti: 1.0,
@@ -232,19 +233,15 @@ router.post('/unstake', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'No active stake found.' });
     }
 
-    // Eternal covenant check — cannot unstake
-    if (position.covenant === 'ETERNAL') {
-        return res.status(400).json({
-            error: 'ETERNAL covenant — you cannot unstake for 30 days. This is the price of maximum yield. 💀',
-        });
-    }
-
-    // Lock period check
+    // Lock period check — applies to ALL covenants including ETERNAL (H-10 fix)
     const now = new Date();
     if (now < position.lockExpiresAt) {
         const daysLeft = Math.ceil((position.lockExpiresAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+        const eternalNote = position.covenant === 'ETERNAL'
+            ? ' ETERNAL covenant — this is the price of maximum yield.'
+            : '';
         return res.status(400).json({
-            error: `Lock period not expired. ${daysLeft} days remaining. You chose ${position.covenant}.`,
+            error: `Lock period not expired. ${daysLeft} days remaining. You chose ${position.covenant}.${eternalNote}`,
         });
     }
 
