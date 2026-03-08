@@ -58,7 +58,7 @@ The current shield-with-lightning-bolt mark was a placeholder. The new logo must
 
 | Role | Hex | Usage |
 |---|---|---|
-| **Neon Green (Primary)** | `#00ff41` | Brand color, CTAs, glows, live indicators, matrix rain |
+| **Green (Primary)** | `#4ADE80` | Brand color, CTAs, glows, live indicators |
 | **Deep Black** | `#0a0a0a` | Primary background |
 | **Surface** | `#111111` | Card/panel backgrounds |
 | **Orange** | `#ff6b2b` | Secondary accent — fire, heat, betting |
@@ -68,7 +68,7 @@ The current shield-with-lightning-bolt mark was a placeholder. The new logo must
 | **Text Bright** | `#e8e8e8` | Headings, emphasis |
 | **Text Default** | `#c8c8c8` | Body copy |
 
-**The dominant visual signature is `#00ff41` neon green on near-black backgrounds.** Orange (`#ff6b2b`) now has elevated importance as the color of fire/heat/forging.
+**The dominant visual signature is `#4ADE80` green on near-black backgrounds.** Orange (`#ff6b2b`) has elevated importance as the color of fire/heat/forging.
 
 ### Typography (Unchanged)
 - **Display/Brand:** JetBrains Mono (bold, uppercase, letter-spacing 0.04em)
@@ -76,9 +76,9 @@ The current shield-with-lightning-bolt mark was a placeholder. The new logo must
 - **Fallback:** SF Mono, monospace
 
 ### Aesthetic
-- **Dark cyberpunk / terminal hacker** — CRT scanlines, matrix rain, glass-morphism blur
-- **Monospace-first** — the entire UI feels like a high-tech terminal dashboard
-- **Neon glow effects** — buttons, borders, and status indicators pulse with `#00ff41` glow
+- **Dark industrial, modern & approachable** — clean surfaces, subtle glow, glass-morphism blur
+- **Monospace-first** — the UI retains a technical dashboard feel without going full terminal/hacker
+- **Soft glow effects** — buttons, borders, and status indicators glow with `#4ADE80` green
 - **Industrial + digital fusion** — the forge is ancient craft meets bleeding-edge AI. The logo should feel like a blacksmith's mark stamped onto a circuit board.
 
 ---
@@ -130,7 +130,7 @@ The negative space between a hammer and anvil forms a spark, a cursor, or a data
 4. Wordmark only (text-only usage)
 
 **Color Versions:**
-- Primary: `#00ff41` on `#0a0a0a`
+- Primary: `#4ADE80` on `#0a0a0a`
 - Fire variant: `#ff6b2b` to `#ffd700` gradient on `#0a0a0a` (for special/event use)
 - Reversed: White on black
 - Monochrome: All black, all white
@@ -242,50 +242,53 @@ The negative space between a hammer and anvil forms a spark, a cursor, or a data
 
 ## 8. Example Prompts
 
-### Logomark — Anvil Mark (Recraft V3)
-```
-Minimalist geometric logo icon. A blacksmith's anvil rendered in clean angular
-lines, with subtle circuit board traces etched into the striking surface.
-Single color: neon green (#00ff41) on pure black (#0a0a0a) background.
-Sharp edges, no curves, symmetrical. Must read clearly at 32px.
-Vector logo style, flat, no gradients, no text. Professional brand mark.
-```
-
-### Logomark — F-as-Anvil (Recraft V3)
-```
-Minimalist logo mark. The capital letter F designed so its silhouette forms
-the profile of a blacksmith's anvil. The top horizontal bar is the striking
-surface, the vertical stroke is the body, the middle bar is the waist.
-Geometric, angular, monospace weight. Single color neon green (#00ff41)
-on black. No additional text. Clean vector style, works at 16px favicon size.
-```
+> All prompts reference the finalized logomark: a capital letter "F" whose
+> silhouette forms a blacksmith's anvil in profile, with parallel circuit-board
+> trace lines running through the vertical stroke and into the arms. The mark
+> uses line work (not a solid fill) so the dark background shows through the
+> trace channels. Brand green is `#4ADE80`.
 
 ### Wordmark (Ideogram 3.0)
 ```
-Logo wordmark reading "THE FORGE" in bold uppercase monospace font.
-Dark industrial cyberpunk aesthetic. Neon green (#00ff41) glowing text
-on #0a0a0a black background. Subtle heat distortion and ember particles
-around the letterforms. Wide letter-spacing, sharp edges, heavy weight.
-"FORGE" larger and bolder than "THE". Professional brand logo, centered.
+Logo lockup reading "THE FORGE" in bold uppercase monospace font, placed to
+the right of the existing brand mark — a line-work letter F shaped like an
+anvil with circuit-board traces running through it, rendered in #4ADE80 green.
+Deep black (#0a0a0a) background. "FORGE" is larger and heavier than "THE".
+Wide letter-spacing, clean edges. Subtle green glow around the logomark only.
+Professional brand lockup, horizontally centered. No extra icons or decoration.
 ```
 
-### Banner — Forge Environment (Midjourney v6.1)
+### Banner — Website Hero (Midjourney v6.1)
 ```
-Dark cinematic website hero banner. A massive geometric anvil sits center
-frame, glowing with neon green (#00ff41) circuit traces and orange (#ff6b2b)
-ember particles rising from its surface. Deep black (#0a0a0a) background.
-Falling green matrix rain code in the far background. Industrial forge
-atmosphere with volumetric lighting. No text. Wide format, moody, heavy.
+Dark cinematic website hero banner. The established brand mark — an anvil-
+shaped letter F with internal circuit trace lines in #4ADE80 green — sits
+left-of-center at large scale. To its right, the wordmark "THE FORGE" in
+bold uppercase monospace. Orange (#ff6b2b) ember particles drift upward from
+the anvil's striking surface. Deep black (#0a0a0a) background with faint
+radial glow behind the mark. Industrial atmosphere, minimal, no matrix rain.
+Wide format, moody, heavy.
 --ar 16:5 --style raw --v 6.1
+```
+
+### Mobile Splash Screen (Recraft V3)
+```
+Mobile splash screen, portrait orientation. The brand mark — an anvil-shaped
+letter F built from parallel circuit-board trace lines in #4ADE80 green —
+is centered vertically and horizontally on a solid #0a0a0a black background.
+Below the mark, the wordmark "THE FORGE" in small uppercase monospace,
+same green. Subtle soft glow behind the mark. No other elements, no tagline.
+Clean, minimal, app-launch aesthetic. Safe area padding on all sides.
+--ar 9:16
 ```
 
 ### 3D Mark Render (Seedream 3.0)
 ```
-Photorealistic 3D render of a geometric anvil logo on a black background.
-The anvil is dark brushed steel with glowing neon green circuit traces
-carved into its surface. Orange embers and sparks float upward from the
-striking surface. Dramatic rim lighting. Studio product shot aesthetic.
-Centered, minimal, no text. 8K detail.
+Photorealistic 3D render of the brand mark — a capital letter F shaped like
+a blacksmith's anvil, constructed from raised parallel circuit-board traces —
+floating on a black background. The traces are brushed dark steel with edges
+that emit a soft #4ADE80 green glow. Orange (#ff6b2b) embers and micro-sparks
+drift upward from the anvil's flat top surface. Dramatic rim lighting from
+above. Studio product-shot aesthetic. Centered, minimal, no text. 8K detail.
 ```
 
 ---
