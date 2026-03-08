@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Forge — Brand Guidelines</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+  :root {
+    --green: #4ADE80;
+    --green-dim: #22c55e;
+    --orange: #ff6b2b;
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface-2: #1a1a1a;
+    --border: #2f3336;
+    --text: #e7e9ea;
+    --text-dim: #71767b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.6;
+  }
+
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 80px 40px;
+  }
+
+  /* Cover */
+  .cover {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 80px;
+    margin-bottom: 80px;
+  }
+
+  .cover svg { width: 160px; height: 160px; margin-bottom: 32px; filter: drop-shadow(0 0 30px rgba(74,222,128,0.3)); }
+
+  .cover h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: 12px;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+
+  .cover .subtitle {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 6px;
+    color: var(--text-dim);
+    margin-top: 16px;
+  }
+
+  .cover .version {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 40px;
+    letter-spacing: 2px;
+  }
+
+  /* Section */
+  section {
+    margin-bottom: 80px;
+  }
+
+  .section-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  h2 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    line-height: 1.2;
+  }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    margin-top: 32px;
+  }
+
+  p {
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.8;
+    max-width: 640px;
+    margin-bottom: 16px;
+  }
+
+  /* Color Swatches */
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .swatch {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .swatch-color {
+    height: 100px;
+    display: flex;
+    align-items: flex-end;
+    padding: 12px;
+  }
+
+  .swatch-info {
+    padding: 12px;
+    background: var(--surface);
+  }
+
+  .swatch-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .swatch-values {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+
+  /* Logo showcase */
+  .logo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .logo-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    position: relative;
+  }
+
+  .logo-card.full { grid-column: 1 / -1; }
+
+  .logo-card .card-label {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .logo-card.light {
+    background: #ffffff;
+  }
+
+  .logo-card svg { max-width: 100%; height: auto; }
+
+  /* Typography specimen */
+  .type-specimen {
+    margin-top: 24px;
+  }
+
+  .type-row {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+  }
+
+  .type-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    width: 140px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .type-sample-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 6px;
+  }
+
+  .type-sample-heading {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+  }
+
+  .type-sample-body {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    color: var(--text-dim);
+  }
+
+  .type-sample-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 400;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  /* Spacing + sizing */
+  .sizing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .size-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .size-card h4 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .size-card table {
+    width: 100%;
+    font-size: 13px;
+    border-collapse: collapse;
+  }
+
+  .size-card td {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--surface-2);
+  }
+
+  .size-card td:first-child { color: var(--text-dim); }
+  .size-card td:last-child {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-align: right;
+  }
+
+  /* Do / Don't */
+  .dos-donts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .do-card, .dont-card {
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid;
+  }
+
+  .do-card {
+    background: rgba(74,222,128,0.05);
+    border-color: rgba(74,222,128,0.2);
+  }
+
+  .dont-card {
+    background: rgba(255,107,43,0.05);
+    border-color: rgba(255,107,43,0.2);
+  }
+
+  .do-card h4 {
+    color: var(--green);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .dont-card h4 {
+    color: var(--orange);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .do-card ul, .dont-card ul {
+    list-style: none;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 2;
+  }
+
+  .do-card li::before { content: '✓ '; color: var(--green); font-weight: 700; }
+  .dont-card li::before { content: '✗ '; color: var(--orange); font-weight: 700; }
+
+  /* Clear space diagram */
+  .clearspace {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 24px;
+    position: relative;
+  }
+
+  .clearspace-inner {
+    position: relative;
+    border: 1px dashed rgba(74,222,128,0.3);
+    padding: 40px;
+  }
+
+  .clearspace-inner svg {
+    width: 80px;
+    height: 80px;
+  }
+
+  .cs-label {
+    position: absolute;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--green);
+    letter-spacing: 1px;
+  }
+
+  .cs-top { top: 8px; left: 50%; transform: translateX(-50%); }
+  .cs-bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
+  .cs-left { left: 4px; top: 50%; transform: translateY(-50%) rotate(-90deg); }
+  .cs-right { right: 4px; top: 50%; transform: translateY(-50%) rotate(90deg); }
+
+  /* Footer */
+  .guidelines-footer {
+    margin-top: 80px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .guidelines-footer p {
+    max-width: 100%;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  @media print {
+    body { background: white; color: #111; }
+    .page { padding: 40px; }
+    section { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ========== COVER ========== -->
+  <div class="cover">
+    <svg viewBox="0 0 512 512">
+      <g transform="translate(256,256)">
+        <g fill="none" stroke="#4ADE80" stroke-width="4" stroke-linecap="round">
+          <path d="M-50,120 L50,120 L50,100 L30,100 L30,80 L-30,80 L-30,100 L-50,100 Z" fill="#4ADE80" stroke="none"/>
+          <rect x="-22" y="-20" width="44" height="100" fill="#4ADE80" stroke="none"/>
+          <path d="M-80,-20 L120,-20 L130,-50 L120,-80 L-60,-80 L-80,-80 L-90,-50 Z" fill="#4ADE80" stroke="none"/>
+          <path d="M-90,-50 L-130,-45 L-140,-40" stroke="#4ADE80" stroke-width="8" fill="none"/>
+          <path d="M-10,75 L-10,-15" stroke="#0a0a0a" stroke-width="2.5"/>
+          <path d="M10,75 L10,-15" stroke="#0a0a0a" stroke-width="2.5"/>
+          <path d="M0,75 L0,-15" stroke="#0a0a0a" stroke-width="2.5"/>
+          <path d="M-10,40 L-40,40 L-40,-15" stroke="#0a0a0a" stroke-width="2"/>
+          <path d="M10,20 L40,20 L40,-15" stroke="#0a0a0a" stroke-width="2"/>
+          <circle cx="-40" cy="40" r="3" fill="#0a0a0a"/>
+          <circle cx="40" cy="20" r="3" fill="#0a0a0a"/>
+        </g>
+      </g>
+    </svg>
+    <h1>THE FORGE</h1>
+    <div class="subtitle">Brand Guidelines</div>
+    <div class="version">Version 1.0 — March 2026</div>
+  </div>
+
+  <!-- ========== 01 BRAND OVERVIEW ========== -->
+  <section>
+    <span class="section-number">01 — Brand Overview</span>
+    <h2>Brand Essence</h2>
+    <p>The Forge is autonomous DeFi infrastructure — a platform where strategies are built, hardened, and battle-tested. The brand identity draws from the duality of traditional blacksmithing (strength, precision, craft) and modern circuit technology (intelligence, connectivity, speed).</p>
+
+    <h3>Brand Attributes</h3>
+    <p><strong>Industrial</strong> — Grounded in the weight and permanence of forged metal.<br>
+    <strong>Technical</strong> — Circuit traces signal intelligence running through every element.<br>
+    <strong>Autonomous</strong> — Systems that run, compete, and evolve without intervention.<br>
+    <strong>Precise</strong> — Clean geometry, deliberate spacing, zero ornamentation.</p>
+
+    <h3>Voice & Tone</h3>
+    <p>Direct. Confident. Technical but accessible. The Forge speaks like a senior engineer — clear, concise, no fluff. We use active voice, present tense, and short sentences. We never use exclamation marks in formal communications.</p>
+  </section>
+
+  <!-- ========== 02 LOGO ========== -->
+  <section>
+    <span class="section-number">02 — Logo</span>
+    <h2>The Forge Mark</h2>
+    <p>The primary mark is a capital letter F shaped like a blacksmith's anvil, with internal circuit-board traces. It represents the fusion of physical craft and digital intelligence that defines The Forge.</p>
+
+    <div class="logo-grid">
+      <div class="logo-card">
+        <span class="card-label">Primary — Dark BG</span>
+        <svg viewBox="0 0 512 512" width="120" height="120">
+          <g transform="translate(256,256)">
+            <g fill="none" stroke="#4ADE80" stroke-width="4" stroke-linecap="round">
+              <path d="M-50,120 L50,120 L50,100 L30,100 L30,80 L-30,80 L-30,100 L-50,100 Z" fill="#4ADE80" stroke="none"/>
+              <rect x="-22" y="-20" width="44" height="100" fill="#4ADE80" stroke="none"/>
+              <path d="M-80,-20 L120,-20 L130,-50 L120,-80 L-60,-80 L-80,-80 L-90,-50 Z" fill="#4ADE80" stroke="none"/>
+              <path d="M-90,-50 L-130,-45 L-140,-40" stroke="#4ADE80" stroke-width="8" fill="none"/>
+              <path d="M-10,75 L-10,-15" stroke="#0a0a0a" stroke-width="2.5"/>
+              <path d="M10,75 L10,-15" stroke="#0a0a0a" stroke-width="2.5"/>
+              <path d="M0,75 L0,-15" stroke="#0a0a0a" stroke-width="2.5"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="logo-card light">
+        <span class="card-label" style="color:#999">Primary — Light BG</span>
+        <svg viewBox="0 0 512 512" width="120" height="120">
+          <g transform="translate(256,256)">
+            <g fill="none" stroke="#111" stroke-width="4" stroke-linecap="round">
+              <path d="M-50,120 L50,120 L50,100 L30,100 L30,80 L-30,80 L-30,100 L-50,100 Z" fill="#111" stroke="none"/>
+              <rect x="-22" y="-20" width="44" height="100" fill="#111" stroke="none"/>
+              <path d="M-80,-20 L120,-20 L130,-50 L120,-80 L-60,-80 L-80,-80 L-90,-50 Z" fill="#111" stroke="none"/>
+              <path d="M-90,-50 L-130,-45 L-140,-40" stroke="#111" stroke-width="8" fill="none"/>
+              <path d="M-10,75 L-10,-15" stroke="#fff" stroke-width="2.5"/>
+              <path d="M10,75 L10,-15" stroke="#fff" stroke-width="2.5"/>
+              <path d="M0,75 L0,-15" stroke="#fff" stroke-width="2.5"/>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="logo-card full">
+        <span class="card-label">Horizontal Lockup</span>
+        <svg viewBox="0 0 800 200" width="400" height="100">
+          <g transform="translate(100,100) scale(0.5)">
+            <g fill="#4ADE80">
+              <path d="M-50,120 L50,120 L50,100 L30,100 L30,80 L-30,80 L-30,100 L-50,100 Z"/>
+              <rect x="-22" y="-20" width="44" height="100"/>
+              <path d="M-80,-20 L120,-20 L130,-50 L120,-80 L-60,-80 L-80,-80 L-90,-50 Z"/>
+            </g>
+            <path d="M-90,-50 L-130,-45 L-140,-40" stroke="#4ADE80" stroke-width="8" fill="none" stroke-linecap="round"/>
+          </g>
+          <text x="200" y="115" font-family="'Courier New',monospace" font-size="64" font-weight="700" fill="#4ADE80" letter-spacing="12">THE FORGE</text>
+        </svg>
+      </div>
+    </div>
+
+    <h3>Clear Space</h3>
+    <p>Maintain minimum clear space around the mark equal to the height of the anvil base (the "foot" of the F). No other elements should enter this zone.</p>
+
+    <div class="clearspace">
+      <div class="clearspace-inner">
+        <span class="cs-label cs-top">1x</span>
+        <span class="cs-label cs-bottom">1x</span>
+        <span class="cs-label cs-left">1x</span>
+        <span class="cs-label cs-right">1x</span>
+        <svg viewBox="0 0 512 512">
+          <g transform="translate(256,256)">
+            <g fill="#4ADE80">
+              <path d="M-50,120 L50,120 L50,100 L30,100 L30,80 L-30,80 L-30,100 L-50,100 Z"/>
+              <rect x="-22" y="-20" width="44" height="100"/>
+              <path d="M-80,-20 L120,-20 L130,-50 L120,-80 L-60,-80 L-80,-80 L-90,-50 Z"/>
+            </g>
+            <path d="M-90,-50 L-130,-45 L-140,-40" stroke="#4ADE80" stroke-width="8" fill="none" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <h3>Minimum Sizes</h3>
+    <div class="sizing-grid">
+      <div class="size-card">
+        <h4>Digital</h4>
+        <table>
+          <tr><td>Mark only</td><td>32 × 32 px</td></tr>
+          <tr><td>Horizontal lockup</td><td>200 × 50 px</td></tr>
+          <tr><td>Stacked lockup</td><td>120 × 140 px</td></tr>
+          <tr><td>Favicon</td><td>16 × 16 px</td></tr>
+        </table>
+      </div>
+      <div class="size-card">
+        <h4>Print</h4>
+        <table>
+          <tr><td>Mark only</td><td>12 mm / 0.5 in</td></tr>
+          <tr><td>Horizontal lockup</td><td>50 mm / 2 in</td></tr>
+          <tr><td>Stacked lockup</td><td>30 mm / 1.2 in</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 03 COLOR ========== -->
+  <section>
+    <span class="section-number">03 — Color</span>
+    <h2>Color Palette</h2>
+    <p>The Forge palette is intentionally constrained: forge green on deep black, with ember orange reserved for accents and emphasis moments.</p>
+
+    <div class="color-grid">
+      <div class="swatch">
+        <div class="swatch-color" style="background:#4ADE80;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Forge Green</div>
+          <div class="swatch-values">
+            HEX #4ADE80<br>
+            RGB 74, 222, 128<br>
+            HSL 142°, 71%, 58%
+          </div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#22c55e;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Forge Green Deep</div>
+          <div class="swatch-values">
+            HEX #22C55E<br>
+            RGB 34, 197, 94<br>
+            HSL 142°, 71%, 45%
+          </div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#ff6b2b;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Ember Orange</div>
+          <div class="swatch-values">
+            HEX #FF6B2B<br>
+            RGB 255, 107, 43<br>
+            HSL 18°, 100%, 58%
+          </div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#0a0a0a; border-bottom: 1px solid #2f3336;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Forge Black</div>
+          <div class="swatch-values">
+            HEX #0A0A0A<br>
+            RGB 10, 10, 10<br>
+            HSL 0°, 0%, 4%
+          </div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#111111; border-bottom: 1px solid #2f3336;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Surface</div>
+          <div class="swatch-values">
+            HEX #111111<br>
+            RGB 17, 17, 17<br>
+            HSL 0°, 0%, 7%
+          </div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#e7e9ea;"></div>
+        <div class="swatch-info">
+          <div class="swatch-name">Text Primary</div>
+          <div class="swatch-values">
+            HEX #E7E9EA<br>
+            RGB 231, 233, 234<br>
+            HSL 200°, 6%, 91%
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Usage Rules</h3>
+    <div class="dos-donts">
+      <div class="do-card">
+        <h4>Do</h4>
+        <ul>
+          <li>Use Forge Green as primary brand color</li>
+          <li>Use Forge Black as primary background</li>
+          <li>Use Ember Orange sparingly for accents</li>
+          <li>Maintain high contrast ratios (WCAG AA)</li>
+        </ul>
+      </div>
+      <div class="dont-card">
+        <h4>Don't</h4>
+        <ul>
+          <li>Use green and orange together at equal weight</li>
+          <li>Place green text on light backgrounds</li>
+          <li>Use gradients on the mark itself</li>
+          <li>Introduce new brand colors without approval</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 04 TYPOGRAPHY ========== -->
+  <section>
+    <span class="section-number">04 — Typography</span>
+    <h2>Type System</h2>
+    <p>The Forge uses a two-font system: JetBrains Mono for display and technical elements, Inter for body copy and UI text.</p>
+
+    <div class="type-specimen">
+      <div class="type-row">
+        <span class="type-label">Display</span>
+        <span class="type-sample-display" style="font-size:36px;">THE FORGE</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Heading 1</span>
+        <span class="type-sample-heading" style="font-size:32px;">Autonomous DeFi</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Heading 2</span>
+        <span class="type-sample-heading" style="font-size:24px;">Battle-Tested Strategies</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Body</span>
+        <span class="type-sample-body" style="font-size:16px;">Deploy agents into The Arena and compete for yield.</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Code / Data</span>
+        <span class="type-sample-mono">vault.deposit(1000, USDC);</span>
+      </div>
+    </div>
+
+    <h3>Type Scale</h3>
+    <div class="size-card" style="margin-top:16px;">
+      <h4>Sizes</h4>
+      <table>
+        <tr><td>Display</td><td>48 / 56 / 64 px</td></tr>
+        <tr><td>H1</td><td>32 / 40 px</td></tr>
+        <tr><td>H2</td><td>24 / 32 px</td></tr>
+        <tr><td>H3</td><td>18 / 28 px</td></tr>
+        <tr><td>Body</td><td>15–16 / 24 px</td></tr>
+        <tr><td>Caption</td><td>12–13 / 18 px</td></tr>
+        <tr><td>Mono / Code</td><td>13–14 / 20 px</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========== 05 SIZING ========== -->
+  <section>
+    <span class="section-number">05 — Asset Sizing</span>
+    <h2>Platform Sizing Reference</h2>
+    <p>Canonical export sizes for all brand assets across platforms and use-cases. All raster exports should be PNG-24 with transparency where applicable.</p>
+
+    <div class="sizing-grid">
+      <div class="size-card">
+        <h4>Social Media</h4>
+        <table>
+          <tr><td>Twitter/X PFP</td><td>400 × 400</td></tr>
+          <tr><td>Twitter/X Header</td><td>1500 × 500</td></tr>
+          <tr><td>Discord Avatar</td><td>512 × 512</td></tr>
+          <tr><td>Discord Banner</td><td>960 × 540</td></tr>
+          <tr><td>GitHub Avatar</td><td>500 × 500</td></tr>
+          <tr><td>GitHub Social</td><td>1280 × 640</td></tr>
+          <tr><td>OpenGraph</td><td>1200 × 630</td></tr>
+        </table>
+      </div>
+      <div class="size-card">
+        <h4>Web</h4>
+        <table>
+          <tr><td>Hero Banner @2x</td><td>2880 × 800</td></tr>
+          <tr><td>Hero Banner @1x</td><td>1440 × 400</td></tr>
+          <tr><td>Favicon .ico</td><td>16 × 16</td></tr>
+          <tr><td>Favicon .png</td><td>32 × 32</td></tr>
+          <tr><td>Apple Touch Icon</td><td>180 × 180</td></tr>
+          <tr><td>PWA Icon</td><td>512 × 512</td></tr>
+        </table>
+      </div>
+      <div class="size-card">
+        <h4>Mobile</h4>
+        <table>
+          <tr><td>iOS Splash (Pro Max)</td><td>1290 × 2796</td></tr>
+          <tr><td>iOS Splash (Pro)</td><td>1179 × 2556</td></tr>
+          <tr><td>iOS Splash (std)</td><td>1170 × 2532</td></tr>
+          <tr><td>Android Splash</td><td>1440 × 3120</td></tr>
+          <tr><td>App Icon iOS</td><td>1024 × 1024</td></tr>
+          <tr><td>App Icon Android</td><td>512 × 512</td></tr>
+        </table>
+      </div>
+      <div class="size-card">
+        <h4>Print / High-Res</h4>
+        <table>
+          <tr><td>Hero / Print Master</td><td>4096 × 4096</td></tr>
+          <tr><td>Wordmark Horizontal</td><td>4096 × 1024</td></tr>
+          <tr><td>Wordmark Stacked</td><td>2048 × 2048</td></tr>
+          <tr><td>Mark Only (Web)</td><td>2048 × 2048</td></tr>
+          <tr><td>Vector Format</td><td>SVG (scalable)</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 06 IMAGERY ========== -->
+  <section>
+    <span class="section-number">06 — Imagery & Effects</span>
+    <h2>Visual Language</h2>
+
+    <h3>Glow Effect</h3>
+    <p>The mark may include a subtle ambient glow in Forge Green (#4ADE80) at 20–40% opacity. The glow should be soft (large blur radius) and never overpower the mark itself. Used primarily on dark backgrounds.</p>
+
+    <h3>Ember Particles</h3>
+    <p>Orange ember particles (#FF6B2B) are used in hero scenes and motion graphics. Embers float upward from the anvil surface. Keep particle count low (5–12 particles in frame) to maintain elegance.</p>
+
+    <h3>Circuit Traces</h3>
+    <p>When extending brand patterns, circuit traces should use right-angle routing with small radii, matching PCB trace aesthetics. Trace width should be consistent within a composition. Terminate traces with small circular pads.</p>
+
+    <div class="dos-donts">
+      <div class="do-card">
+        <h4>Do</h4>
+        <ul>
+          <li>Keep imagery dark and moody</li>
+          <li>Use cinematic lighting (rim light, volumetric)</li>
+          <li>Center the mark as the hero element</li>
+          <li>Let negative space breathe</li>
+        </ul>
+      </div>
+      <div class="dont-card">
+        <h4>Don't</h4>
+        <ul>
+          <li>Use busy backgrounds behind the mark</li>
+          <li>Apply matrix-rain or cliché "hacker" effects</li>
+          <li>Distort, rotate, or crop the mark</li>
+          <li>Add drop shadows in place of the glow</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER ========== -->
+  <div class="guidelines-footer">
+    <p>The Forge Brand Guidelines v1.0 — March 2026</p>
+  </div>
+
+</div>
+</body>
+</html>
