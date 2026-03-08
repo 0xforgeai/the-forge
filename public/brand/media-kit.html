@@ -37,7 +37,7 @@
     margin-bottom: 80px;
   }
 
-  .kit-header svg { width: 80px; height: 80px; margin-bottom: 24px; filter: drop-shadow(0 0 20px rgba(74,222,128,0.3)); }
+  .kit-header svg, .kit-header > img { width: 80px; height: 80px; margin-bottom: 24px; filter: drop-shadow(0 0 20px rgba(74,222,128,0.3)); }
 
   .kit-header h1 {
     font-family: 'JetBrains Mono', monospace;
@@ -104,7 +104,8 @@
     gap: 12px;
   }
 
-  .asset-preview svg {
+  .asset-preview svg,
+  .asset-preview img {
     max-width: 60%;
     max-height: 60%;
   }
@@ -271,19 +272,7 @@
 <div class="kit">
 
   <div class="kit-header">
-    <svg viewBox="0 0 512 512">
-      <g transform="translate(256,256)">
-        <g fill="#4ADE80">
-          <path d="M-50,120 L50,120 L50,100 L30,100 L30,80 L-30,80 L-30,100 L-50,100 Z"/>
-          <rect x="-22" y="-20" width="44" height="100"/>
-          <path d="M-80,-20 L120,-20 L130,-50 L120,-80 L-60,-80 L-80,-80 L-90,-50 Z"/>
-        </g>
-        <path d="M-90,-50 L-130,-45 L-140,-40" stroke="#4ADE80" stroke-width="8" fill="none" stroke-linecap="round"/>
-        <path d="M-10,75 L-10,-15" stroke="#0a0a0a" stroke-width="2.5"/>
-        <path d="M10,75 L10,-15" stroke="#0a0a0a" stroke-width="2.5"/>
-        <path d="M0,75 L0,-15" stroke="#0a0a0a" stroke-width="2.5"/>
-      </g>
-    </svg>
+    <img src="logos/forge-mark-green-on-transparent.svg" alt="The Forge">
     <h1>THE FORGE</h1>
     <div class="sub">Media Kit</div>
   </div>
@@ -294,16 +283,7 @@
     <div class="asset-grid">
       <div class="asset-card">
         <div class="asset-preview">
-          <svg viewBox="0 0 512 512" width="100" height="100">
-            <g transform="translate(256,256)">
-              <g fill="#4ADE80">
-                <path d="M-50,120 L50,120 L50,100 L30,100 L30,80 L-30,80 L-30,100 L-50,100 Z"/>
-                <rect x="-22" y="-20" width="44" height="100"/>
-                <path d="M-80,-20 L120,-20 L130,-50 L120,-80 L-60,-80 L-80,-80 L-90,-50 Z"/>
-              </g>
-              <path d="M-90,-50 L-130,-45 L-140,-40" stroke="#4ADE80" stroke-width="8" fill="none" stroke-linecap="round"/>
-            </g>
-          </svg>
+          <img src="logos/forge-mark.svg" width="100" height="100" alt="Primary Mark">
         </div>
         <div class="asset-details">
           <div class="asset-name">Primary Mark</div>
@@ -314,16 +294,7 @@
 
       <div class="asset-card">
         <div class="asset-preview" style="background:#fff;">
-          <svg viewBox="0 0 512 512" width="100" height="100">
-            <g transform="translate(256,256)">
-              <g fill="#4ADE80">
-                <path d="M-50,120 L50,120 L50,100 L30,100 L30,80 L-30,80 L-30,100 L-50,100 Z"/>
-                <rect x="-22" y="-20" width="44" height="100"/>
-                <path d="M-80,-20 L120,-20 L130,-50 L120,-80 L-60,-80 L-80,-80 L-90,-50 Z"/>
-              </g>
-              <path d="M-90,-50 L-130,-45 L-140,-40" stroke="#4ADE80" stroke-width="8" fill="none" stroke-linecap="round"/>
-            </g>
-          </svg>
+          <img src="logos/forge-mark-green-on-transparent.svg" width="100" height="100" alt="Mark Transparent">
         </div>
         <div class="asset-details">
           <div class="asset-name">Mark — Transparent</div>
@@ -334,17 +305,7 @@
 
       <div class="asset-card">
         <div class="asset-preview banner">
-          <svg viewBox="0 0 512 512" width="40" height="40">
-            <g transform="translate(256,256) scale(1)">
-              <g fill="#4ADE80">
-                <path d="M-50,120 L50,120 L50,100 L30,100 L30,80 L-30,80 L-30,100 L-50,100 Z"/>
-                <rect x="-22" y="-20" width="44" height="100"/>
-                <path d="M-80,-20 L120,-20 L130,-50 L120,-80 L-60,-80 L-80,-80 L-90,-50 Z"/>
-              </g>
-              <path d="M-90,-50 L-130,-45 L-140,-40" stroke="#4ADE80" stroke-width="8" fill="none" stroke-linecap="round"/>
-            </g>
-          </svg>
-          <span style="font-family:'Courier New',monospace;font-size:22px;font-weight:700;color:#4ADE80;letter-spacing:6px;">THE FORGE</span>
+          <img src="logos/forge-wordmark-horizontal.svg" style="max-width:90%;max-height:80%;" alt="Horizontal Lockup">
         </div>
         <div class="asset-details">
           <div class="asset-name">Horizontal Lockup</div>
@@ -355,17 +316,7 @@
 
       <div class="asset-card">
         <div class="asset-preview" style="flex-direction:column;gap:8px;">
-          <svg viewBox="0 0 512 512" width="50" height="50">
-            <g transform="translate(256,256)">
-              <g fill="#4ADE80">
-                <path d="M-50,120 L50,120 L50,100 L30,100 L30,80 L-30,80 L-30,100 L-50,100 Z"/>
-                <rect x="-22" y="-20" width="44" height="100"/>
-                <path d="M-80,-20 L120,-20 L130,-50 L120,-80 L-60,-80 L-80,-80 L-90,-50 Z"/>
-              </g>
-              <path d="M-90,-50 L-130,-45 L-140,-40" stroke="#4ADE80" stroke-width="8" fill="none" stroke-linecap="round"/>
-            </g>
-          </svg>
-          <span style="font-family:'Courier New',monospace;font-size:14px;font-weight:700;color:#4ADE80;letter-spacing:4px;">THE FORGE</span>
+          <img src="logos/forge-wordmark-stacked.svg" style="max-width:50%;max-height:80%;" alt="Stacked Lockup">
         </div>
         <div class="asset-details">
           <div class="asset-name">Stacked Lockup</div>
