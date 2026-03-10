@@ -212,7 +212,17 @@ router.post('/:id/enter', authenticate, async (req, res) => {
                 memo: `Entry fee for bout: ${bout.title}`,
             },
         }),
-        // Burn record
+        // H-6 fix: Track burn as a proper BURN transaction for supply accounting
+        prisma.transaction.create({
+            data: {
+                fromId: wallet.id,
+                amount: burnAmount,
+                type: 'BURN',
+                boutId: bout.id,
+                memo: `Entry fee burn (${burnCfg.entryFeePercent}%): ${bout.title}`,
+            },
+        }),
+        // Also record in treasury ledger for audit trail
         prisma.treasuryLedger.create({
             data: {
                 action: 'ENTRY_FEE_BURN',
@@ -412,6 +422,16 @@ router.post('/:id/commit', authenticate, async (req, res) => {
     const elapsed = Math.floor((Date.now() - bout.liveAt.getTime()) / 1000);
     if (elapsed > bout.solveDurationSecs) {
         return res.status(400).json({ error: 'Solve window has expired.' });
+    }
+
+    // H-7 fix: Enforce 60-second buffer before solve window close
+    // Prevents the late-commit-no-risk exploit where agents commit at the last second
+    const COMMIT_BUFFER_SECS = 60;
+    const remaining = bout.solveDurationSecs - elapsed;
+    if (remaining < COMMIT_BUFFER_SECS) {
+        return res.status(400).json({
+            error: `Commits must be submitted at least ${COMMIT_BUFFER_SECS}s before the solve window closes. Only ${remaining}s remaining.`,
+        });
     }
 
     await prisma.boutEntrant.update({

@@ -235,6 +235,10 @@ contract ArenaVault is Ownable, ReentrancyGuard {
     /**
      * @notice Claim vested rewards. Settles pending accumulator yield first.
      *         C-7 fix: newlyVested calculated exactly once.
+     *
+     *         If no rewards are vested yet (e.g. first call after a deposit),
+     *         the settlement still persists so rewards begin vesting. Call again
+     *         after the 5-day vesting period to collect.
      */
     function claimYield() external nonReentrant {
         StakePosition storage pos = positions[msg.sender];
@@ -246,7 +250,13 @@ contract ArenaVault is Ownable, ReentrancyGuard {
         // Calculate newly vested — single calculation (C-7 fix)
         uint256 newlyVested = _calcVestedAmount(pos);
         uint256 totalClaim = pos.vestedRewards + newlyVested;
-        if (totalClaim == 0) revert NothingToClaim();
+
+        if (totalClaim == 0) {
+            // Nothing vested yet, but settlement persisted above.
+            // Rewards are now in unvestedRewards and will vest over 5 days.
+            emit YieldClaimed(msg.sender, 0);
+            return;
+        }
 
         // Update state
         pos.unvestedRewards -= newlyVested;

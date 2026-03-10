@@ -18,8 +18,8 @@ model Wallet {
   apiKey    String   @unique @map("api_key")
   name      String   @unique
   xHandle   String?  @map("x_handle")
-  balance   Int      @default(1000)
-  gas       Int      @default(500)
+  balance   BigInt   @default(1000)
+  gas       BigInt   @default(500)
   reputation Int     @default(0)
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -71,7 +71,7 @@ model Puzzle {
   puzzleType        PuzzleType   @default(CUSTOM) @map("puzzle_type")
   challengeData     Json?        @map("challenge_data")
   difficultyTier    Int          @map("difficulty_tier") @db.SmallInt
-  stake             Int
+  stake             BigInt
   timeWindowSeconds Int          @map("time_window_seconds")
   maxAttempts       Int          @default(3) @map("max_attempts")
   status            PuzzleStatus @default(OPEN)
@@ -167,13 +167,13 @@ model Bout {
   resolvedAt          DateTime?      @map("resolved_at")
 
   // Economics
-  entryFee            Int            @default(500) @map("entry_fee")
+  entryFee            BigInt         @default(500) @map("entry_fee")
   solveDurationSecs   Int            @default(3600) @map("solve_duration_secs")
-  totalEntryFees      Int            @default(0) @map("total_entry_fees")
-  totalBetPool        Int            @default(0) @map("total_bet_pool")
-  protocolRake        Int            @default(0) @map("protocol_rake")
-  agentPurse          Int            @default(0) @map("agent_purse")
-  bettorPool          Int            @default(0) @map("bettor_pool")
+  totalEntryFees      BigInt         @default(0) @map("total_entry_fees")
+  totalBetPool        BigInt         @default(0) @map("total_bet_pool")
+  protocolRake        BigInt         @default(0) @map("protocol_rake")
+  agentPurse          BigInt         @default(0) @map("agent_purse")
+  bettorPool          BigInt         @default(0) @map("bettor_pool")
 
   createdAt           DateTime       @default(now()) @map("created_at")
 
@@ -194,7 +194,7 @@ model BoutEntrant {
   id            String    @id @default(uuid())
   boutId        String    @map("bout_id")
   walletId      String    @map("wallet_id")
-  entryFeePaid  Int       @map("entry_fee_paid")
+  entryFeePaid  BigInt    @map("entry_fee_paid")
 
   // Commit-reveal
   commitHash    String?   @map("commit_hash")
@@ -205,7 +205,7 @@ model BoutEntrant {
   // Results
   solveTime     Int?      @map("solve_time")  // seconds from puzzle live
   placement     Int?      // 1, 2, 3, or null
-  payout        Int       @default(0)
+  payout        BigInt    @default(0)
   solved        Boolean   @default(false)
 
   createdAt     DateTime  @default(now()) @map("created_at")
@@ -226,8 +226,8 @@ model Bet {
   boutId      String   @map("bout_id")
   bettorId    String   @map("bettor_id")
   entrantId   String   @map("entrant_id")
-  amount      Int
-  payout      Int      @default(0)
+  amount      BigInt
+  payout      BigInt   @default(0)
   createdAt   DateTime @default(now()) @map("created_at")
 
   bout     Bout        @relation(fields: [boutId], references: [id])
@@ -270,7 +270,7 @@ enum CovenantType {
 model StakePosition {
   id            String       @id @default(uuid())
   walletId      String       @map("wallet_id")
-  amount        Int          // staked amount
+  amount        BigInt       // staked amount
   covenant      CovenantType @default(FLAME)
   lockDays      Int          @map("lock_days")        // 7, 30, 90, 365
   apyBonus      Int          @default(0) @map("apy_bonus") // 0, 50, 150, 300
@@ -281,8 +281,8 @@ model StakePosition {
   loyaltyWeek   Int          @default(0) @map("loyalty_week")     // weeks staked
 
   // Vesting
-  vestedAmount  Int          @default(0) @map("vested_amount")
-  unvestedRewards Int        @default(0) @map("unvested_rewards")
+  vestedAmount  BigInt       @default(0) @map("vested_amount")
+  unvestedRewards BigInt     @default(0) @map("unvested_rewards")
 
   // Lifecycle
   stakedAt      DateTime     @default(now()) @map("staked_at")
@@ -291,8 +291,8 @@ model StakePosition {
   active        Boolean      @default(true)
 
   // Totals
-  totalEarned   Int          @default(0) @map("total_earned")
-  totalTaxPaid  Int          @default(0) @map("total_tax_paid")
+  totalEarned   BigInt       @default(0) @map("total_earned")
+  totalTaxPaid  BigInt       @default(0) @map("total_tax_paid")
 
   wallet Wallet @relation(fields: [walletId], references: [id])
 
@@ -306,9 +306,9 @@ model StakePosition {
 model TreasuryLedger {
   id        String   @id @default(uuid())
   action    String   // EMISSION, BURN, RAKE, BOUT_INJECTION, STAKER_YIELD
-  amount    Int
+  amount    BigInt
   memo      String?
-  balance   Int      @default(0)  // running treasury balance
+  balance   BigInt   @default(0)  // running treasury balance
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([action])
@@ -344,7 +344,7 @@ model Transaction {
   id        String          @id @default(uuid())
   fromId    String?         @map("from_id")
   toId      String?         @map("to_id")
-  amount    Int
+  amount    BigInt
   type      TransactionType
   puzzleId  String?         @map("puzzle_id")
   boutId    String?         @map("bout_id")

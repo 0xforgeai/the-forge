@@ -195,13 +195,15 @@ async function transitionBouts() {
                 }));
             }
         }
-        // Losing bet burns
+        // H-11 fix: Track losing bet amounts as redistribution, not burn.
+        // These tokens were already deducted from bettors and placed in the pool.
+        // They are redistributed to winners — NOT an additional burn event.
         if (payouts.losingBetBurn > 0) {
             ops.push(prisma.treasuryLedger.create({
                 data: {
-                    action: 'LOSING_BET_BURN',
+                    action: 'LOSING_BET_REDISTRIBUTION',
                     amount: payouts.losingBetBurn,
-                    memo: `${payouts.losingBets.length} losing bet(s) burned: ${bout.title}`,
+                    memo: `${payouts.losingBets.length} losing bet(s) redistributed to winners: ${bout.title}`,
                 },
             }));
         }

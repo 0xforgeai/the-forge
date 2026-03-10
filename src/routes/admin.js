@@ -35,16 +35,24 @@ router.get('/stats', async (req, res) => {
 // ─── List All Puzzles (including answers) ──────────────────
 
 router.get('/puzzles', async (req, res) => {
-    const puzzles = await prisma.puzzle.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-        include: {
-            smith: { select: { name: true } },
-            solver: { select: { name: true } },
-        },
-    });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
 
-    res.json({ puzzles });
+    const [puzzles, total] = await Promise.all([
+        prisma.puzzle.findMany({
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
+            include: {
+                smith: { select: { name: true } },
+                solver: { select: { name: true } },
+            },
+        }),
+        prisma.puzzle.count(),
+    ]);
+
+    res.json({ puzzles, total, page, limit, hasMore: skip + puzzles.length < total });
 });
 
 // ─── View Puzzle Detail with Answer Hash ───────────────────
@@ -67,22 +75,30 @@ router.get('/puzzles/:id', async (req, res) => {
 // ─── List All Wallets ──────────────────────────────────────
 
 router.get('/wallets', async (req, res) => {
-    const wallets = await prisma.wallet.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 100,
-        select: {
-            id: true,
-            name: true,
-            xHandle: true,
-            balance: true,
-            gas: true,
-            reputation: true,
-            createdAt: true,
-            // Never expose API keys, not even to admin
-        },
-    });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
 
-    res.json({ wallets });
+    const [wallets, total] = await Promise.all([
+        prisma.wallet.findMany({
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
+            select: {
+                id: true,
+                name: true,
+                xHandle: true,
+                balance: true,
+                gas: true,
+                reputation: true,
+                createdAt: true,
+                // Never expose API keys, not even to admin
+            },
+        }),
+        prisma.wallet.count(),
+    ]);
+
+    res.json({ wallets, total, page, limit, hasMore: skip + wallets.length < total });
 });
 
 // ─── Adjust Wallet Balance (dispute resolution) ────────────
