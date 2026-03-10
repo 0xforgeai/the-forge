@@ -18,7 +18,7 @@ async function checkSupplyInvariant() {
         const walletAgg = await prisma.wallet.aggregate({
             _sum: { balance: true },
         });
-        const totalWalletBalance = walletAgg._sum.balance || 0;
+        const totalWalletBalance = walletAgg._sum.balance ?? 0n;
 
         // 2. Sum all active stake positions
         const stakeAgg = await prisma.stakePosition.aggregate({
@@ -29,9 +29,9 @@ async function checkSupplyInvariant() {
                 vestedAmount: true,
             },
         });
-        const totalStaked = stakeAgg._sum.amount || 0;
-        const totalUnvested = stakeAgg._sum.unvestedRewards || 0;
-        const totalVested = stakeAgg._sum.vestedAmount || 0;
+        const totalStaked = stakeAgg._sum.amount ?? 0n;
+        const totalUnvested = stakeAgg._sum.unvestedRewards ?? 0n;
+        const totalVested = stakeAgg._sum.vestedAmount ?? 0n;
 
         // 3. Sum all minted (REGISTRATION grants + bootstrap emissions + initial supply)
         //    Minted = sum of all REGISTRATION tx + EMISSION ledger entries
@@ -39,33 +39,33 @@ async function checkSupplyInvariant() {
             where: { type: 'REGISTRATION' },
             _sum: { amount: true },
         });
-        const totalRegistrationMinted = registrationMinted._sum.amount || 0;
+        const totalRegistrationMinted = registrationMinted._sum.amount ?? 0n;
 
         // Bootstrap emissions from treasury ledger
         const emissionLedger = await prisma.treasuryLedger.aggregate({
             where: { action: { in: ['EMISSION', 'BOOTSTRAP_EMISSION', 'BOUT_INJECTION'] } },
             _sum: { amount: true },
         });
-        const totalEmissions = emissionLedger._sum.amount || 0;
+        const totalEmissions = emissionLedger._sum.amount ?? 0n;
 
         // 4. Sum all burns
         const burnLedger = await prisma.treasuryLedger.aggregate({
             where: { action: 'BURN' },
             _sum: { amount: true },
         });
-        const totalBurned = burnLedger._sum.amount || 0;
+        const totalBurned = burnLedger._sum.amount ?? 0n;
 
         // Also count BURN transactions
         const burnTx = await prisma.transaction.aggregate({
             where: { type: 'BURN' },
             _sum: { amount: true },
         });
-        const totalBurnedTx = burnTx._sum.amount || 0;
+        const totalBurnedTx = burnTx._sum.amount ?? 0n;
 
         // 5. Calculate invariant
         const circulatingSide = totalWalletBalance + totalStaked + totalUnvested + totalVested;
         const supplySide = totalRegistrationMinted + totalEmissions;
-        const burnSide = Math.max(totalBurned, totalBurnedTx); // deduplicated — use larger value
+        const burnSide = totalBurned > totalBurnedTx ? totalBurned : totalBurnedTx;
 
         const expectedCirculating = supplySide - burnSide;
         const drift = circulatingSide - expectedCirculating;
@@ -84,7 +84,7 @@ async function checkSupplyInvariant() {
             drift,
         };
 
-        if (drift !== 0) {
+        if (drift !== 0n) {
             logger.error(
                 { ...report, invariantViolation: true },
                 `SUPPLY INVARIANT VIOLATED — drift of ${drift} tokens detected`,
@@ -96,7 +96,7 @@ async function checkSupplyInvariant() {
         return report;
     } catch (err) {
         logger.error({ err }, 'Supply invariant check failed');
-        throw err;
+        // Don't rethrow — prevent crash loops
     }
 }
 
