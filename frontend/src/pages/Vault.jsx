@@ -1,0 +1,197 @@
+import { useState, useEffect } from 'react';
+import { apiFetch } from '../hooks/useApi';
+import StatsBar from '../components/StatsBar';
+
+export default function Vault() {
+    const [vaultInfo, setVaultInfo] = useState(null);
+
+    useEffect(() => {
+        loadVault();
+        const id = setInterval(loadVault, 15000);
+        return () => clearInterval(id);
+    }, []);
+
+    async function loadVault() {
+        try {
+            const data = await apiFetch('/api/vault/info');
+            setVaultInfo(data);
+        } catch (e) { }
+    }
+
+    return (
+        <>
+            {/* Hero */}
+            <section className="hero band" style={{ padding: '3rem 0 2rem' }}>
+                <div className="container">
+                    <h1 style={{ fontSize: '2rem' }}>COVENANT VAULT<span className="cursor"></span></h1>
+                    <p className="sub" style={{ fontSize: '0.875rem' }}>Stake $FORGE. Choose your commitment level. Earn from all bout activity. The longer you lock, the more you earn.</p>
+                </div>
+            </section>
+
+            {/* Vault Stats */}
+            <StatsBar items={[
+                { value: vaultInfo ? Number(vaultInfo.totalStaked).toLocaleString() : '—', label: 'Total Staked' },
+                { value: vaultInfo?.totalStakers ?? '—', label: 'Stakers' },
+                { value: vaultInfo ? `${vaultInfo.avgLoyaltyMultiplier}x` : '—', label: 'Avg Multiplier' },
+                { value: vaultInfo ? Number(vaultInfo.totalBurned).toLocaleString() : '—', label: 'Total Burned' },
+            ]} />
+
+            {/* Covenants */}
+            <section className="band">
+                <div className="container">
+                    <div className="section-label">
+                        <span className="label label-green">
+                            <img src="/icons/shield-01.svg" className="icon icon-sm" /> THE COVENANT
+                        </span>
+                        <span className="label">CHOOSE YOUR COMMITMENT</span>
+                    </div>
+                    <div className="grid-3" style={{ padding: 0 }}>
+                        {/* Flame */}
+                        <div className="bout-card cov-flame">
+                            <div className="bout-header">
+                                <span className="bout-title">
+                                    <img src="/icons/zap-fast.svg" className="icon icon-sm icon-orange" /> FLAME
+                                </span>
+                                <span className="bout-tag tag-betting">1 DAY</span>
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Entry tier. Minimum commitment. Start earning immediately.</div>
+                            <div className="bout-pool">
+                                <div><div className="bp-val" style={{ color: 'var(--text)' }}>—</div><div className="bp-label">APY Bonus</div></div>
+                                <div><div className="bp-val" style={{ color: 'var(--text)' }}>1×</div><div className="bp-label">Rage Tax</div></div>
+                            </div>
+                        </div>
+                        {/* Steel */}
+                        <div className="bout-card cov-steel">
+                            <div className="bout-header">
+                                <span className="bout-title">
+                                    <img src="/icons/shield-02.svg" className="icon icon-sm" /> STEEL
+                                </span>
+                                <span className="bout-tag tag-live" style={{ animation: 'none' }}>3 DAYS</span>
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Committed. You're serious about the arena.</div>
+                            <div className="bout-pool">
+                                <div><div className="bp-val green">+50%</div><div className="bp-label">APY Bonus</div></div>
+                                <div><div className="bp-val orange">2×</div><div className="bp-label">Rage Tax</div></div>
+                            </div>
+                        </div>
+                        {/* Obsidian */}
+                        <div className="bout-card cov-obsidian">
+                            <div className="bout-header">
+                                <span className="bout-title">
+                                    <img src="/icons/shield-03.svg" className="icon icon-sm icon-purple" /> OBSIDIAN
+                                </span>
+                                <span className="bout-tag" style={{ color: 'var(--purple)', borderColor: 'var(--purple)' }}>7 DAYS</span>
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Maximum conviction. Top-tier yield multiplier.</div>
+                            <div className="bout-pool">
+                                <div><div className="bp-val purple">+150%</div><div className="bp-label">APY Bonus</div></div>
+                                <div><div className="bp-val red">3×</div><div className="bp-label">Rage Tax</div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Eternal */}
+                    <div className="bout-card cov-eternal" style={{ borderBottom: '1px solid var(--border)' }}>
+                        <div className="bout-header">
+                            <span className="bout-title">
+                                <img src="/icons/lock-04.svg" className="icon icon-sm icon-red" /> ETERNAL
+                            </span>
+                            <span className="bout-tag tag-red">30 DAYS — NO UNSTAKE</span>
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>You cannot unstake for 30 days. In return: the highest yield in the protocol. Permanent badge of honor.</div>
+                        <div className="bout-pool">
+                            <div><div className="bp-val red" style={{ textShadow: '0 0 10px rgba(255,51,51,0.3)' }}>+300%</div><div className="bp-label">APY Bonus</div></div>
+                            <div><div className="bp-val dim">∞</div><div className="bp-label">Lock Period</div></div>
+                            <div><div className="bp-val red"><img src="/icons/lock-04.svg" className="icon icon-sm icon-red" /></div><div className="bp-label">Badge</div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Vault Mechanics */}
+            <section className="band">
+                <div className="container">
+                    <div className="split py-2">
+                        {/* Left: Yield Sources + Betting Advantage */}
+                        <div>
+                            <div className="section-label mb-1">
+                                <span className="label label-green">
+                                    <img src="/icons/wallet-03.svg" className="icon icon-sm" /> YIELD SOURCES
+                                </span>
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text)', marginBottom: '1rem' }}>
+                                Deposit $FORGE into the Arena Vault. Your stake passively earns from <strong className="green">ALL</strong> bout activity — rake, burns, and emissions. Lock longer to earn more.
+                            </div>
+                            <div className="entrant"><span className="agent">Protocol Rake (5% of all bets)</span><span className="odds green">50% → you</span></div>
+                            <div className="entrant"><span className="agent">Rage Quit Taxes</span><span className="odds green">100% → you</span></div>
+                            <div className="entrant"><span className="agent">Treasury Emissions</span><span className="odds green">15% weekly</span></div>
+                            <div className="entrant"><span className="agent">Losing Bet Burns</span><span className="odds orange">25% → you</span></div>
+
+                            <div className="section-label mt-2 mb-1">
+                                <span className="label label-green">
+                                    <img src="/icons/line-chart-up-04.svg" className="icon icon-sm" /> STAKER BETTING ADVANTAGE
+                                </span>
+                            </div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)' }}>
+                                Your bet <span className="bright">weight = amount × loyalty multiplier</span>. A 3x staker betting 1,000 has the payout weight of 3,000. Staking isn't just yield — it's competitive edge.
+                            </div>
+                        </div>
+                        {/* Right: Loyalty + Rage Quit */}
+                        <div>
+                            <div className="section-label mb-1">
+                                <span className="label label-green">
+                                    <img src="/icons/star-06.svg" className="icon icon-sm" /> LOYALTY MULTIPLIER
+                                </span>
+                            </div>
+                            {[
+                                ['Day 1', '1.0x', ''],
+                                ['Day 2', '1.2x', ''],
+                                ['Day 3', '1.5x', ''],
+                                ['Day 4', '2.0x', ''],
+                                ['Day 5', '2.5x', ''],
+                            ].map(([day, mult]) => (
+                                <div className="entrant" key={day}><span className="agent">{day}</span><span className="odds">{mult}</span></div>
+                            ))}
+                            <div className="entrant"><span className="agent">Day 6+</span><span className="odds green" style={{ textShadow: 'var(--green-glow)' }}>3.0x MAX</span></div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--red)', marginTop: '0.5rem' }}>
+                                <img src="/icons/shield-off.svg" className="icon icon-sm icon-red" style={{ verticalAlign: '-3px' }} /> Unstaking resets multiplier to 1.0x. Permanently.
+                            </div>
+
+                            <div className="section-label mt-2 mb-1">
+                                <span className="label label-green">
+                                    <img src="/icons/shield-dollar.svg" className="icon icon-sm icon-red" /> RAGE QUIT TAX
+                                </span>
+                            </div>
+                            {[
+                                ['Unstake Day 1', '50% lost', 'red'],
+                                ['Unstake Day 2', '40% lost', 'red'],
+                                ['Unstake Day 3', '30% lost', 'orange'],
+                                ['Unstake Day 4', '20% lost', 'orange'],
+                                ['Unstake Day 5', '10% lost', 'dim'],
+                                ['Unstake Day 6', '5% lost', 'dim'],
+                                ['After Day 6', '0% — free', 'green'],
+                            ].map(([day, tax, cls]) => (
+                                <div className="entrant" key={day}><span className="agent">{day}</span><span className={`odds ${cls}`}>{tax}</span></div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Vault API */}
+            <section className="band">
+                <div className="container py-2">
+                    <div className="section-label">
+                        <span className="label label-green">
+                            <img src="/icons/database-03.svg" className="icon icon-sm" /> VAULT API
+                        </span>
+                    </div>
+                    <div className="ep"><span className="method get">GET</span><span className="path">/api/vault/info</span><span className="desc">Public vault stats</span></div>
+                    <div className="ep"><span className="method get">GET</span><span className="path">/api/vault/me</span><span className="desc">Your active stake</span></div>
+                    <div className="ep"><span className="method post">POST</span><span className="path">/api/vault/stake</span><span className="desc">Stake with covenant</span></div>
+                    <div className="ep"><span className="method post">POST</span><span className="path">/api/vault/unstake</span><span className="desc">Rage quit (if allowed)</span></div>
+                </div>
+            </section>
+        </>
+    );
+}

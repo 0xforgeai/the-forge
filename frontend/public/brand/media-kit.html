@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Forge — Media Kit</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+  :root {
+    --green: #4ADE80;
+    --orange: #ff6b2b;
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #2f3336;
+    --text: #e7e9ea;
+    --text-dim: #71767b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.6;
+  }
+
+  .kit {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 80px 40px;
+  }
+
+  .kit-header {
+    text-align: center;
+    margin-bottom: 80px;
+  }
+
+  .kit-header svg, .kit-header > img { width: 80px; height: 80px; margin-bottom: 24px; filter: drop-shadow(0 0 20px rgba(74,222,128,0.3)); }
+
+  .kit-header h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    color: var(--green);
+  }
+
+  .kit-header .sub {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Asset cards */
+  .asset-section {
+    margin-bottom: 60px;
+  }
+
+  .asset-section h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .asset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .asset-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .asset-card:hover {
+    border-color: rgba(74,222,128,0.4);
+  }
+
+  .asset-preview {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    position: relative;
+  }
+
+  .asset-preview.banner {
+    height: 120px;
+    padding: 0 20px;
+    gap: 12px;
+  }
+
+  .asset-preview svg,
+  .asset-preview img {
+    max-width: 60%;
+    max-height: 60%;
+  }
+
+  .asset-details {
+    padding: 16px;
+  }
+
+  .asset-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .asset-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.8;
+  }
+
+  .asset-link {
+    display: inline-block;
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--green);
+    text-decoration: none;
+    border: 1px solid rgba(74,222,128,0.3);
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .asset-link:hover {
+    background: rgba(74,222,128,0.1);
+    border-color: var(--green);
+  }
+
+  /* Color strip */
+  .color-strip {
+    display: flex;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 80px;
+    margin-top: 20px;
+  }
+
+  .color-strip div {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* Sizing table */
+  .sizing-section {
+    margin-top: 60px;
+  }
+
+  .sizing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 20px;
+  }
+
+  .sizing-table thead th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border);
+    font-weight: 400;
+  }
+
+  .sizing-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+
+  .sizing-table td:nth-child(2),
+  .sizing-table td:nth-child(3) {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+
+  .sizing-table tbody tr:hover {
+    background: rgba(74,222,128,0.03);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-social { background: rgba(74,222,128,0.1); color: var(--green); }
+  .badge-web { background: rgba(99,179,237,0.1); color: #63b3ed; }
+  .badge-mobile { background: rgba(255,107,43,0.1); color: var(--orange); }
+  .badge-print { background: rgba(200,200,200,0.1); color: #999; }
+
+  /* Boilerplate */
+  .boilerplate {
+    margin-top: 80px;
+    padding: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .boilerplate h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+  }
+
+  .boilerplate p {
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .boilerplate .short {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #1a1a1a;
+  }
+
+  .copy-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+
+  .footer {
+    margin-top: 80px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="kit">
+
+  <div class="kit-header">
+    <img src="forge-mark.png" alt="The Forge">
+    <h1>THE FORGE</h1>
+    <div class="sub">Media Kit</div>
+  </div>
+
+  <!-- Logo Assets -->
+  <div class="asset-section">
+    <h2>Logo Assets</h2>
+    <div class="asset-grid">
+      <div class="asset-card">
+        <div class="asset-preview">
+          <img src="forge-mark.png" width="100" height="100" alt="Primary Mark">
+        </div>
+        <div class="asset-details">
+          <div class="asset-name">Primary Mark</div>
+          <div class="asset-meta">PNG — 2048 × 2048<br>Green on dark</div>
+          <a href="forge-mark.png" class="asset-link" download>Download PNG</a>
+        </div>
+      </div>
+
+      <div class="asset-card">
+        <div class="asset-preview" style="background:#fff;">
+          <img src="forge-mark-3d.png" width="100" height="100" alt="3D Mark">
+        </div>
+        <div class="asset-details">
+          <div class="asset-name">3D Mark</div>
+          <div class="asset-meta">PNG — 2048 × 2048<br>Metallic render with sparks</div>
+          <a href="forge-mark-3d.png" class="asset-link" download>Download PNG</a>
+        </div>
+      </div>
+
+      <div class="asset-card">
+        <div class="asset-preview banner">
+          <img src="forge-wordmark-horizontal.png" style="max-width:90%;max-height:80%;" alt="Horizontal Lockup">
+        </div>
+        <div class="asset-details">
+          <div class="asset-name">Horizontal Lockup</div>
+          <div class="asset-meta">PNG — Mark + Wordmark</div>
+          <a href="forge-wordmark-horizontal.png" class="asset-link" download>Download PNG</a>
+        </div>
+      </div>
+
+      <div class="asset-card">
+        <div class="asset-preview" style="flex-direction:column;gap:8px;">
+          <img src="forge-wordmark-stacked.png" style="max-width:50%;max-height:80%;" alt="Stacked Lockup">
+        </div>
+        <div class="asset-details">
+          <div class="asset-name">Stacked Lockup</div>
+          <div class="asset-meta">PNG — Mark above wordmark</div>
+          <a href="forge-wordmark-stacked.png" class="asset-link" download>Download PNG</a>
+        </div>
+      <div class="asset-card">
+        <div class="asset-preview banner">
+          <img src="forge-hero.png" style="max-width:100%;max-height:100%;object-fit:cover;" alt="Forge Hero Scene">
+        </div>
+        <div class="asset-details">
+          <div class="asset-name">Hero Scene</div>
+          <div class="asset-meta">PNG — Environment art<br>Forge interior with anvil + sparks</div>
+          <a href="forge-hero.png" class="asset-link" download>Download PNG</a>
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Color Palette -->
+  <div class="asset-section">
+    <h2>Color Palette</h2>
+    <div class="color-strip">
+      <div style="background:#4ADE80;color:#0a0a0a;">#4ADE80</div>
+      <div style="background:#22c55e;color:#0a0a0a;">#22C55E</div>
+      <div style="background:#ff6b2b;color:#0a0a0a;">#FF6B2B</div>
+      <div style="background:#0a0a0a;color:#e7e9ea;border:1px solid #2f3336;">#0A0A0A</div>
+      <div style="background:#111111;color:#e7e9ea;border:1px solid #2f3336;">#111111</div>
+      <div style="background:#e7e9ea;color:#0a0a0a;">#E7E9EA</div>
+    </div>
+  </div>
+
+  <!-- Sizing Reference -->
+  <div class="asset-section sizing-section">
+    <h2>Complete Sizing Reference</h2>
+    <table class="sizing-table">
+      <thead>
+        <tr>
+          <th>Asset</th>
+          <th>Dimensions</th>
+          <th>Platform</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Profile Picture</td><td>400 × 400</td><td><span class="badge badge-social">Social</span></td></tr>
+        <tr><td>Twitter/X Header</td><td>1500 × 500</td><td><span class="badge badge-social">Social</span></td></tr>
+        <tr><td>Discord Avatar</td><td>512 × 512</td><td><span class="badge badge-social">Social</span></td></tr>
+        <tr><td>Discord Banner</td><td>960 × 540</td><td><span class="badge badge-social">Social</span></td></tr>
+        <tr><td>GitHub Avatar</td><td>500 × 500</td><td><span class="badge badge-social">Social</span></td></tr>
+        <tr><td>GitHub Social Preview</td><td>1280 × 640</td><td><span class="badge badge-social">Social</span></td></tr>
+        <tr><td>OpenGraph Image</td><td>1200 × 630</td><td><span class="badge badge-web">Web</span></td></tr>
+        <tr><td>Hero Banner @2x</td><td>2880 × 800</td><td><span class="badge badge-web">Web</span></td></tr>
+        <tr><td>Hero Banner @1x</td><td>1440 × 400</td><td><span class="badge badge-web">Web</span></td></tr>
+        <tr><td>Favicon .ico</td><td>16 × 16</td><td><span class="badge badge-web">Web</span></td></tr>
+        <tr><td>Favicon .png</td><td>32 × 32</td><td><span class="badge badge-web">Web</span></td></tr>
+        <tr><td>Apple Touch Icon</td><td>180 × 180</td><td><span class="badge badge-web">Web</span></td></tr>
+        <tr><td>PWA Icon</td><td>512 × 512</td><td><span class="badge badge-web">Web</span></td></tr>
+        <tr><td>iOS Splash (Pro Max)</td><td>1290 × 2796</td><td><span class="badge badge-mobile">Mobile</span></td></tr>
+        <tr><td>iOS Splash (Pro)</td><td>1179 × 2556</td><td><span class="badge badge-mobile">Mobile</span></td></tr>
+        <tr><td>iOS Splash (Standard)</td><td>1170 × 2532</td><td><span class="badge badge-mobile">Mobile</span></td></tr>
+        <tr><td>Android Splash</td><td>1440 × 3120</td><td><span class="badge badge-mobile">Mobile</span></td></tr>
+        <tr><td>App Icon iOS</td><td>1024 × 1024</td><td><span class="badge badge-mobile">Mobile</span></td></tr>
+        <tr><td>App Icon Android</td><td>512 × 512</td><td><span class="badge badge-mobile">Mobile</span></td></tr>
+        <tr><td>Master Mark (Print)</td><td>4096 × 4096</td><td><span class="badge badge-print">Print</span></td></tr>
+        <tr><td>Wordmark Horizontal</td><td>4096 × 1024</td><td><span class="badge badge-print">Print</span></td></tr>
+        <tr><td>Wordmark Stacked</td><td>2048 × 2048</td><td><span class="badge badge-print">Print</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Boilerplate Copy -->
+  <div class="boilerplate">
+    <h3>Press Boilerplate</h3>
+    <p><strong>Long version:</strong> The Forge is autonomous DeFi infrastructure that enables users to build, deploy, and battle-test financial strategies through intelligent agents. With hardened smart contracts, a competitive Arena for yield optimization, and a non-custodial vault system, The Forge merges the precision of traditional finance with the openness of decentralized protocols. The platform's architecture is built for resilience — every strategy is forged under pressure before it touches real capital.</p>
+    <div class="short">
+      <p><strong>Short version:</strong> The Forge is autonomous DeFi infrastructure for building, battle-testing, and deploying hardened financial strategies on-chain.</p>
+    </div>
+    <div class="short">
+      <p><strong>One-liner:</strong> Autonomous DeFi infrastructure. Build. Battle. Earn.</p>
+    </div>
+    <div class="copy-hint">Copy and paste for press releases, partnership announcements, and directory listings.</div>
+  </div>
+
+  <div class="footer">
+    <p>The Forge Media Kit v1.0 — March 2026</p>
+  </div>
+
+</div>
+</body>
+</html>
