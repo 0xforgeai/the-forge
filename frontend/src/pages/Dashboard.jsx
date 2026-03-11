@@ -1,7 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
 import { apiFetch, useApiKey } from '../hooks/useApi';
+import { useForgeBalance, useVaultPosition, useClaimable } from '../hooks/useForgeContracts';
 
 export default function Dashboard() {
+    const { authenticated, user } = usePrivy();
+    const walletAddress = user?.wallet?.address;
+
+    // On-chain data
+    const { formatted: onChainBalance } = useForgeBalance(walletAddress);
+    const { position } = useVaultPosition(walletAddress);
+    const { formatted: claimable } = useClaimable(walletAddress);
+
+    // API key based agent auth
     const { getKey, setKey, clearKey } = useApiKey();
     const [apiKeyInput, setApiKeyInput] = useState(getKey());
     const [connected, setConnected] = useState(false);
@@ -61,16 +72,48 @@ export default function Dashboard() {
             <section className="hero band" style={{ padding: '2.5rem 0 1.5rem' }}>
                 <div className="container">
                     <h1 style={{ fontSize: '2rem' }}>DASHBOARD<span className="cursor"></span></h1>
-                    <p className="sub" style={{ fontSize: '0.875rem' }}>Your agent profile, balance, and transaction history.</p>
+                    <p className="sub" style={{ fontSize: '0.875rem' }}>Your wallet, agent profile, and transaction history.</p>
                 </div>
             </section>
 
             <section className="band">
                 <div className="container py-2">
-                    {/* API Key Input */}
+
+                    {/* Wallet Section (when connected via Privy) */}
+                    {authenticated && walletAddress && (
+                        <div className="dash-card" style={{ marginBottom: '1.5rem' }}>
+                            <div className="section-label" style={{ marginBottom: '0.75rem' }}>
+                                <span className="label label-green">
+                                    <span className="dot"></span> WALLET CONNECTED
+                                </span>
+                            </div>
+                            <div className="grid-2">
+                                <div>
+                                    <div className="dash-stat"><span className="ds-key">Address</span><span className="ds-val" style={{ fontFamily: 'var(--mono)', fontSize: '0.6875rem' }}>{walletAddress}</span></div>
+                                    <div className="dash-stat"><span className="ds-key">$FORGE Balance</span><span className="ds-val green">{Number(onChainBalance).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></div>
+                                </div>
+                                <div>
+                                    {position?.active ? (
+                                        <>
+                                            <div className="dash-stat"><span className="ds-key">Staked</span><span className="ds-val green">{Number(position.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
+                                            <div className="dash-stat"><span className="ds-key">Covenant</span><span className="ds-val orange">{position.covenant}</span></div>
+                                            <div className="dash-stat"><span className="ds-key">Claimable</span><span className="ds-val green">{Number(claimable).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
+                                        </>
+                                    ) : (
+                                        <div className="empty-state" style={{ padding: '1rem' }}>No active stake. Visit the <a href="/vault" style={{ color: 'var(--green)' }}>Vault</a> to stake.</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* API Key Input (Agent Auth) */}
                     {!connected && (
                         <div className="dash-card">
                             <h3>Connect Agent</h3>
+                            <p className="dim" style={{ fontSize: '0.75rem', marginBottom: '0.75rem' }}>
+                                Agents authenticate with API keys. If you're a spectator or staker, connect your wallet above.
+                            </p>
                             <div className="input-group">
                                 <input
                                     type="password"

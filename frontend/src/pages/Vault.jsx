@@ -1,9 +1,40 @@
 import { useState, useEffect } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
 import { apiFetch } from '../hooks/useApi';
 import StatsBar from '../components/StatsBar';
+import {
+    useForgeBalance, useForgeAllowance,
+    useVaultPosition, useClaimable, usePendingYield,
+    useApproveForge, useStakeForge, useUnstakeForge, useClaimYield,
+    useVaultTotalStaked, useVaultStakerCount,
+} from '../hooks/useForgeContracts';
+import { ARENA_VAULT_ADDRESS, COVENANTS } from '../config/contracts';
 
 export default function Vault() {
+    const { authenticated, user } = usePrivy();
+    const walletAddress = user?.wallet?.address;
+
+    // API data
     const [vaultInfo, setVaultInfo] = useState(null);
+
+    // On-chain reads
+    const { formatted: balance } = useForgeBalance(walletAddress);
+    const { allowance } = useForgeAllowance(walletAddress, ARENA_VAULT_ADDRESS);
+    const { position } = useVaultPosition(walletAddress);
+    const { formatted: claimable } = useClaimable(walletAddress);
+    const { formatted: pending } = usePendingYield(walletAddress);
+    const { formatted: totalStakedOnChain } = useVaultTotalStaked();
+    const { count: stakerCount } = useVaultStakerCount();
+
+    // Write hooks
+    const { approve, isPending: approving, isSuccess: approved } = useApproveForge();
+    const { stake, isPending: staking, isConfirming: stakingConfirming, isSuccess: staked } = useStakeForge();
+    const { unstake, isPending: unstaking, isConfirming: unstakeConfirming, isSuccess: unstaked } = useUnstakeForge();
+    const { claim, isPending: claiming, isConfirming: claimConfirming, isSuccess: claimed } = useClaimYield();
+
+    // Stake form
+    const [amount, setAmount] = useState('');
+    const [covenant, setCovenant] = useState(COVENANTS.FLAME);
 
     useEffect(() => {
         loadVault();
@@ -18,6 +49,23 @@ export default function Vault() {
         } catch (e) { }
     }
 
+    function handleStake() {
+        if (!amount || Number(amount) <= 0) return;
+        const needed = BigInt(Math.floor(Number(amount) * 1e18));
+        if (!allowance || allowance < needed) {
+            approve(amount);
+        } else {
+            stake(amount, covenant);
+        }
+    }
+
+    // After approval, trigger stake
+    useEffect(() => {
+        if (approved && amount) {
+            stake(amount, covenant);
+        }
+    }, [approved]);
+
     return (
         <>
             {/* Hero */}
@@ -30,11 +78,106 @@ export default function Vault() {
 
             {/* Vault Stats */}
             <StatsBar items={[
-                { value: vaultInfo ? Number(vaultInfo.totalStaked).toLocaleString() : '—', label: 'Total Staked' },
-                { value: vaultInfo?.totalStakers ?? '—', label: 'Stakers' },
+                { value: totalStakedOnChain !== '0' ? Number(totalStakedOnChain).toLocaleString(undefined, { maximumFractionDigits: 0 }) : (vaultInfo ? Number(vaultInfo.totalStaked).toLocaleString() : '—'), label: 'Total Staked' },
+                { value: stakerCount > 0 ? stakerCount : (vaultInfo?.totalStakers ?? '—'), label: 'Stakers' },
                 { value: vaultInfo ? `${vaultInfo.avgLoyaltyMultiplier}x` : '—', label: 'Avg Multiplier' },
                 { value: vaultInfo ? Number(vaultInfo.totalBurned).toLocaleString() : '—', label: 'Total Burned' },
             ]} />
+
+            {/* Your Position (On-Chain) */}
+            {authenticated && walletAddress && (
+                <section className="band">
+                    <div className="container">
+                        <div className="section-label">
+                            <span className="label label-green">
+                                <img src="/icons/wallet-03.svg" className="icon icon-sm" /> YOUR POSITION
+                            </span>
+                        </div>
+
+                        {position?.active ? (
+                            <div className="grid-2">
+                                {/* Position Info */}
+                                <div className="dash-card">
+                                    <h3>Active Stake</h3>
+                                    <div className="dash-stat"><span className="ds-key">Covenant</span><span className="ds-val orange">{position.covenant}</span></div>
+                                    <div className="dash-stat"><span className="ds-key">Staked</span><span className="ds-val green">{Number(position.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
+                                    <div className="dash-stat"><span className="ds-key">Loyalty</span><span className="ds-val">{position.loyaltyMultiplier}x</span></div>
+                                    <div className="dash-stat"><span className="ds-key">Lock Expires</span><span className="ds-val dim">{new Date(position.lockExpires * 1000).toLocaleDateString()}</span></div>
+                                    <div className="dash-stat"><span className="ds-key">Claimable Yield</span><span className="ds-val green">{Number(claimable).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
+                                    <div className="dash-stat"><span className="ds-key">Pending Yield</span><span className="ds-val dim">{Number(pending).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
+                                    <div className="dash-stat"><span className="ds-key">Total Claimed</span><span className="ds-val">{Number(position.totalClaimed).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="dash-card">
+                                    <h3>Actions</h3>
+                                    <div className="action-group">
+                                        <button
+                                            className="btn btn-green btn-full"
+                                            onClick={() => claim()}
+                                            disabled={claiming || claimConfirming || Number(claimable) === 0}
+                                        >
+                                            {claiming ? 'Signing...' : claimConfirming ? 'Confirming...' : claimed ? '✓ Claimed' : `Claim ${Number(claimable).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE`}
+                                        </button>
+                                        <button
+                                            className="btn btn-ghost btn-full"
+                                            onClick={() => unstake()}
+                                            disabled={unstaking || unstakeConfirming}
+                                            style={{ marginTop: '0.5rem' }}
+                                        >
+                                            {unstaking ? 'Signing...' : unstakeConfirming ? 'Confirming...' : unstaked ? '✓ Unstaked' : 'Unstake (Rage Quit)'}
+                                        </button>
+                                        {position.lockExpires > Date.now() / 1000 && (
+                                            <div style={{ fontSize: '0.6875rem', color: 'var(--red)', marginTop: '0.375rem' }}>
+                                                <img src="/icons/lock-04.svg" className="icon icon-sm icon-red" style={{ verticalAlign: '-3px' }} /> Lock active — cannot unstake until {new Date(position.lockExpires * 1000).toLocaleDateString()}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="dash-card">
+                                <h3>Stake $FORGE</h3>
+                                <p className="dim" style={{ fontSize: '0.8125rem', marginBottom: '1rem' }}>
+                                    Wallet balance: <span className="green">{Number(balance).toLocaleString(undefined, { maximumFractionDigits: 0 })} $FORGE</span>
+                                </p>
+                                <div className="stake-form">
+                                    <div className="input-group">
+                                        <input
+                                            type="number"
+                                            className="input-field"
+                                            placeholder="Amount to stake..."
+                                            value={amount}
+                                            onChange={e => setAmount(e.target.value)}
+                                            min="0"
+                                        />
+                                        <button className="btn btn-ghost" onClick={() => setAmount(Math.floor(Number(balance)).toString())} style={{ whiteSpace: 'nowrap', fontSize: '0.625rem' }}>MAX</button>
+                                    </div>
+                                    <div className="covenant-select">
+                                        {Object.entries(COVENANTS).map(([name, id]) => (
+                                            <button
+                                                key={id}
+                                                className={`covenant-btn ${covenant === id ? 'covenant-active' : ''}`}
+                                                onClick={() => setCovenant(id)}
+                                            >
+                                                {name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button
+                                        className="btn btn-green btn-full"
+                                        onClick={handleStake}
+                                        disabled={!amount || Number(amount) <= 0 || approving || staking || stakingConfirming}
+                                        style={{ marginTop: '0.75rem' }}
+                                    >
+                                        {approving ? 'Approving...' : staking ? 'Signing...' : stakingConfirming ? 'Confirming...' : staked ? '✓ Staked!' : 'Stake $FORGE'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </section>
+            )}
 
             {/* Covenants */}
             <section className="band">

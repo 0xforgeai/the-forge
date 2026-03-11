@@ -1,4 +1,4 @@
-const API_BASE = '';
+const API_BASE = import.meta.env.VITE_API_BASE || '';
 
 export async function apiFetch(path, options = {}) {
     const apiKey = localStorage.getItem('forge_api_key');

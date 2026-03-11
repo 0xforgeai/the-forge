@@ -1,5 +1,6 @@
 [build]
 builder = "NIXPACKS"
+buildCommand = "npm install && cd frontend && npm install --legacy-peer-deps && npx vite build"
 
 [deploy]
 startCommand = "npx prisma db push --skip-generate && node src/server.js"

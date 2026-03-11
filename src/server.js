@@ -160,6 +160,19 @@ app.use('/api/bouts', boutRouter);
 // Vault: /api/vault/* — Arena Vault staking
 app.use('/api/vault', vaultRouter);
 
+// ─── Frontend SPA (serve built React app) ─────────────────
+import { existsSync } from 'fs';
+
+const frontendDist = join(__dirname, '..', 'frontend', 'dist');
+if (existsSync(frontendDist)) {
+    app.use(express.static(frontendDist));
+    // SPA fallback: serve index.html for non-API routes (React Router handles routing)
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api')) return next();
+        res.sendFile(join(frontendDist, 'index.html'));
+    });
+}
+
 // ─── Error Handling ────────────────────────────────────────
 
 app.use(notFoundHandler);
