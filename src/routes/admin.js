@@ -179,4 +179,33 @@ router.post('/puzzles/:id/force-expire', async (req, res) => {
     res.json({ message: `Puzzle ${puzzle.id} force-expired.` });
 });
 
+// ─── Create Bout (admin seeding) ───────────────────────────
+
+router.post('/bouts', async (req, res) => {
+    const { title, puzzleType, difficultyTier, entryFee, solveDurationSecs,
+        scheduledAt, registrationOpensAt, bettingOpensAt, bettingClosesAt } = req.body;
+
+    if (!title || !puzzleType || !difficultyTier || !scheduledAt) {
+        return res.status(400).json({ error: 'Required: title, puzzleType, difficultyTier, scheduledAt' });
+    }
+
+    const bout = await prisma.bout.create({
+        data: {
+            title,
+            puzzleType,
+            difficultyTier,
+            entryFee: entryFee || 500,
+            solveDurationSecs: solveDurationSecs || 3600,
+            scheduledAt: new Date(scheduledAt),
+            registrationOpensAt: registrationOpensAt ? new Date(registrationOpensAt) : new Date(new Date(scheduledAt).getTime() - 48 * 3600000),
+            bettingOpensAt: bettingOpensAt ? new Date(bettingOpensAt) : new Date(new Date(scheduledAt).getTime() - 12 * 3600000),
+            bettingClosesAt: bettingClosesAt ? new Date(bettingClosesAt) : new Date(new Date(scheduledAt).getTime() - 1 * 3600000),
+            status: 'SCHEDULED',
+        },
+    });
+
+    logger.info({ boutId: bout.id, title: bout.title }, 'Admin created bout');
+    res.status(201).json(bout);
+});
+
 export default router;
