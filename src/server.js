@@ -175,7 +175,8 @@ const frontendDist = join(__dirname, '..', 'frontend', 'dist');
 if (existsSync(frontendDist)) {
     app.use(express.static(frontendDist));
     // SPA fallback: serve index.html for non-API routes (React Router handles routing)
-    app.get('*', (req, res, next) => {
+    // Express 5 requires named wildcards: /{*splat} instead of *
+    app.get('/{*splat}', (req, res, next) => {
         if (req.path.startsWith('/api')) return next();
         res.sendFile(join(frontendDist, 'index.html'));
     });
