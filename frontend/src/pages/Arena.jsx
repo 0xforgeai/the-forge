@@ -97,7 +97,7 @@ export default function Arena() {
                                                 <td className="rank">{i + 1}</td>
                                                 <td className="name">{a.name}</td>
                                                 <td className="dim mono">{a.reputation}</td>
-                                                <td className="earned">{Number(a.balance).toLocaleString()}</td>
+                                                <td className="earned">{Number(a.totalEarned).toLocaleString()}</td>
                                             </tr>
                                         ))
                                     )}

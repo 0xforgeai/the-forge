@@ -269,7 +269,21 @@ contract ArenaVault is Ownable, ReentrancyGuard {
             pos.vestingStart = 0;
         }
 
-        forgeToken.safeTransfer(msg.sender, totalClaim);
+        // Cap payout to available yield (vault balance minus staked principal)
+        // This prevents loyalty multiplier inflation from overpaying beyond deposited yield
+        uint256 available = forgeToken.balanceOf(address(this));
+        if (available > totalStaked) {
+            uint256 maxYield = available - totalStaked;
+            if (totalClaim > maxYield) {
+                totalClaim = maxYield;
+            }
+        } else {
+            totalClaim = 0;
+        }
+
+        if (totalClaim > 0) {
+            forgeToken.safeTransfer(msg.sender, totalClaim);
+        }
         emit YieldClaimed(msg.sender, totalClaim);
     }
 

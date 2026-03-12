@@ -32,10 +32,10 @@ router.get('/', async (req, res) => {
 
     const result = bouts.map(b => {
         // Calculate live odds from bet distribution
-        const totalBets = b.bets.reduce((s, bet) => s + bet.amount, 0);
+        const totalBets = b.bets.reduce((s, bet) => s + bet.amount, 0n);
         const betsByEntrant = {};
         b.bets.forEach(bet => {
-            betsByEntrant[bet.entrantId] = (betsByEntrant[bet.entrantId] || 0) + bet.amount;
+            betsByEntrant[bet.entrantId] = (betsByEntrant[bet.entrantId] || 0n) + bet.amount;
         });
 
         return {
@@ -63,8 +63,8 @@ router.get('/', async (req, res) => {
                 placement: e.placement,
                 payout: e.payout,
                 solveTime: e.solveTime,
-                odds: totalBets > 0 ? ((betsByEntrant[e.id] || 0) / totalBets * 100).toFixed(1) : '0.0',
-                totalBetsOn: betsByEntrant[e.id] || 0,
+                odds: totalBets > 0n ? (Number((betsByEntrant[e.id] || 0n) * 1000n / totalBets) / 10).toFixed(1) : '0.0',
+                totalBetsOn: betsByEntrant[e.id] || 0n,
             })),
             totalEntrants: b.entrants.length,
             totalBetPool: totalBets,

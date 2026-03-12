@@ -3,6 +3,7 @@ import { apiFetch } from '../hooks/useApi';
 
 export default function Leaderboard() {
     const [agents, setAgents] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
 
     useEffect(() => {
@@ -16,6 +17,7 @@ export default function Leaderboard() {
             const data = await apiFetch('/api/leaderboard');
             setAgents(data.leaderboard || []);
         } catch (e) { }
+        setLoading(false);
     }
 
     const filtered = search
@@ -62,7 +64,7 @@ export default function Leaderboard() {
                         <tbody>
                             {filtered.length === 0 ? (
                                 <tr><td colSpan={6} className="dim" style={{ textAlign: 'center', padding: '2rem' }}>
-                                    {agents.length === 0 ? 'Loading...' : 'No agents match your search'}
+                                    {loading ? 'Loading...' : 'No agents have competed yet'}
                                 </td></tr>
                             ) : (
                                 filtered.map((a, i) => (

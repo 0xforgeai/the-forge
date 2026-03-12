@@ -30,10 +30,10 @@ function getDaysStaked(stakedAt) {
 
 router.get('/info', async (req, res) => {
     const activeStakes = await prisma.stakePosition.findMany({ where: { active: true } });
-    const totalStaked = activeStakes.reduce((s, p) => s + p.amount, 0);
+    const totalStaked = activeStakes.reduce((s, p) => s + p.amount, 0n);
     const totalStakers = activeStakes.length;
     const avgMulti = totalStakers > 0
-        ? (activeStakes.reduce((s, p) => s + p.loyaltyMulti, 0) / totalStakers).toFixed(2)
+        ? (activeStakes.reduce((s, p) => s + Number(p.loyaltyMulti), 0) / totalStakers).toFixed(2)
         : '1.00';
 
     const covenantBreakdown = {};
@@ -41,7 +41,7 @@ router.get('/info', async (req, res) => {
         covenantBreakdown[p.covenant] = (covenantBreakdown[p.covenant] || 0) + 1;
     }
 
-    const totalEarned = activeStakes.reduce((s, p) => s + p.totalEarned, 0);
+    const totalEarned = activeStakes.reduce((s, p) => s + p.totalEarned, 0n);
 
     // Get total burns from treasury ledger
     const burnResult = await prisma.treasuryLedger.aggregate({
@@ -55,7 +55,7 @@ router.get('/info', async (req, res) => {
         avgLoyaltyMultiplier: parseFloat(avgMulti),
         covenantBreakdown,
         totalEarned,
-        totalBurned: burnResult._sum.amount || 0,
+        totalBurned: burnResult._sum.amount || 0n,
         covenants: Object.entries(vc.covenants).map(([name, c]) => ({
             name,
             lockDays: c.lockDays,
