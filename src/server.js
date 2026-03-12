@@ -28,6 +28,12 @@ import vaultRouter from './routes/vault.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// ─── BigInt JSON serialization (Prisma returns BigInt for Int8 columns) ─────
+// Without this, JSON.stringify crashes on any response containing balance/amount/gas
+BigInt.prototype.toJSON = function () {
+    return Number(this);
+};
+
 const app = express();
 
 // Trust Railway's reverse proxy (required for express-rate-limit behind proxy)
@@ -35,15 +41,17 @@ app.set('trust proxy', 1);
 
 // ─── Global Middleware ─────────────────────────────────────
 
-// M-1 fix: enable CSP with sensible defaults
+// M-1 fix: enable CSP with sensible defaults + Privy/wallet connect domains
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://auth.privy.io", "https://*.walletconnect.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", 'data:', 'https:'],
-            connectSrc: ["'self'"],
+            connectSrc: ["'self'", "https://auth.privy.io", "https://*.privy.io", "https://*.alchemy.com", "https://*.walletconnect.com", "wss://*.walletconnect.com", "https://rpc.walletconnect.com"],
+            frameSrc: ["'self'", "https://auth.privy.io", "https://*.walletconnect.com"],
         },
     },
 }));
