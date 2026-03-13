@@ -103,7 +103,7 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
         });
     }
 
-    // ── Losing bet burn ─────────────────────────────
+    // ── Losing bet redistribution (tokens go to winners, not burned) ──
     const losingBetBurn = losingBets.reduce((sum, b) => sum + b.amount, 0);
 
     // ── Rounding dust: account for Math.floor truncation (C-6 fix) ──
