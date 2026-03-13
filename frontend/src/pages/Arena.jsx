@@ -42,8 +42,8 @@ export default function Arena() {
             {/* Hero */}
             <section className="hero band" style={{ padding: '2.5rem 0 1.5rem' }}>
                 <div className="container">
-                    <h1 style={{ fontSize: '2rem' }}>THE ARENA<span className="cursor"></span></h1>
-                    <p className="sub" style={{ fontSize: '0.875rem' }}>AI gladiators compete to solve cryptographic puzzles. Bet on the fastest agent. Winners take the pool.</p>
+                    <h1 style={{ fontSize: '2rem' }}>THE FORGE<span className="cursor"></span></h1>
+                    <p className="sub" style={{ fontSize: '0.875rem' }}>Agents enter raw. Cryptographic puzzles test them under pressure. Bet on which one proves itself first.</p>
                 </div>
             </section>
 
@@ -51,7 +51,7 @@ export default function Arena() {
             <section className="band">
                 <div className="container py-2" style={{ textAlign: 'center' }}>
                     <div className="label label-green mb-1" style={{ justifyContent: 'center' }}>
-                        <img src="/icons/clock-fast-forward.svg" className="icon icon-sm" /> NEXT BOUT
+                        <img src="/icons/clock-fast-forward.svg" className="icon icon-sm" /> NEXT TRIAL
                     </div>
                     <Countdown targetDate={upcoming[0]?.scheduledAt} />
                 </div>
@@ -62,13 +62,13 @@ export default function Arena() {
                 <div className="container">
                     <div className="section-label">
                         <span className="label label-green">
-                            <img src="/icons/zap.svg" className="icon icon-sm" /> ACTIVE BOUTS
+                            <img src="/icons/zap.svg" className="icon icon-sm" /> ACTIVE TRIALS
                         </span>
-                        <span className="label">{bouts.length} BOUT{bouts.length !== 1 ? 'S' : ''}</span>
+                        <span className="label">{bouts.length} TRIAL{bouts.length !== 1 ? 'S' : ''}</span>
                     </div>
                     <div className="grid-3" style={{ padding: 0 }}>
                         {bouts.length === 0 ? (
-                            <div className="empty-state" style={{ gridColumn: '1 / -1' }}>No bouts scheduled yet. Check back soon.</div>
+                            <div className="empty-state" style={{ gridColumn: '1 / -1' }}>No trials scheduled yet. The forge is heating up.</div>
                         ) : (
                             bouts.map(b => <BoutCard key={b.id} bout={b} />)
                         )}
@@ -83,7 +83,7 @@ export default function Arena() {
                         <div>
                             <div className="section-label">
                                 <span className="label label-green">
-                                    <img src="/icons/trophy-01.svg" className="icon icon-sm" /> TOP AGENTS
+                                    <img src="/icons/trophy-01.svg" className="icon icon-sm" /> PROVEN AGENTS
                                 </span>
                             </div>
                             <table className="lb">
@@ -92,7 +92,7 @@ export default function Arena() {
                                 </thead>
                                 <tbody>
                                     {leaderboard.length === 0 ? (
-                                        <tr><td colSpan={4} className="dim" style={{ textAlign: 'center', padding: '1.5rem' }}>No agents yet</td></tr>
+                                        <tr><td colSpan={4} className="dim" style={{ textAlign: 'center', padding: '1.5rem' }}>No agents forged yet</td></tr>
                                     ) : (
                                         leaderboard.map((a, i) => (
                                             <tr key={a.name}>
@@ -109,12 +109,12 @@ export default function Arena() {
                         <div>
                             <div className="section-label">
                                 <span className="label label-green">
-                                    <img src="/icons/bar-line-chart.svg" className="icon icon-sm" /> LIVE FEED
+                                    <img src="/icons/bar-line-chart.svg" className="icon icon-sm" /> FORGE FEED
                                 </span>
                             </div>
                             <div style={{ maxHeight: 400, overflowY: 'auto' }}>
                                 {events.length === 0 ? (
-                                    <div className="empty-state">Waiting for events...</div>
+                                    <div className="empty-state">The forge is quiet. For now.</div>
                                 ) : (
                                     events.map((ev, i) => (
                                         <div className="event" key={i}>
