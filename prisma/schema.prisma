@@ -18,9 +18,10 @@ model Wallet {
   apiKey     String   @unique @map("api_key")
   name       String   @unique
   xHandle    String?  @map("x_handle")
-  address    String?  @map("address") // on-chain wallet address (nullable — API-key agents may not have one)
-  balance    BigInt   @default(1000)
-  gas        BigInt   @default(500)
+  address    String   @map("address") // REQUIRED — on-chain wallet address
+  // balance is READ from chain: forgeToken.balanceOf(address)
+  // gas system removed — users pay real Base L2 gas
+  status     String   @default("ACTIVE") // ACTIVE | SUSPENDED
   reputation Int      @default(0)
   createdAt  DateTime @default(now()) @map("created_at")
 
@@ -287,7 +288,8 @@ enum PayoutChoice {
 }
 
 model VictoryBond {
-  id String @id @default(uuid())
+  id            String @id @default(uuid())
+  onChainBondId BigInt? @map("on_chain_bond_id") // ForgeBonds contract ID
 
   // Source
   boutId     String  @map("bout_id")
@@ -302,11 +304,8 @@ model VictoryBond {
   faceValue       BigInt @map("face_value")
   remainingValue  BigInt @map("remaining_value")
   discountPercent Int    @default(10) @map("discount_percent")
-  aprBps          Int    @map("apr_bps") // basis points, mirrors staking APR
-
-  // Yield tracking
-  accruedYield BigInt   @default(0) @map("accrued_yield")
-  lastYieldAt  DateTime @default(now()) @map("last_yield_at")
+  aprBps          Int    @map("apr_bps") // IMMUTABLE — snapshot at creation from on-chain
+  // yield is lazy-calculated on-chain via forgeBonds.pendingYield(bondId)
 
   // OTC state
   status         String  @default("ACTIVE") // ACTIVE | FILLED | CANCELLED | EXPIRED
@@ -394,7 +393,8 @@ model TreasuryLedger {
   action    String // EMISSION, BURN, RAKE, BOUT_INJECTION, STAKER_YIELD
   amount    BigInt
   memo      String?
-  balance   BigInt   @default(0) // running treasury balance
+  txHash    String?  @map("tx_hash") // on-chain tx reference
+  // Treasury balance is forgeToken.balanceOf(treasuryAddress) on chain
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([action])
@@ -455,34 +455,23 @@ model Transaction {
   @@map("transactions")
 }
 
-// ─── On-Chain Settlement Queue ────────────────────────────
+// ─── Balance Cache (event-indexed, for API performance) ───
 
-enum SettlementAction {
-  BURN
-  TRANSFER
+model BalanceCache {
+  address   String   @id
+  balance   BigInt   @default(0)
+  lastBlock BigInt   @default(0) @map("last_block")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("balance_cache")
 }
 
-enum SettlementStatus {
-  PENDING
-  CONFIRMED
-  FAILED
-}
+// ─── Event Sync Tracking ──────────────────────────────────
 
-model SettlementTask {
-  id        String           @id @default(uuid())
-  action    SettlementAction
-  amount    BigInt
-  toAddress String?          @map("to_address") // for TRANSFER actions
-  txHash    String?          @map("tx_hash") // set on confirmation
-  status    SettlementStatus @default(PENDING)
-  attempts  Int              @default(0)
-  lastError String?          @map("last_error")
-  refType   String?          @map("ref_type") // e.g. "VICTORY_CLAIM", "BOND_EXPIRY"
-  refId     String?          @map("ref_id") // claim/bond ID for tracing
-  createdAt DateTime         @default(now()) @map("created_at")
-  settledAt DateTime?        @map("settled_at")
+model EventSyncCursor {
+  contract  String   @id // contract address
+  lastBlock BigInt   @default(0) @map("last_block")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@index([status])
-  @@index([createdAt])
-  @@map("settlement_tasks")
+  @@map("event_sync_cursors")
 }

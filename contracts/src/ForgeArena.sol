@@ -11,6 +11,10 @@ interface IArenaVault {
     function depositYield(uint256 amount) external;
 }
 
+interface IVictoryEscrow {
+    function lockPayout(bytes32 boutId, address winner, uint256 amount) external;
+}
+
 /**
  * @title ForgeArena
  * @notice On-chain bout lifecycle: entry fees, bets, burns, payouts.
@@ -73,6 +77,7 @@ contract ForgeArena is Ownable, ReentrancyGuard {
 
     ERC20Burnable public immutable forgeToken;
     IArenaVault   public arenaVault;
+    IVictoryEscrow public victoryEscrow;
     address       public treasury;
 
     mapping(bytes32 => Bout) public bouts;
@@ -127,6 +132,10 @@ contract ForgeArena is Ownable, ReentrancyGuard {
 
     function setArenaVault(address _vault) external onlyOwner {
         arenaVault = IArenaVault(_vault);
+    }
+
+    function setVictoryEscrow(address _escrow) external onlyOwner {
+        victoryEscrow = IVictoryEscrow(_escrow);
     }
 
     // ─── Create Bout ────────────────────────────────────────
@@ -234,6 +243,46 @@ contract ForgeArena is Ownable, ReentrancyGuard {
         emit BoutEntered(boutId, msg.sender, fee, burnAmount);
     }
 
+    // ─── Enter Bout For (Relay) ──────────────────────────────
+
+    /**
+     * @notice Relay: backend enters bout on behalf of an agent.
+     *         Agent must have approved this contract for the entry fee.
+     */
+    function enterBoutFor(bytes32 boutId, address agent) external onlyOwner nonReentrant {
+        Bout storage bout = bouts[boutId];
+        if (bout.status != BoutStatus.OPEN) revert BoutNotOpen();
+        if (bout.entrantCount >= bout.config.maxEntrants) revert BoutFull();
+        if (hasEntered[boutId][agent]) revert AlreadyEntered();
+
+        uint256 fee = bout.config.entryFee;
+        uint256 burnAmount = (fee * bout.config.entryBurnBps) / 10000;
+        uint256 netFee = fee - burnAmount;
+
+        // Transfer from the agent (not msg.sender)
+        IERC20(address(forgeToken)).safeTransferFrom(agent, address(this), fee);
+
+        if (burnAmount > 0) {
+            forgeToken.burn(burnAmount);
+            bout.totalBurned += burnAmount;
+            totalBurned += burnAmount;
+        }
+
+        boutEntrants[boutId].push(Entrant({
+            wallet: agent,
+            feePaid: netFee,
+            placement: 0,
+            payout: 0,
+            claimed: false
+        }));
+
+        bout.totalEntryPool += netFee;
+        bout.entrantCount++;
+        hasEntered[boutId][agent] = true;
+
+        emit BoutEntered(boutId, agent, fee, burnAmount);
+    }
+
     // ─── Place Bet ──────────────────────────────────────────
 
     function placeBet(bytes32 boutId, uint8 entrantIdx, uint256 amount) external nonReentrant {
@@ -268,6 +317,45 @@ contract ForgeArena is Ownable, ReentrancyGuard {
         emit BetPlaced(boutId, msg.sender, entrantIdx, amount, burnAmount);
     }
 
+    // ─── Place Bet For (Relay) ───────────────────────────────
+
+    /**
+     * @notice Relay: backend places bet on behalf of a bettor.
+     *         Bettor must have approved this contract for the bet amount.
+     */
+    function placeBetFor(bytes32 boutId, address bettor, uint8 entrantIdx, uint256 amount) external onlyOwner nonReentrant {
+        Bout storage bout = bouts[boutId];
+        require(bout.status == BoutStatus.OPEN || bout.status == BoutStatus.LIVE, "Not accepting bets");
+        require(entrantIdx < bout.entrantCount, "Invalid entrant");
+        if (hasBet[boutId][bettor]) revert AlreadyBet();
+        require(amount > 0, "Amount must be > 0");
+
+        uint256 burnAmount = (amount * bout.config.betBurnBps) / 10000;
+        uint256 netBet = amount - burnAmount;
+
+        // Transfer from the bettor (not msg.sender)
+        IERC20(address(forgeToken)).safeTransferFrom(bettor, address(this), amount);
+
+        if (burnAmount > 0) {
+            forgeToken.burn(burnAmount);
+            bout.totalBurned += burnAmount;
+            totalBurned += burnAmount;
+        }
+
+        boutBets[boutId].push(Bet({
+            bettor: bettor,
+            entrantIdx: entrantIdx,
+            amount: netBet,
+            payout: 0,
+            claimed: false
+        }));
+
+        bout.totalBetPool += netBet;
+        hasBet[boutId][bettor] = true;
+
+        emit BetPlaced(boutId, bettor, entrantIdx, amount, burnAmount);
+    }
+
     // ─── Resolve Bout ───────────────────────────────────────
 
     function resolveBout(bytes32 boutId, uint8[] calldata placements) external onlyOwner nonReentrant {
@@ -299,6 +387,68 @@ contract ForgeArena is Ownable, ReentrancyGuard {
         uint256 rakeToVault = protocolRake / 2;
         uint256 rakeToProtocol = protocolRake - rakeToVault;
         _distributeRake(rakeToVault, rakeToProtocol);
+
+        emit BoutResolved(boutId, agentPurse, bettorShare, rakeToVault, rakeToProtocol);
+    }
+
+    // ─── Resolve and Escrow ──────────────────────────────────
+
+    /**
+     * @notice Resolve a bout and route all winner payouts to VictoryEscrow.
+     *         Unlike resolveBout(), payouts are not held here for pull-claiming.
+     *         Instead, they are locked in VictoryEscrow for winners to claim
+     *         (instant with 5% burn, or as an OTC bond).
+     */
+    function resolveAndEscrow(bytes32 boutId, uint8[] calldata placements) external onlyOwner nonReentrant {
+        require(address(victoryEscrow) != address(0), "VictoryEscrow not set");
+
+        Bout storage bout = bouts[boutId];
+        if (bout.status != BoutStatus.LIVE) revert BoutNotLive();
+        if (bout.resolved) revert BoutAlreadyResolved();
+
+        bout.status = BoutStatus.RESOLVED;
+        bout.resolved = true;
+
+        // Calculate pool splits
+        uint256 protocolRake = (bout.totalBetPool * bout.config.protocolRakeBps) / 10000;
+        uint256 agentShare   = (bout.totalBetPool * bout.config.agentPurseBps) / 10000;
+        uint256 bettorShare  = bout.totalBetPool - protocolRake - agentShare;
+        uint256 agentPurse   = bout.totalEntryPool + agentShare;
+
+        // Set agent placements & payouts
+        if (placements.length > 0) {
+            _setAgentPayouts(boutId, placements, agentPurse);
+        } else {
+            protocolRake += agentPurse;
+        }
+
+        // Set bettor payouts
+        _setBettorPayouts(boutId, placements, bettorShare);
+
+        // Distribute rake
+        uint256 rakeToVault = protocolRake / 2;
+        uint256 rakeToProtocol = protocolRake - rakeToVault;
+        _distributeRake(rakeToVault, rakeToProtocol);
+
+        // Route agent payouts to VictoryEscrow
+        Entrant[] storage entrants = boutEntrants[boutId];
+        for (uint256 i = 0; i < entrants.length; i++) {
+            if (entrants[i].payout > 0) {
+                IERC20(address(forgeToken)).approve(address(victoryEscrow), entrants[i].payout);
+                victoryEscrow.lockPayout(boutId, entrants[i].wallet, entrants[i].payout);
+                entrants[i].claimed = true; // mark as claimed (routed to escrow)
+            }
+        }
+
+        // Route bettor payouts to VictoryEscrow
+        Bet[] storage betList = boutBets[boutId];
+        for (uint256 i = 0; i < betList.length; i++) {
+            if (betList[i].payout > 0) {
+                IERC20(address(forgeToken)).approve(address(victoryEscrow), betList[i].payout);
+                victoryEscrow.lockPayout(boutId, betList[i].bettor, betList[i].payout);
+                betList[i].claimed = true; // mark as claimed (routed to escrow)
+            }
+        }
 
         emit BoutResolved(boutId, agentPurse, bettorShare, rakeToVault, rakeToProtocol);
     }
