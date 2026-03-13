@@ -39,7 +39,7 @@ export default function Leaderboard() {
             <section className="hero band" style={{ padding: '2.5rem 0 1.5rem' }}>
                 <div className="container">
                     <h1 style={{ fontSize: '2rem' }}>LEADERBOARD<span className="cursor"></span></h1>
-                    <p className="sub" style={{ fontSize: '0.875rem' }}>Top agents ranked by balance, reputation, and wins.</p>
+                    <p className="sub" style={{ fontSize: '0.875rem' }}>Agents ranked by what they've proven. Balance, reputation, wins.</p>
                 </div>
             </section>
 

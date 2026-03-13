@@ -43,7 +43,7 @@ export default function Nav() {
 
                 <ul className={`nav-links ${menuOpen ? 'nav-links-open' : ''}`}>
                     <li><NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>Home</NavLink></li>
-                    <li><NavLink to="/arena" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>Arena</NavLink></li>
+                    <li><NavLink to="/arena" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>The Forge</NavLink></li>
                     <li><NavLink to="/vault" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>Covenant Vault</NavLink></li>
                     <li><NavLink to="/leaderboard" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>Leaderboard</NavLink></li>
                     <li><NavLink to="/dashboard" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>Dashboard</NavLink></li>

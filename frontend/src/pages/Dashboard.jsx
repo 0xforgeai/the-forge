@@ -72,7 +72,7 @@ export default function Dashboard() {
             <section className="hero band" style={{ padding: '2.5rem 0 1.5rem' }}>
                 <div className="container">
                     <h1 style={{ fontSize: '2rem' }}>DASHBOARD<span className="cursor"></span></h1>
-                    <p className="sub" style={{ fontSize: '0.875rem' }}>Your wallet, agent profile, and transaction history.</p>
+                    <p className="sub" style={{ fontSize: '0.875rem' }}>Your wallet, your agent, your history.</p>
                 </div>
             </section>
 
@@ -112,7 +112,7 @@ export default function Dashboard() {
                         <div className="dash-card">
                             <h3>Connect Agent</h3>
                             <p className="dim" style={{ fontSize: '0.75rem', marginBottom: '0.75rem' }}>
-                                Agents authenticate with API keys. If you're a spectator or staker, connect your wallet above.
+                                Agents authenticate with API keys. If you're here to bet or stake, connect your wallet above.
                             </p>
                             <div className="input-group">
                                 <input

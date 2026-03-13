@@ -74,7 +74,7 @@ export default function Vault() {
             <section className="hero band" style={{ padding: '3rem 0 2rem' }}>
                 <div className="container">
                     <h1 style={{ fontSize: '2rem' }}>COVENANT VAULT<span className="cursor"></span></h1>
-                    <p className="sub" style={{ fontSize: '0.875rem' }}>Stake $FORGE. Choose your commitment level. Earn from all bout activity. The longer you lock, the more you earn.</p>
+                    <p className="sub" style={{ fontSize: '0.875rem' }}>Stake $FORGE. Choose your commitment. Earn from every trial the forge runs. The longer you stay, the more you take home.</p>
                 </div>
             </section>
 
@@ -139,7 +139,7 @@ export default function Vault() {
                             </div>
                         ) : (
                             <div className="dash-card">
-                                <h3>Stake $FORGE</h3>
+                                <h3>Enter the Covenant</h3>
                                 <p className="dim" style={{ fontSize: '0.8125rem', marginBottom: '1rem' }}>
                                     Wallet balance: <span className="green">{Number(balance).toLocaleString(undefined, { maximumFractionDigits: 0 })} $FORGE</span>
                                 </p>
@@ -199,7 +199,7 @@ export default function Vault() {
                                 </span>
                                 <span className="bout-tag tag-betting">1 DAY</span>
                             </div>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Entry tier. Minimum commitment. Start earning immediately.</div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Entry tier. Minimal lock. Start earning from the forge immediately.</div>
                             <div className="bout-pool">
                                 <div><div className="bp-val" style={{ color: 'var(--text)' }}>—</div><div className="bp-label">APY Bonus</div></div>
                                 <div><div className="bp-val" style={{ color: 'var(--text)' }}>1×</div><div className="bp-label">Rage Tax</div></div>
@@ -213,7 +213,7 @@ export default function Vault() {
                                 </span>
                                 <span className="bout-tag tag-live" style={{ animation: 'none' }}>3 DAYS</span>
                             </div>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Committed. You're serious about the arena.</div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Committed. You believe in what's being built here.</div>
                             <div className="bout-pool">
                                 <div><div className="bp-val green">+50%</div><div className="bp-label">APY Bonus</div></div>
                                 <div><div className="bp-val orange">2×</div><div className="bp-label">Rage Tax</div></div>
@@ -227,7 +227,7 @@ export default function Vault() {
                                 </span>
                                 <span className="bout-tag" style={{ color: 'var(--purple)', borderColor: 'var(--purple)' }}>7 DAYS</span>
                             </div>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Maximum conviction. Top-tier yield multiplier.</div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Maximum conviction. Top-tier yield. You're part of the foundation.</div>
                             <div className="bout-pool">
                                 <div><div className="bp-val purple">+150%</div><div className="bp-label">APY Bonus</div></div>
                                 <div><div className="bp-val red">3×</div><div className="bp-label">Rage Tax</div></div>
@@ -243,7 +243,7 @@ export default function Vault() {
                             </span>
                             <span className="bout-tag tag-red">30 DAYS — NO UNSTAKE</span>
                         </div>
-                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>You cannot unstake for 30 days. In return: the highest yield in the protocol. Permanent badge of honor.</div>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>No exit for 30 days. In return: the highest yield in the protocol. You don't just stake. You become the forge.</div>
                         <div className="bout-pool">
                             <div><div className="bp-val red" style={{ textShadow: '0 0 10px rgba(255,51,51,0.3)' }}>+300%</div><div className="bp-label">APY Bonus</div></div>
                             <div><div className="bp-val dim">∞</div><div className="bp-label">Lock Period</div></div>
@@ -265,7 +265,7 @@ export default function Vault() {
                                 </span>
                             </div>
                             <div style={{ fontSize: '0.8125rem', color: 'var(--text)', marginBottom: '1rem' }}>
-                                Deposit $FORGE into the Arena Vault. Your stake passively earns from <strong className="green">ALL</strong> bout activity — rake, burns, and emissions. Lock longer to earn more.
+                                Deposit $FORGE into the Covenant Vault. Your stake earns from every trial — rake, burns, emissions, rage quit taxes. Lock longer, earn more.
                             </div>
                             <div className="entrant"><span className="agent">Protocol Rake (5% of all bets)</span><span className="odds green">50% → you</span></div>
                             <div className="entrant"><span className="agent">Rage Quit Taxes</span><span className="odds green">100% → you</span></div>
@@ -278,7 +278,7 @@ export default function Vault() {
                                 </span>
                             </div>
                             <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)' }}>
-                                Your bet <span className="bright">weight = amount × loyalty multiplier</span>. A 3x staker betting 1,000 has the payout weight of 3,000. Staking isn't just yield — it's competitive edge.
+                                Your bet <span className="bright">weight = amount × loyalty multiplier</span>. A 3x staker betting 1,000 has the payout weight of 3,000. Staking isn't just yield. It's edge.
                             </div>
                         </div>
                         {/* Right: Loyalty + Rage Quit */}
