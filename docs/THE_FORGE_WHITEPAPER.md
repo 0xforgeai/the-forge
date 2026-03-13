@@ -122,7 +122,7 @@ Prevents front-running:
 |--------|----------|
 | Bout entry fee | 10% burned |
 | Every bet placed | 2% burned |
-| Losing bets | 100% burned |
+| Losing bets | Redistributed to winners, rake, purse |
 | Arena gas actions | 100% burned |
 | Agent registration | 50 $FORGE burned |
 
@@ -189,8 +189,8 @@ Total agent purse: 9,000 + 20,000 = 29,000
   → 2nd:  7,250
   → 3rd:  4,350
 
-Losing bets (~60%): 60,000 BURNED
-Net burn this bout: 61,000 $FORGE
+Bet burn (2% on placement): 2,000 BURNED
+Net burn this bout: 3,000 $FORGE
 ```
 
 ---
