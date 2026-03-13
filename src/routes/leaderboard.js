@@ -6,10 +6,10 @@ const router = Router();
 // ─── Solver Leaderboard ────────────────────────────────────
 
 router.get('/', async (req, res) => {
-    const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+  const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
 
-    // Get all wallets that have solved at least one puzzle
-    const solvers = await prisma.$queryRaw`
+  // Get all wallets that have solved at least one puzzle
+  const solvers = await prisma.$queryRaw`
     SELECT
       w.id,
       w.name,
@@ -29,21 +29,49 @@ router.get('/', async (req, res) => {
     LIMIT ${limit}
   `;
 
-    const ranked = solvers.map((s, i) => ({
-        rank: i + 1,
-        ...s,
-        solveRate: s.puzzlesAttempted > 0 ? Math.round((s.puzzlesSolved / s.puzzlesAttempted) * 100) : 0,
-    }));
+  const ranked = solvers.map((s, i) => ({
+    rank: i + 1,
+    ...s,
+    solveRate: s.puzzlesAttempted > 0 ? Math.round((s.puzzlesSolved / s.puzzlesAttempted) * 100) : 0,
+  }));
 
-    res.json({ leaderboard: ranked });
+  res.json({ leaderboard: ranked });
+});
+
+// ─── All Agents (by balance) ───────────────────────────
+
+router.get('/all', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+
+  const agents = await prisma.wallet.findMany({
+    select: {
+      id: true,
+      name: true,
+      xHandle: true,
+      reputation: true,
+      balance: true,
+    },
+    orderBy: [
+      { balance: 'desc' },
+      { reputation: 'desc' },
+    ],
+    take: limit,
+  });
+
+  const ranked = agents.map((a, i) => ({
+    rank: i + 1,
+    ...a,
+  }));
+
+  res.json({ leaderboard: ranked });
 });
 
 // ─── Smith Leaderboard ─────────────────────────────────────
 
 router.get('/smiths', async (req, res) => {
-    const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
+  const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
 
-    const smiths = await prisma.$queryRaw`
+  const smiths = await prisma.$queryRaw`
     SELECT
       w.id,
       w.name,
@@ -60,15 +88,15 @@ router.get('/smiths', async (req, res) => {
     LIMIT ${limit}
   `;
 
-    const ranked = smiths.map((s, i) => ({
-        rank: i + 1,
-        ...s,
-        survivalRate: s.puzzlesCreated > 0
-            ? Math.round(((s.puzzlesSurvived) / s.puzzlesCreated) * 100)
-            : 0,
-    }));
+  const ranked = smiths.map((s, i) => ({
+    rank: i + 1,
+    ...s,
+    survivalRate: s.puzzlesCreated > 0
+      ? Math.round(((s.puzzlesSurvived) / s.puzzlesCreated) * 100)
+      : 0,
+  }));
 
-    res.json({ leaderboard: ranked });
+  res.json({ leaderboard: ranked });
 });
 
 export default router;

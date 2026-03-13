@@ -3,39 +3,22 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title ForgeToken
- * @notice $FORGE — ERC-20 token for The Forge AI gladiator arena.
- *         1B total supply. Burnable. Owner can mint for treasury emissions.
+ * @notice $FORGE — fixed-supply, burnable ERC-20 for The Forge arena.
+ *         No owner. No mint. No pause. No fees. Pure ERC-20.
+ *
+ *         Blockaid-clean: no Ownable, no hidden admin functions,
+ *         no transfer restrictions, no honeypot mechanics.
+ *
+ * Supply: 1,000,000,000 FORGE (1B)
+ * Burns are deflationary — supply only goes down.
  */
-contract ForgeToken is ERC20, ERC20Burnable, Ownable {
-    uint256 public constant MAX_SUPPLY = 1_000_000_000 ether; // 1B tokens
-    uint256 public totalMinted;
+contract ForgeToken is ERC20, ERC20Burnable {
+    uint256 public constant MAX_SUPPLY = 1_000_000_000 ether;
 
-    error ExceedsMaxSupply(uint256 requested, uint256 remaining);
-
-    constructor(address _initialOwner)
-        ERC20("The Forge", "FORGE")
-        Ownable(_initialOwner)
-    {
-        // Mint initial supply to deployer/owner
-        _mint(_initialOwner, MAX_SUPPLY);
-        totalMinted = MAX_SUPPLY;
-    }
-
-    /**
-     * @notice Mint new tokens (only owner, for treasury emissions).
-     *         Reverts if total minted would exceed MAX_SUPPLY.
-     *         In practice, this is not needed if full supply is minted at deploy.
-     *         Kept for future flexibility (e.g., bridging scenarios).
-     */
-    function mint(address to, uint256 amount) external onlyOwner {
-        if (totalMinted + amount > MAX_SUPPLY) {
-            revert ExceedsMaxSupply(amount, MAX_SUPPLY - totalMinted);
-        }
-        totalMinted += amount;
-        _mint(to, amount);
+    constructor(address _treasury) ERC20("The Forge", "FORGE") {
+        _mint(_treasury, MAX_SUPPLY);
     }
 }

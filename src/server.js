@@ -15,6 +15,7 @@ import { startJobs } from './jobs/expiry.js';
 import { startBoutScheduler } from './jobs/bout-scheduler.js';
 import { startBootstrapJob } from './jobs/bootstrap.js';
 import { startSupplyInvariantJob } from './jobs/supply-invariant.js';
+import { chainReady } from './chain.js';
 
 // Route handlers
 import walletRouter from './routes/wallet.js';
@@ -202,7 +203,7 @@ async function start() {
         startSupplyInvariantJob();
 
         server = app.listen(config.port, () => {
-            logger.info({ port: config.port, env: config.nodeEnv }, 'The Forge is live');
+            logger.info({ port: config.port, env: config.nodeEnv, chainRelay: chainReady }, 'The Forge is live');
         });
     } catch (err) {
         logger.error({ err }, 'Failed to start server');

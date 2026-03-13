@@ -10,10 +10,12 @@
  */
 
 import cron from 'node-cron';
+import { ethers } from 'ethers';
 import prisma from '../db.js';
 import config from '../config.js';
 import { generatePuzzle, verifyCryptoPuzzle } from '../crypto-puzzles.js';
 import { calculatePayouts } from '../bout-payout.js';
+import { forgeArena, chainReady, uuidToBytes32 } from '../chain.js';
 import sse from '../sse.js';
 import logger from '../logger.js';
 
@@ -68,6 +70,37 @@ async function transitionBouts() {
         // Generate the computational puzzle
         const generated = generatePuzzle(bout.puzzleType, bout.difficultyTier);
 
+        // ── On-chain: create bout + set live on ForgeArena ──
+        const boutBytes32 = uuidToBytes32(bout.id);
+        let onChainCreated = false;
+        if (chainReady && forgeArena) {
+            try {
+                const cc = config.chain;
+                const entryFeeWei = ethers.parseEther(bout.entryFee.toString());
+
+                const createTx = await forgeArena.createBout(
+                    boutBytes32,
+                    entryFeeWei,
+                    cc.entryBurnBps,
+                    cc.betBurnBps,
+                    cc.protocolRakeBps,
+                    cc.agentPurseBps,
+                    cc.bettorPoolBps,
+                    cc.maxEntrants,
+                );
+                await createTx.wait();
+                logger.info({ boutId: bout.id, txHash: createTx.hash }, 'On-chain: createBout() confirmed');
+
+                const liveTx = await forgeArena.setBoutLive(boutBytes32);
+                await liveTx.wait();
+                logger.info({ boutId: bout.id, txHash: liveTx.hash }, 'On-chain: setBoutLive() confirmed');
+
+                onChainCreated = true;
+            } catch (err) {
+                logger.error({ err, boutId: bout.id }, 'On-chain createBout/setBoutLive failed — proceeding with DB only');
+            }
+        }
+
         await prisma.bout.update({
             where: { id: bout.id },
             data: {
@@ -76,10 +109,12 @@ async function transitionBouts() {
                 prompt: generated.prompt,
                 challengeData: generated.challenge,
                 answerHash: generated.answerHash,
+                onChainBoutId: boutBytes32,
+                onChainCreated,
             },
         });
 
-        logger.info({ boutId: bout.id, title: bout.title, puzzleType: bout.puzzleType }, 'Bout → LIVE');
+        logger.info({ boutId: bout.id, title: bout.title, puzzleType: bout.puzzleType, onChainCreated }, 'Bout → LIVE');
         sse.broadcast('bout.live', {
             boutId: bout.id,
             title: bout.title,
@@ -228,6 +263,37 @@ async function transitionBouts() {
         }
 
         await prisma.$transaction(ops);
+
+        // ── On-chain: resolveBout on ForgeArena ──
+        if (chainReady && forgeArena && bout.onChainCreated) {
+            try {
+                const boutBytes32 = bout.onChainBoutId || uuidToBytes32(bout.id);
+
+                // Build placements array: indices of solvers sorted by solve time
+                // The placements array contains entrant indices in the on-chain boutEntrants array
+                // Since DB entrants map 1:1 to on-chain order, we use the sorted solver indices
+                const solvers = bout.entrants
+                    .map((e, idx) => ({ ...e, idx }))
+                    .filter(e => e.solved)
+                    .sort((a, b) => (a.solveTime || Infinity) - (b.solveTime || Infinity));
+                const placements = solvers.slice(0, 3).map(s => s.idx);
+
+                const resolveTx = await forgeArena.resolveBout(boutBytes32, placements);
+                await resolveTx.wait();
+                logger.info({ boutId: bout.id, txHash: resolveTx.hash, placements }, 'On-chain: resolveBout() confirmed');
+
+                // Record tx hash in treasury ledger for audit trail
+                await prisma.treasuryLedger.create({
+                    data: {
+                        action: 'ON_CHAIN_RESOLVE',
+                        amount: 0,
+                        memo: `resolveBout tx: ${resolveTx.hash} — placements: [${placements}]`,
+                    },
+                });
+            } catch (err) {
+                logger.error({ err, boutId: bout.id }, 'On-chain resolveBout failed — DB resolution still applied');
+            }
+        }
 
         const podiumNames = payouts.podium.map(p => {
             const e = bout.entrants.find(en => en.id === p.entrantId);

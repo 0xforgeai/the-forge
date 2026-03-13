@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../hooks/useApi';
+import { useToast } from '../components/Toast';
 import useSSE from '../hooks/useSSE';
 import BoutCard from '../components/BoutCard';
 import Countdown from '../components/Countdown';
@@ -8,6 +9,7 @@ export default function Arena() {
     const [bouts, setBouts] = useState([]);
     const [leaderboard, setLeaderboard] = useState([]);
     const events = useSSE('/api/events');
+    const { show: toast } = useToast();
 
     useEffect(() => {
         loadBouts();
@@ -21,14 +23,14 @@ export default function Arena() {
         try {
             const data = await apiFetch('/api/bouts');
             setBouts(data.bouts || []);
-        } catch (e) { }
+        } catch (e) { toast(e.message || 'Failed to load bouts', 'error'); }
     }
 
     async function loadLeaderboard() {
         try {
             const data = await apiFetch('/api/leaderboard');
             setLeaderboard((data.leaderboard || []).slice(0, 10));
-        } catch (e) { }
+        } catch (e) { toast(e.message || 'Failed to load leaderboard', 'error'); }
     }
 
     const upcoming = bouts

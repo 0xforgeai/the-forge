@@ -98,5 +98,18 @@ const config = {
             { maxStaker: 750, bonus: 500 },
         ],
     },
+    chain: {
+        rpcUrl: process.env.BASE_RPC_URL || '',
+        forgeTokenAddress: '0xC446d1796006e53294A2402e55DEd018D0155150',
+        arenaVaultAddress: '0x42795b1E9965A54a9E54A9c504F7B48D5a2dE32f',
+        forgeArenaAddress: '0x132c8b38ca8E0c6D204B2fFEa6260753Bc9e2687',
+        deployerAddress: '0x64A4eA07B1caAE927FD2ecACd4d295db38049c39',
+        maxEntrants: 16,
+        entryBurnBps: 1000,   // 10%
+        betBurnBps: 200,      // 2%
+        protocolRakeBps: 500, // 5%
+        agentPurseBps: 2000,  // 20%
+        bettorPoolBps: 7500,  // 75%
+    },
 };
 export default config;

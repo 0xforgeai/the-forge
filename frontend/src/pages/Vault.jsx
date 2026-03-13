@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
+import { useToast } from '../components/Toast';
 import { apiFetch } from '../hooks/useApi';
 import StatsBar from '../components/StatsBar';
 import {
@@ -13,6 +14,7 @@ import { ARENA_VAULT_ADDRESS, COVENANTS } from '../config/contracts';
 export default function Vault() {
     const { authenticated, user } = usePrivy();
     const walletAddress = user?.wallet?.address;
+    const { show: toast } = useToast();
 
     // API data
     const [vaultInfo, setVaultInfo] = useState(null);
@@ -46,7 +48,7 @@ export default function Vault() {
         try {
             const data = await apiFetch('/api/vault/info');
             setVaultInfo(data);
-        } catch (e) { }
+        } catch (e) { toast(e.message || 'Failed to load vault info', 'error'); }
     }
 
     function handleStake() {

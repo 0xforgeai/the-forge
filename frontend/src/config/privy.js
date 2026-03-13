@@ -3,7 +3,7 @@ import { base } from 'wagmi/chains';
 import { createConfig } from '@privy-io/wagmi';
 
 // ─── Privy App Config ──────────────────────────────────────
-export const PRIVY_APP_ID = 'cmmlc7eyr00x60cl455o1sxe7';
+export const PRIVY_APP_ID = import.meta.env.VITE_PRIVY_APP_ID || 'cmmlc7eyr00x60cl455o1sxe7';
 
 export const privyConfig = {
     loginMethods: ['email', 'wallet'],
@@ -25,6 +25,6 @@ export const privyConfig = {
 export const wagmiConfig = createConfig({
     chains: [base],
     transports: {
-        [base.id]: http('https://base-mainnet.g.alchemy.com/v2/NQ6flEGFoCYhNQTT7FL3K'),
+        [base.id]: http(import.meta.env.VITE_ALCHEMY_URL || 'https://base-mainnet.g.alchemy.com/v2/NQ6flEGFoCYhNQTT7FL3K'),
     },
 });

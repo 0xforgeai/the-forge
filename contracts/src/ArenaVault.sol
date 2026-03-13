@@ -80,12 +80,16 @@ contract ArenaVault is Ownable, ReentrancyGuard {
     uint256 public totalTaxCollected;
     uint256 public activeStakerCount;
 
+    // Authorized depositors (e.g. ForgeArena contract)
+    mapping(address => bool) public authorizedDepositors;
+
     // ─── Events ─────────────────────────────────────────────
 
     event Staked(address indexed user, uint256 amount, Covenant covenant, uint256 lockExpires);
     event Unstaked(address indexed user, uint256 returned, uint256 taxed, uint256 forfeitedRewards);
     event YieldDeposited(uint256 amount, uint256 newRewardPerToken);
     event YieldClaimed(address indexed user, uint256 amount);
+    event DepositorUpdated(address indexed depositor, bool authorized);
 
     // ─── Errors ─────────────────────────────────────────────
 
@@ -96,6 +100,7 @@ contract ArenaVault is Ownable, ReentrancyGuard {
     error EternalCannotUnstake();
     error NothingToClaim();
     error NoStakersToReceive();
+    error NotAuthorized();
 
     // ─── Constructor ────────────────────────────────────────
 
@@ -216,13 +221,22 @@ contract ArenaVault is Ownable, ReentrancyGuard {
         emit Unstaked(msg.sender, returnAmount + vestedToClaim, taxAmount, forfeitedRewards);
     }
 
-    // ─── Deposit Yield (Owner) ──────────────────────────────
+    // ─── Depositor Management ───────────────────────────────
+
+    function setDepositor(address depositor, bool authorized) external onlyOwner {
+        authorizedDepositors[depositor] = authorized;
+        emit DepositorUpdated(depositor, authorized);
+    }
+
+    // ─── Deposit Yield (Owner or Authorized Depositor) ──────
 
     /**
-     * @notice Owner deposits yield (from bout rake, treasury emissions, etc.)
+     * @notice Deposit yield (from bout rake, treasury emissions, etc.)
      *         O(1) — updates the global rewardPerToken accumulator.
+     *         Callable by owner or authorized depositors (e.g. ForgeArena).
      */
-    function depositYield(uint256 amount) external onlyOwner nonReentrant {
+    function depositYield(uint256 amount) external nonReentrant {
+        if (msg.sender != owner() && !authorizedDepositors[msg.sender]) revert NotAuthorized();
         if (amount == 0) revert InsufficientAmount();
         if (totalWeightedStake == 0) revert NoStakersToReceive();
 

@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../hooks/useApi';
+import { useToast } from '../components/Toast';
 import StatsBar from '../components/StatsBar';
 
 export default function Home() {
     const [stats, setStats] = useState(null);
+    const { show: toast } = useToast();
 
     useEffect(() => {
-        apiFetch('/api/stats').then(setStats).catch(() => { });
+        apiFetch('/api/stats').then(setStats).catch(e => toast(e.message || 'Failed to load stats', 'error'));
         const id = setInterval(() => apiFetch('/api/stats').then(setStats).catch(() => { }), 30000);
         return () => clearInterval(id);
     }, []);

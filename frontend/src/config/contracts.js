@@ -1,6 +1,7 @@
-// ─── Contract Addresses (Base Mainnet) ─────────────────────
-export const FORGE_TOKEN_ADDRESS = '0xd6B46AC3A4aa34689c9a7dA211527c43e27b2551';
-export const ARENA_VAULT_ADDRESS = '0x2c155449c1804Ca4a4D522eB6678a16c72B8e6Ff';
+// ─── Contract Addresses (Base Mainnet — V2) ────────────────
+export const FORGE_TOKEN_ADDRESS = '0xC446d1796006e53294A2402e55DEd018D0155150';
+export const ARENA_VAULT_ADDRESS = '0x42795b1E9965A54a9E54A9c504F7B48D5a2dE32f';
+export const FORGE_ARENA_ADDRESS = '0x132c8b38ca8E0c6D204B2fFEa6260753Bc9e2687';
 
 // ─── ForgeToken ABI (minimal) ──────────────────────────────
 export const FORGE_TOKEN_ABI = [
@@ -44,6 +45,13 @@ export const FORGE_TOKEN_ABI = [
         stateMutability: 'view',
         inputs: [],
         outputs: [{ name: '', type: 'uint8' }],
+    },
+    {
+        name: 'burn',
+        type: 'function',
+        stateMutability: 'nonpayable',
+        inputs: [{ name: 'amount', type: 'uint256' }],
+        outputs: [],
     },
 ];
 
@@ -118,6 +126,13 @@ export const ARENA_VAULT_ABI = [
         inputs: [],
         outputs: [{ name: '', type: 'uint256' }],
     },
+    {
+        name: 'totalBurned',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint256' }],
+    },
     // Write functions
     {
         name: 'stake',
@@ -145,6 +160,137 @@ export const ARENA_VAULT_ABI = [
     },
 ];
 
+// ─── ForgeArena ABI (minimal) ──────────────────────────────
+export const FORGE_ARENA_ABI = [
+    // Read functions
+    {
+        name: 'getBout',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [{ name: 'boutId', type: 'bytes32' }],
+        outputs: [
+            {
+                name: '',
+                type: 'tuple',
+                components: [
+                    { name: 'id', type: 'bytes32' },
+                    { name: 'status', type: 'uint8' },
+                    {
+                        name: 'config',
+                        type: 'tuple',
+                        components: [
+                            { name: 'entryFee', type: 'uint256' },
+                            { name: 'entryBurnBps', type: 'uint16' },
+                            { name: 'betBurnBps', type: 'uint16' },
+                            { name: 'protocolRakeBps', type: 'uint16' },
+                            { name: 'agentPurseBps', type: 'uint16' },
+                            { name: 'bettorPoolBps', type: 'uint16' },
+                            { name: 'maxEntrants', type: 'uint8' },
+                        ],
+                    },
+                    { name: 'totalEntryPool', type: 'uint256' },
+                    { name: 'totalBetPool', type: 'uint256' },
+                    { name: 'totalBurned', type: 'uint256' },
+                    { name: 'entrantCount', type: 'uint8' },
+                    { name: 'resolved', type: 'bool' },
+                ],
+            },
+        ],
+    },
+    {
+        name: 'getEntrants',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [{ name: 'boutId', type: 'bytes32' }],
+        outputs: [
+            {
+                name: '',
+                type: 'tuple[]',
+                components: [
+                    { name: 'wallet', type: 'address' },
+                    { name: 'feePaid', type: 'uint256' },
+                    { name: 'placement', type: 'uint8' },
+                    { name: 'payout', type: 'uint256' },
+                    { name: 'claimed', type: 'bool' },
+                ],
+            },
+        ],
+    },
+    {
+        name: 'getBets',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [{ name: 'boutId', type: 'bytes32' }],
+        outputs: [
+            {
+                name: '',
+                type: 'tuple[]',
+                components: [
+                    { name: 'bettor', type: 'address' },
+                    { name: 'entrantIdx', type: 'uint8' },
+                    { name: 'amount', type: 'uint256' },
+                    { name: 'payout', type: 'uint256' },
+                    { name: 'claimed', type: 'bool' },
+                ],
+            },
+        ],
+    },
+    {
+        name: 'totalBoutsCreated',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint256' }],
+    },
+    {
+        name: 'totalBurned',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint256' }],
+    },
+    {
+        name: 'totalRakeToVault',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint256' }],
+    },
+    // Write functions
+    {
+        name: 'enterBout',
+        type: 'function',
+        stateMutability: 'nonpayable',
+        inputs: [{ name: 'boutId', type: 'bytes32' }],
+        outputs: [],
+    },
+    {
+        name: 'placeBet',
+        type: 'function',
+        stateMutability: 'nonpayable',
+        inputs: [
+            { name: 'boutId', type: 'bytes32' },
+            { name: 'entrantIdx', type: 'uint8' },
+            { name: 'amount', type: 'uint256' },
+        ],
+        outputs: [],
+    },
+    {
+        name: 'claimPayout',
+        type: 'function',
+        stateMutability: 'nonpayable',
+        inputs: [{ name: 'boutId', type: 'bytes32' }],
+        outputs: [],
+    },
+    {
+        name: 'claimBetPayout',
+        type: 'function',
+        stateMutability: 'nonpayable',
+        inputs: [{ name: 'boutId', type: 'bytes32' }],
+        outputs: [],
+    },
+];
+
 // Covenant enum mapping
 export const COVENANTS = {
     FLAME: 0,
@@ -154,3 +300,14 @@ export const COVENANTS = {
 };
 
 export const COVENANT_NAMES = ['FLAME', 'STEEL', 'OBSIDIAN', 'ETERNAL'];
+
+// BoutStatus enum mapping
+export const BOUT_STATUS = {
+    NONE: 0,
+    OPEN: 1,
+    LIVE: 2,
+    RESOLVED: 3,
+    CANCELLED: 4,
+};
+
+export const BOUT_STATUS_NAMES = ['NONE', 'OPEN', 'LIVE', 'RESOLVED', 'CANCELLED'];

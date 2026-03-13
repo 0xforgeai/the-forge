@@ -169,6 +169,116 @@ a:hover {
   color: var(--green);
 }
 
+/* ─── Hamburger Toggle (Mobile) ──────── */
+.nav-hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: 1px solid var(--border-lit);
+  cursor: pointer;
+  padding: 5px;
+  transition: border-color 0.2s;
+  z-index: 101;
+}
+
+.nav-hamburger:hover {
+  border-color: var(--green-dim);
+}
+
+.nav-hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--text);
+  transition: all 0.25s ease;
+  transform-origin: center;
+}
+
+.nav-hamburger.open span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+  background: var(--green);
+}
+
+.nav-hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-hamburger.open span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+  background: var(--green);
+}
+
+@media (min-width: 768px) {
+  .nav-hamburger {
+    display: none;
+  }
+}
+
+/* ─── Mobile Nav Dropdown ────────────── */
+.nav-links-open {
+  display: flex !important;
+  flex-direction: column;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: rgba(10, 10, 10, 0.98);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  animation: navSlideDown 0.25s ease;
+  z-index: 100;
+}
+
+.nav-links-open a {
+  border-right: none !important;
+  border-left: none !important;
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.75rem;
+}
+
+.nav-links-open li:last-child a {
+  border-bottom: none;
+}
+
+@keyframes navSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (min-width: 768px) {
+  .nav-links-open {
+    position: static;
+    flex-direction: row;
+    background: none;
+    backdrop-filter: none;
+    border-bottom: none;
+    animation: none;
+  }
+
+  .nav-links-open a {
+    border-right: 1px solid var(--border) !important;
+    border-bottom: none;
+    padding: 0.375rem 1rem;
+    font-size: 0.6875rem;
+  }
+
+  .nav-links-open li:first-child a {
+    border-left: 1px solid var(--border) !important;
+  }
+}
+
 .nav-status {
   display: flex;
   align-items: center;
@@ -1266,4 +1376,280 @@ a:hover {
 .stake-form {
   border-top: 1px solid var(--border);
   padding-top: 0.75rem;
+}
+
+/* ─── Leaderboard Tabs ──────────────── */
+.lb-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.lb-tabs {
+  display: flex;
+  gap: 0;
+}
+
+.lb-tab {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  background: var(--bg-inset);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-right: none;
+}
+
+.lb-tab:last-child {
+  border-right: 1px solid var(--border);
+}
+
+.lb-tab:hover {
+  color: var(--text);
+  border-color: var(--green-dim);
+}
+
+.lb-tab-active {
+  color: var(--green);
+  border-color: var(--green);
+  background: var(--green-muted);
+  box-shadow: var(--green-glow);
+}
+
+.lb-tab-active+.lb-tab {
+  border-left-color: var(--green);
+}
+
+/* ─── Table Scroll (Mobile) ─────────── */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ─── Loading Skeletons ─────────────── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-row {
+  height: 2.25rem;
+  background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-raised) 50%, var(--bg-surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-bottom: 1px solid var(--border);
+}
+
+.skeleton-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.skeleton-line {
+  height: 0.75rem;
+  margin-bottom: 0.625rem;
+  background: linear-gradient(90deg, var(--bg-raised) 25%, var(--border-lit) 50%, var(--bg-raised) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 2px;
+}
+
+.skeleton-line:last-child {
+  margin-bottom: 0;
+}
+
+.skeleton-line-short {
+  width: 40%;
+}
+
+.skeleton-line-medium {
+  width: 70%;
+}
+
+.skeleton-text {
+  padding: 0.5rem 0;
+}
+
+.skeleton-cell {
+  flex: 1;
+  height: 1rem;
+  background: linear-gradient(90deg, var(--bg-raised) 25%, var(--border-lit) 50%, var(--bg-raised) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 2px;
+  margin: 0 0.5rem;
+}
+
+/* ─── Toast Notifications ───────────── */
+.toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-lit);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text);
+  pointer-events: auto;
+  cursor: pointer;
+  animation: toastSlideIn 0.3s ease, toastFadeOut 0.3s ease 3.7s forwards;
+  max-width: 360px;
+  backdrop-filter: blur(8px);
+}
+
+.toast-success {
+  border-color: var(--green-dim);
+  color: var(--green);
+}
+
+.toast-error {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.toast-info {
+  border-color: var(--border-lit);
+  color: var(--text-dim);
+}
+
+.toast-icon {
+  font-size: 0.875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.toast-message {
+  flex: 1;
+  line-height: 1.4;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastFadeOut {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ─── Mobile Responsive Fixes ───────── */
+@media (max-width: 767px) {
+  .stats-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stats-bar>div:nth-child(2) {
+    border-right: none;
+  }
+
+  .covenant-select {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hero h1 {
+    font-size: 1.625rem;
+  }
+
+  .hero .sub {
+    font-size: 0.8125rem;
+  }
+
+  .lb-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lb-tabs {
+    width: 100%;
+  }
+
+  .lb-tab {
+    flex: 1;
+    text-align: center;
+    padding: 0.5rem 0.5rem;
+    font-size: 0.5625rem;
+  }
+
+  .search-bar {
+    max-width: 100% !important;
+  }
+
+  .container {
+    padding: 0 1rem;
+  }
+
+  .toast-container {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+  }
+
+  .toast {
+    max-width: 100%;
+  }
+
+  .footer .container {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .dash-card {
+    padding: 1rem;
+  }
+
+  .bout-pool {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .countdown-wrap {
+    gap: 0.75rem;
+  }
+
+  .cd-num {
+    font-size: 1.75rem;
+  }
 }

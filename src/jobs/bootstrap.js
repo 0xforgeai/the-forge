@@ -10,8 +10,10 @@
  */
 
 import cron from 'node-cron';
+import { ethers } from 'ethers';
 import prisma from '../db.js';
 import config from '../config.js';
+import { forgeToken, arenaVault, chainReady } from '../chain.js';
 import logger from '../logger.js';
 import sse from '../sse.js';
 
@@ -166,6 +168,24 @@ async function runBootstrapEmission() {
 
     if (ops.length > 0) {
         await prisma.$transaction(ops);
+    }
+
+    // ── On-chain: deposit yield to ArenaVault ────────────
+    if (totalEmitted > 0 && chainReady && forgeToken && arenaVault) {
+        try {
+            const emittedWei = ethers.parseEther(totalEmitted.toString());
+            const vaultAddress = config.chain.arenaVaultAddress;
+
+            const approveTx = await forgeToken.approve(vaultAddress, emittedWei);
+            await approveTx.wait();
+
+            const depositTx = await arenaVault.depositYield(emittedWei);
+            await depositTx.wait();
+
+            logger.info({ totalEmitted, txHash: depositTx.hash }, 'On-chain: depositYield() confirmed');
+        } catch (err) {
+            logger.error({ err, totalEmitted }, 'On-chain depositYield failed — DB emission still applied');
+        }
     }
 
     logger.info({
