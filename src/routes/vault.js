@@ -91,8 +91,8 @@ router.get('/me', authenticate, async (req, res) => {
             currentDay: days,
             currentLoyaltyMulti: loyalty,
             currentRageQuitTax: `${rageQuitPct}%`,
-            rageQuitCost: Math.floor(active.amount * rageQuitPct / 100),
-            youWouldReceive: active.amount - Math.floor(active.amount * rageQuitPct / 100),
+            rageQuitCost: Number(active.amount) * rageQuitPct / 100 | 0,
+            youWouldReceive: Number(active.amount) - (Number(active.amount) * rageQuitPct / 100 | 0),
             lockExpired: new Date() >= active.lockExpiresAt,
         },
         history: positions.filter(p => !p.active).map(formatPosition),
@@ -248,7 +248,7 @@ router.post('/unstake', authenticate, async (req, res) => {
     // Calculate rage quit tax
     const daysStaked = getDaysStaked(position.stakedAt);
     const rageQuitPct = getRageQuitTaxPercent(daysStaked, position.rageQuitMulti);
-    const taxAmount = Math.floor(position.amount * rageQuitPct / 100);
+    const taxAmount = position.amount * BigInt(Math.round(rageQuitPct)) / 100n;
     const returnAmount = position.amount - taxAmount;
 
     // Forfeit unvested rewards

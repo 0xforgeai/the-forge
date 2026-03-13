@@ -437,7 +437,7 @@ router.post('/:id/solve', authenticate, async (req, res) => {
 
     if (correct) {
         // ✅ SOLVED: solver gets stake + tier reward
-        const reward = puzzle.difficultyTier * config.game.solveRewardMultiplier;
+        const reward = BigInt(puzzle.difficultyTier * config.game.solveRewardMultiplier);
         const totalPayout = puzzle.stake + reward;
 
         await prisma.$transaction([
@@ -558,7 +558,7 @@ router.post('/:id/reveal', authenticate, async (req, res) => {
     }
 
     // Valid reveal — smith gets stake back + smith reward
-    const reward = puzzle.difficultyTier * config.game.smithRewardMultiplier;
+    const reward = BigInt(puzzle.difficultyTier * config.game.smithRewardMultiplier);
     const totalReturn = puzzle.stake + reward;
 
     await prisma.$transaction([

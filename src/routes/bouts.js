@@ -91,10 +91,10 @@ router.get('/:id', async (req, res) => {
     });
     if (!bout) return res.status(404).json({ error: 'Bout not found.' });
 
-    const totalBets = bout.bets.reduce((s, b) => s + b.amount, 0);
+    const totalBets = bout.bets.reduce((s, b) => s + Number(b.amount), 0);
     const betsByEntrant = {};
     bout.bets.forEach(b => {
-        betsByEntrant[b.entrantId] = (betsByEntrant[b.entrantId] || 0) + b.amount;
+        betsByEntrant[b.entrantId] = (betsByEntrant[b.entrantId] || 0) + Number(b.amount);
     });
 
     res.json({
@@ -188,7 +188,7 @@ router.post('/:id/enter', authenticate, async (req, res) => {
     }
 
     // Enter + deduct fee + burn 10%
-    const burnAmount = Math.floor(bout.entryFee * burnCfg.entryFeePercent / 100);
+    const burnAmount = bout.entryFee * BigInt(burnCfg.entryFeePercent) / 100n;
     const netEntryFee = bout.entryFee - burnAmount;
 
     const [entrant] = await prisma.$transaction([
@@ -296,13 +296,14 @@ router.post('/:id/bet', authenticate, async (req, res) => {
     }
 
     // Check balance (preliminary — re-checked inside transaction)
-    if (wallet.balance < amount) {
+    if (wallet.balance < BigInt(amount)) {
         return res.status(400).json({ error: `Insufficient balance. Need ${amount}, have ${wallet.balance}.` });
     }
 
     // Place bet atomically with max bet check (C-5 fix: serialized read-check-write)
-    const betBurn = Math.floor(amount * burnCfg.betPercent / 100);
-    const netBetAmount = amount - betBurn;
+    const amountBig = BigInt(amount);
+    const betBurn = amountBig * BigInt(burnCfg.betPercent) / 100n;
+    const netBetAmount = amountBig - betBurn;
 
     let bet;
     try {
@@ -314,14 +315,15 @@ router.post('/:id/bet', authenticate, async (req, res) => {
             }
 
             const currentPool = freshBout.totalBetPool + netBetAmount;
-            const maxBet = Math.max(Math.floor(currentPool * bc.maxBetPercent / 100), 100);
-            if (amount > maxBet) {
-                throw new Error(`MAX_BET:${maxBet}`);
+            const maxBet = currentPool * BigInt(bc.maxBetPercent) / 100n;
+            const effectiveMax = maxBet > 100n ? maxBet : 100n;
+            if (amountBig > effectiveMax) {
+                throw new Error(`MAX_BET:${effectiveMax}`);
             }
 
             // Re-check balance inside transaction
             const freshWallet = await tx.wallet.findUnique({ where: { id: wallet.id } });
-            if (!freshWallet || freshWallet.balance < amount) {
+            if (!freshWallet || freshWallet.balance < amountBig) {
                 throw new Error('INSUFFICIENT_BALANCE');
             }
 
@@ -331,7 +333,7 @@ router.post('/:id/bet', authenticate, async (req, res) => {
 
             await tx.wallet.update({
                 where: { id: wallet.id },
-                data: { balance: { decrement: amount } },
+                data: { balance: { decrement: amountBig } },
             });
 
             await tx.bout.update({
@@ -342,7 +344,7 @@ router.post('/:id/bet', authenticate, async (req, res) => {
             await tx.transaction.create({
                 data: {
                     fromId: wallet.id,
-                    amount,
+                    amount: amountBig,
                     type: 'BOUT_BET',
                     boutId: bout.id,
                     memo: `Bet on entrant in: ${bout.title} (${betBurn} burned)`,
@@ -380,7 +382,7 @@ router.post('/:id/bet', authenticate, async (req, res) => {
 
     sse.broadcast('bout.bet', {
         boutId: bout.id,
-        totalBetPool: bout.totalBetPool + amount,
+        totalBetPool: bout.totalBetPool + amountBig,
     });
 
     res.status(201).json({

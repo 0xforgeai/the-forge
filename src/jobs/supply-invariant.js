@@ -48,22 +48,39 @@ async function checkSupplyInvariant() {
         });
         const totalEmissions = emissionLedger._sum.amount ?? 0n;
 
-        // 4. Sum all burns
+        // 4. Sum all burns (ledger tracks burns under multiple action names)
         const burnLedger = await prisma.treasuryLedger.aggregate({
-            where: { action: 'BURN' },
+            where: { action: { in: ['BURN', 'ENTRY_FEE_BURN', 'BET_BURN'] } },
             _sum: { amount: true },
         });
         const totalBurned = burnLedger._sum.amount ?? 0n;
 
-        // Also count BURN transactions
+        // Also count BURN transactions as a cross-check
         const burnTx = await prisma.transaction.aggregate({
             where: { type: 'BURN' },
             _sum: { amount: true },
         });
         const totalBurnedTx = burnTx._sum.amount ?? 0n;
 
+        // 4b. Sum tokens locked in active bouts (entry pools + bet pools not yet resolved)
+        const boutPoolAgg = await prisma.bout.aggregate({
+            where: { status: { in: ['REGISTRATION', 'BETTING', 'LIVE', 'RESOLVING'] } },
+            _sum: {
+                totalEntryFees: true,
+                totalBetPool: true,
+            },
+        });
+        const totalBoutPools = (boutPoolAgg._sum.totalEntryFees ?? 0n) + (boutPoolAgg._sum.totalBetPool ?? 0n);
+
+        // 4c. Sum rage quit taxes (deducted from wallets, held by treasury — not burned, not in any wallet)
+        const rageTaxLedger = await prisma.treasuryLedger.aggregate({
+            where: { action: 'RAGE_TAX' },
+            _sum: { amount: true },
+        });
+        const totalRageTax = rageTaxLedger._sum.amount ?? 0n;
+
         // 5. Calculate invariant
-        const circulatingSide = totalWalletBalance + totalStaked + totalUnvested + totalVested;
+        const circulatingSide = totalWalletBalance + totalStaked + totalUnvested + totalVested + totalBoutPools + totalRageTax;
         const supplySide = totalRegistrationMinted + totalEmissions;
         const burnSide = totalBurned > totalBurnedTx ? totalBurned : totalBurnedTx;
 
@@ -75,6 +92,8 @@ async function checkSupplyInvariant() {
             totalStaked,
             totalUnvested,
             totalVested,
+            totalBoutPools,
+            totalRageTax,
             circulatingSide,
             totalRegistrationMinted,
             totalEmissions,

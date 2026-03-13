@@ -13,7 +13,7 @@ import cron from 'node-cron';
 import { ethers } from 'ethers';
 import prisma from '../db.js';
 import config from '../config.js';
-import { forgeToken, arenaVault, chainReady } from '../chain.js';
+import { forgeToken, arenaVault, chainReady, acquireTxLock, releaseTxLock, sendTx } from '../chain.js';
 import logger from '../logger.js';
 import sse from '../sse.js';
 
@@ -83,9 +83,10 @@ async function runBootstrapEmission() {
     let totalEmitted = 0;
 
     for (const stake of activeStakes) {
-        // Weighted emission: stake × dailyRate × loyalty × (1 + apyBonus%)
+        // Convert BigInt → Number for arithmetic (DB amounts are internal tokens, well within safe int range)
+        const stakeAmount = Number(stake.amount);
         const covenantBonus = 1 + (stake.apyBonus / 100);
-        const emission = Math.floor(stake.amount * dailyRate * stake.loyaltyMulti * covenantBonus);
+        const emission = Math.floor(stakeAmount * dailyRate * stake.loyaltyMulti * covenantBonus);
 
         if (emission <= 0) continue;
 
@@ -123,9 +124,10 @@ async function runBootstrapEmission() {
     // ── Process vesting for all stakers ────────────
     // Vest 1/vestingDays of unvested rewards per day
     for (const stake of activeStakes) {
-        if (stake.unvestedRewards <= 0) continue;
+        const unvested = Number(stake.unvestedRewards);
+        if (unvested <= 0) continue;
 
-        const vestAmount = Math.floor(stake.unvestedRewards / vc.vestingDays);
+        const vestAmount = Math.floor(unvested / vc.vestingDays);
         if (vestAmount <= 0) continue;
 
         ops.push(prisma.stakePosition.update({
@@ -172,19 +174,40 @@ async function runBootstrapEmission() {
 
     // ── On-chain: deposit yield to ArenaVault ────────────
     if (totalEmitted > 0 && chainReady && forgeToken && arenaVault) {
-        try {
-            const emittedWei = ethers.parseEther(totalEmitted.toString());
-            const vaultAddress = config.chain.arenaVaultAddress;
+        if (!acquireTxLock()) {
+            logger.warn('Tx lock busy — skipping on-chain depositYield');
+        } else {
+            try {
+                const emittedWei = ethers.parseEther(totalEmitted.toString());
+                const deployerAddr = config.chain.deployerAddress;
 
-            const approveTx = await forgeToken.approve(vaultAddress, emittedWei);
-            await approveTx.wait();
+                // Balance check: ensure deployer holds enough tokens
+                const balance = await forgeToken.balanceOf(deployerAddr);
+                if (balance < emittedWei) {
+                    logger.error({
+                        required: totalEmitted,
+                        balance: balance.toString(),
+                    }, 'Deployer has insufficient $FORGE balance for depositYield — skipping on-chain deposit');
+                } else {
+                    const vaultAddress = config.chain.arenaVaultAddress;
 
-            const depositTx = await arenaVault.depositYield(emittedWei);
-            await depositTx.wait();
+                    await sendTx(
+                        () => forgeToken.approve(vaultAddress, emittedWei),
+                        'approve for depositYield',
+                    );
 
-            logger.info({ totalEmitted, txHash: depositTx.hash }, 'On-chain: depositYield() confirmed');
-        } catch (err) {
-            logger.error({ err, totalEmitted }, 'On-chain depositYield failed — DB emission still applied');
+                    const depositReceipt = await sendTx(
+                        () => arenaVault.depositYield(emittedWei),
+                        'depositYield',
+                    );
+
+                    logger.info({ totalEmitted, txHash: depositReceipt.hash }, 'On-chain: depositYield() confirmed');
+                }
+            } catch (err) {
+                logger.error({ err, totalEmitted }, 'On-chain depositYield failed — DB emission still applied');
+            } finally {
+                releaseTxLock();
+            }
         }
     }
 

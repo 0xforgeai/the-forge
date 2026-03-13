@@ -5,7 +5,7 @@ import { apiFetch } from '../hooks/useApi';
 import StatsBar from '../components/StatsBar';
 import {
     useForgeBalance, useForgeAllowance,
-    useVaultPosition, useClaimable, usePendingYield,
+    useVaultPosition, useClaimable, usePendingYield, useLoyaltyMultiplier,
     useApproveForge, useStakeForge, useUnstakeForge, useClaimYield,
     useVaultTotalStaked, useVaultStakerCount,
 } from '../hooks/useForgeContracts';
@@ -25,6 +25,7 @@ export default function Vault() {
     const { position } = useVaultPosition(walletAddress);
     const { formatted: claimable } = useClaimable(walletAddress);
     const { formatted: pending } = usePendingYield(walletAddress);
+    const { multiplier: loyaltyMultiplier } = useLoyaltyMultiplier(walletAddress);
     const { formatted: totalStakedOnChain } = useVaultTotalStaked();
     const { count: stakerCount } = useVaultStakerCount();
 
@@ -103,11 +104,11 @@ export default function Vault() {
                                     <h3>Active Stake</h3>
                                     <div className="dash-stat"><span className="ds-key">Covenant</span><span className="ds-val orange">{position.covenant}</span></div>
                                     <div className="dash-stat"><span className="ds-key">Staked</span><span className="ds-val green">{Number(position.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
-                                    <div className="dash-stat"><span className="ds-key">Loyalty</span><span className="ds-val">{position.loyaltyMultiplier}x</span></div>
+                                    <div className="dash-stat"><span className="ds-key">Loyalty</span><span className="ds-val">{loyaltyMultiplier}x</span></div>
                                     <div className="dash-stat"><span className="ds-key">Lock Expires</span><span className="ds-val dim">{new Date(position.lockExpires * 1000).toLocaleDateString()}</span></div>
                                     <div className="dash-stat"><span className="ds-key">Claimable Yield</span><span className="ds-val green">{Number(claimable).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
                                     <div className="dash-stat"><span className="ds-key">Pending Yield</span><span className="ds-val dim">{Number(pending).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
-                                    <div className="dash-stat"><span className="ds-key">Total Claimed</span><span className="ds-val">{Number(position.totalClaimed).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
+                                    <div className="dash-stat"><span className="ds-key">Total Earned</span><span className="ds-val">{Number(position.totalEarned).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
                                 </div>
 
                                 {/* Actions */}

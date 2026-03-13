@@ -23,14 +23,19 @@ const { protocolRakePercent, agentPursePercent, bettorPoolPercent, podiumSplit, 
  * @returns {{ protocolRake, agentPayouts, bettorPayouts, agentPurse, bettorPool }}
  */
 export function calculatePayouts({ entrants, bets, totalEntryFees }) {
-    const totalBetPool = bets.reduce((sum, b) => sum + b.amount, 0);
+    // Convert BigInt values from Prisma to Number for arithmetic safety.
+    // DB amounts are internal token units (not wei), well within Number.MAX_SAFE_INTEGER.
+    const numEntryFees = Number(totalEntryFees);
+    const safeBets = bets.map(b => ({ ...b, amount: Number(b.amount) }));
+
+    const totalBetPool = safeBets.reduce((sum, b) => sum + b.amount, 0);
 
     // Protocol takes its cut from bets
     const protocolRake = Math.floor(totalBetPool * protocolRakePercent / 100);
 
     // Agent purse = entry fees + 20% of bet pool
     const agentPurseFromBets = Math.floor(totalBetPool * agentPursePercent / 100);
-    const agentPurse = totalEntryFees + agentPurseFromBets;
+    const agentPurse = numEntryFees + agentPurseFromBets;
 
     // Bettor pool = 75% of bet pool
     const bettorPool = Math.floor(totalBetPool * bettorPoolPercent / 100);
@@ -71,16 +76,16 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
 
     // ─── Bettor payouts (parimutuel) ───────────────
     const podiumEntrantIds = new Set(podium.map(p => p.entrantId));
-    const winningBets = bets.filter(b => podiumEntrantIds.has(b.entrantId));
-    const losingBets = bets.filter(b => !podiumEntrantIds.has(b.entrantId));
+    const winningBets = safeBets.filter(b => podiumEntrantIds.has(b.entrantId));
+    const losingBets = safeBets.filter(b => !podiumEntrantIds.has(b.entrantId));
 
     let bettorPayouts = [];
 
     if (winningBets.length === 0 || solvers.length === 0) {
         // Nobody solved OR nobody bet on a winner → refund all bets
         // (bettorPool is returned to bettors proportionally)
-        if (bets.length > 0) {
-            bettorPayouts = bets.map(b => ({
+        if (safeBets.length > 0 && totalBetPool > 0) {
+            bettorPayouts = safeBets.map(b => ({
                 betId: b.id,
                 bettorId: b.bettorId,
                 payout: Math.floor(bettorPool * b.amount / totalBetPool),
@@ -91,7 +96,7 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
         // Each placement gets a portion of the bettor pool
         const totalWinningBetAmount = winningBets.reduce((sum, b) => sum + b.amount, 0);
 
-        bettorPayouts = winningBets.map(b => {
+        bettorPayouts = totalWinningBetAmount > 0 ? winningBets.map(b => {
             // How much of the bettor pool does this bet earn?
             const share = b.amount / totalWinningBetAmount;
             const payout = Math.floor(bettorPool * share);
@@ -100,7 +105,7 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
                 bettorId: b.bettorId,
                 payout,
             };
-        });
+        }) : [];
     }
 
     // ── Losing bet redistribution (tokens go to winners, not burned) ──
@@ -118,7 +123,7 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
     let unallocated = 0;
     if (solvers.length === 0) {
         // Entry fees go to bettor refunds if nobody solved. If no bets either, protocol keeps it.
-        unallocated = bets.length === 0 ? totalEntryFees : 0;
+        unallocated = safeBets.length === 0 ? numEntryFees : 0;
     }
 
     return {
