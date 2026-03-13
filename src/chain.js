@@ -22,6 +22,8 @@ const FORGE_TOKEN_ABI = [
     'function balanceOf(address account) view returns (uint256)',
     'function totalSupply() view returns (uint256)',
     'function allowance(address owner, address spender) view returns (uint256)',
+    'function burn(uint256 amount)',
+    'function transfer(address to, uint256 amount) returns (bool)',
 ];
 
 const FORGE_ARENA_ABI = [
@@ -170,6 +172,102 @@ if (rpcUrl && privateKey) {
     if (!rpcUrl) missing.push('BASE_RPC_URL');
     if (!privateKey) missing.push('PRIVATE_KEY');
     logger.warn({ missing }, 'Chain env vars missing — on-chain relay disabled. Set BASE_RPC_URL and PRIVATE_KEY to enable.');
+}
+
+// ─── Settlement Helpers ──────────────────────────────────
+
+/**
+ * Burn FORGE tokens from the hot wallet on-chain.
+ * DB commit happens first; this is fire-and-settle.
+ * On failure, queues a SettlementTask for retry.
+ *
+ * @param {BigInt} amount - wei amount to burn
+ * @param {string} refType - reference type for tracing (e.g. 'VICTORY_CLAIM')
+ * @param {string} refId - reference ID for tracing
+ * @param {import('@prisma/client').PrismaClient} db - prisma instance
+ */
+export async function settleBurn(amount, refType, refId, db) {
+    if (!chainReady || !forgeToken) {
+        logger.warn({ amount, refType, refId }, 'Chain not ready — queuing burn settlement');
+        await db.settlementTask.create({
+            data: { action: 'BURN', amount, refType, refId },
+        });
+        return;
+    }
+
+    if (!acquireTxLock()) {
+        logger.warn({ refType, refId }, 'Tx lock busy — queuing burn settlement');
+        await db.settlementTask.create({
+            data: { action: 'BURN', amount, refType, refId },
+        });
+        return;
+    }
+
+    try {
+        const receipt = await sendTx(
+            () => forgeToken.burn(amount),
+            `burn-${refType}`,
+        );
+        logger.info({ txHash: receipt.hash, amount, refType, refId }, 'On-chain burn confirmed');
+
+        await db.settlementTask.create({
+            data: { action: 'BURN', amount, refType, refId, txHash: receipt.hash, status: 'CONFIRMED', settledAt: new Date() },
+        });
+    } catch (err) {
+        logger.error({ err, amount, refType, refId }, 'On-chain burn failed — queued for retry');
+        await db.settlementTask.create({
+            data: { action: 'BURN', amount, refType, refId, attempts: 1, lastError: err.message?.slice(0, 500) },
+        });
+    } finally {
+        releaseTxLock();
+    }
+}
+
+/**
+ * Transfer FORGE tokens from hot wallet to an on-chain address.
+ * Used when users withdraw or when bond expiry returns tokens.
+ *
+ * @param {string} toAddress - recipient on-chain address
+ * @param {BigInt} amount - wei amount to transfer
+ * @param {string} refType - reference type for tracing
+ * @param {string} refId - reference ID for tracing
+ * @param {import('@prisma/client').PrismaClient} db - prisma instance
+ */
+export async function settleTransfer(toAddress, amount, refType, refId, db) {
+    if (!chainReady || !forgeToken) {
+        logger.warn({ amount, toAddress, refType, refId }, 'Chain not ready — queuing transfer settlement');
+        await db.settlementTask.create({
+            data: { action: 'TRANSFER', amount, toAddress, refType, refId },
+        });
+        return;
+    }
+
+    if (!acquireTxLock()) {
+        logger.warn({ refType, refId }, 'Tx lock busy — queuing transfer settlement');
+        await db.settlementTask.create({
+            data: { action: 'TRANSFER', amount, toAddress, refType, refId },
+        });
+        return;
+    }
+
+    try {
+        const receipt = await sendTx(
+            () => forgeToken.transfer(toAddress, amount),
+            `transfer-${refType}`,
+        );
+        logger.info({ txHash: receipt.hash, amount, toAddress, refType, refId }, 'On-chain transfer confirmed');
+
+        await db.settlementTask.create({
+            data: { action: 'TRANSFER', amount, toAddress, refType, refId, txHash: receipt.hash, status: 'CONFIRMED', settledAt: new Date() },
+        });
+    } catch (err) {
+        logger.error({ err, amount, toAddress, refType, refId }, 'On-chain transfer failed — queued for retry');
+        await db.settlementTask.create({
+            data: { action: 'TRANSFER', amount, toAddress, refType, refId, attempts: 1, lastError: err.message?.slice(0, 500) },
+        });
+    } finally {
+        releaseTxLock();
+    }
 }
 
 export { provider, deployerWallet, forgeToken, forgeArena, arenaVault, chainReady };

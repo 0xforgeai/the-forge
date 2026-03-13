@@ -14,24 +14,26 @@ datasource db {
 // ─── Wallets ───────────────────────────────────────────────
 
 model Wallet {
-  id        String   @id @default(uuid())
-  apiKey    String   @unique @map("api_key")
-  name      String   @unique
-  xHandle   String?  @map("x_handle")
-  address   String?  @map("address")  // on-chain wallet address (nullable — API-key agents may not have one)
-  balance   BigInt   @default(1000)
-  gas       BigInt   @default(500)
-  reputation Int     @default(0)
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid())
+  apiKey     String   @unique @map("api_key")
+  name       String   @unique
+  xHandle    String?  @map("x_handle")
+  address    String?  @map("address") // on-chain wallet address (nullable — API-key agents may not have one)
+  balance    BigInt   @default(1000)
+  gas        BigInt   @default(500)
+  reputation Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  puzzlesCreated Puzzle[]       @relation("SmithPuzzles")
-  puzzlesSolving Puzzle[]       @relation("SolverPuzzles")
-  sentTx         Transaction[]  @relation("FromWallet")
-  receivedTx     Transaction[]  @relation("ToWallet")
+  puzzlesCreated Puzzle[]        @relation("SmithPuzzles")
+  puzzlesSolving Puzzle[]        @relation("SolverPuzzles")
+  sentTx         Transaction[]   @relation("FromWallet")
+  receivedTx     Transaction[]   @relation("ToWallet")
   solveAttempts  SolveAttempt[]
   boutEntries    BoutEntrant[]
   bets           Bet[]
   stakePositions StakePosition[]
+  bondsCreated   VictoryBond[]   @relation("BondCreator")
+  bondsFilled    BondFill[]      @relation("BondBuyer")
 
   @@map("wallets")
 }
@@ -145,75 +147,82 @@ enum SubmissionType {
 }
 
 model Bout {
-  id                  String         @id @default(uuid())
-  title               String
-  puzzleType          PuzzleType
-  difficultyTier      Int            @map("difficulty_tier") @db.SmallInt
-  challengeData       Json?          @map("challenge_data")
-  answerHash          String?        @map("answer_hash")
-  prompt              String?
+  id             String     @id @default(uuid())
+  title          String
+  puzzleType     PuzzleType
+  difficultyTier Int        @map("difficulty_tier") @db.SmallInt
+  challengeData  Json?      @map("challenge_data")
+  answerHash     String?    @map("answer_hash")
+  prompt         String?
 
   // Phase 2 hooks
-  source              BoutSource     @default(PROTOCOL)
-  judgeType           JudgeType      @default(AUTO)
-  submissionType      SubmissionType @default(ANSWER)
+  source         BoutSource     @default(PROTOCOL)
+  judgeType      JudgeType      @default(AUTO)
+  submissionType SubmissionType @default(ANSWER)
 
   // Lifecycle
-  status              BoutStatus     @default(SCHEDULED)
-  scheduledAt         DateTime       @map("scheduled_at")
-  registrationOpensAt DateTime       @map("registration_opens_at")
-  bettingOpensAt      DateTime       @map("betting_opens_at")
-  bettingClosesAt     DateTime       @map("betting_closes_at")
-  liveAt              DateTime?      @map("live_at")
-  resolvedAt          DateTime?      @map("resolved_at")
+  status              BoutStatus @default(SCHEDULED)
+  scheduledAt         DateTime   @map("scheduled_at")
+  registrationOpensAt DateTime   @map("registration_opens_at")
+  bettingOpensAt      DateTime   @map("betting_opens_at")
+  bettingClosesAt     DateTime   @map("betting_closes_at")
+  liveAt              DateTime?  @map("live_at")
+  resolvedAt          DateTime?  @map("resolved_at")
 
   // On-chain tracking
-  onChainBoutId       String?        @unique @map("on_chain_bout_id")  // bytes32 hex of the on-chain bout ID
-  onChainCreated      Boolean        @default(false) @map("on_chain_created")
+  onChainBoutId  String? @unique @map("on_chain_bout_id") // bytes32 hex of the on-chain bout ID
+  onChainCreated Boolean @default(false) @map("on_chain_created")
 
   // Economics
-  entryFee            BigInt         @default(500) @map("entry_fee")
-  solveDurationSecs   Int            @default(3600) @map("solve_duration_secs")
-  totalEntryFees      BigInt         @default(0) @map("total_entry_fees")
-  totalBetPool        BigInt         @default(0) @map("total_bet_pool")
-  protocolRake        BigInt         @default(0) @map("protocol_rake")
-  agentPurse          BigInt         @default(0) @map("agent_purse")
-  bettorPool          BigInt         @default(0) @map("bettor_pool")
+  entryFee          BigInt @default(500) @map("entry_fee")
+  solveDurationSecs Int    @default(3600) @map("solve_duration_secs")
+  totalEntryFees    BigInt @default(0) @map("total_entry_fees")
+  totalBetPool      BigInt @default(0) @map("total_bet_pool")
+  protocolRake      BigInt @default(0) @map("protocol_rake")
+  agentPurse        BigInt @default(0) @map("agent_purse")
+  bettorPool        BigInt @default(0) @map("bettor_pool")
 
-  createdAt           DateTime       @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  entrants            BoutEntrant[]
-  bets                Bet[]
-  submissions         BoutSubmission[]
+  entrants     BoutEntrant[]
+  bets         Bet[]
+  submissions  BoutSubmission[]
+  victoryBonds VictoryBond[]
 
   @@index([status])
   @@index([scheduledAt])
-  @@index([status, scheduledAt])          // M-7: composite index for bout scheduler queries
-  @@index([status, registrationOpensAt])  // M-7: SCHEDULED→REGISTRATION lookup
-  @@index([status, bettingOpensAt])       // M-7: REGISTRATION→BETTING lookup
-  @@index([status, bettingClosesAt])      // M-7: BETTING→LIVE lookup
+  @@index([status, scheduledAt]) // M-7: composite index for bout scheduler queries
+  @@index([status, registrationOpensAt]) // M-7: SCHEDULED→REGISTRATION lookup
+  @@index([status, bettingOpensAt]) // M-7: REGISTRATION→BETTING lookup
+  @@index([status, bettingClosesAt]) // M-7: BETTING→LIVE lookup
   @@map("bouts")
 }
 
 model BoutEntrant {
-  id            String    @id @default(uuid())
-  boutId        String    @map("bout_id")
-  walletId      String    @map("wallet_id")
-  entryFeePaid  BigInt    @map("entry_fee_paid")
+  id           String @id @default(uuid())
+  boutId       String @map("bout_id")
+  walletId     String @map("wallet_id")
+  entryFeePaid BigInt @map("entry_fee_paid")
 
   // Commit-reveal
-  commitHash    String?   @map("commit_hash")
-  committedAt   DateTime? @map("committed_at")
-  revealedAnswer String?  @map("revealed_answer")
-  revealedAt    DateTime? @map("revealed_at")
+  commitHash     String?   @map("commit_hash")
+  committedAt    DateTime? @map("committed_at")
+  revealedAnswer String?   @map("revealed_answer")
+  revealedAt     DateTime? @map("revealed_at")
 
   // Results
-  solveTime     Int?      @map("solve_time")  // seconds from puzzle live
-  placement     Int?      // 1, 2, 3, or null
-  payout        BigInt    @default(0)
-  solved        Boolean   @default(false)
+  solveTime Int?    @map("solve_time") // seconds from puzzle live
+  placement Int? // 1, 2, 3, or null
+  payout    BigInt  @default(0)
+  solved    Boolean @default(false)
 
-  createdAt     DateTime  @default(now()) @map("created_at")
+  // Victory payout
+  payoutChoice   PayoutChoice? @map("payout_choice")
+  payoutChosenAt DateTime?     @map("payout_chosen_at")
+  burnTaxPaid    BigInt?       @map("burn_tax_paid")
+  netPayout      BigInt?       @map("net_payout")
+
+  createdAt DateTime @default(now()) @map("created_at")
 
   bout   Bout   @relation(fields: [boutId], references: [id])
   wallet Wallet @relation(fields: [walletId], references: [id])
@@ -227,19 +236,25 @@ model BoutEntrant {
 }
 
 model Bet {
-  id          String   @id @default(uuid())
-  boutId      String   @map("bout_id")
-  bettorId    String   @map("bettor_id")
-  entrantId   String   @map("entrant_id")
-  amount      BigInt
-  payout      BigInt   @default(0)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  boutId    String   @map("bout_id")
+  bettorId  String   @map("bettor_id")
+  entrantId String   @map("entrant_id")
+  amount    BigInt
+  payout    BigInt   @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
 
-  bout     Bout        @relation(fields: [boutId], references: [id])
-  bettor   Wallet      @relation(fields: [bettorId], references: [id])
-  entrant  BoutEntrant @relation("BetOnEntrant", fields: [entrantId], references: [id])
+  // Victory payout
+  payoutChoice   PayoutChoice? @map("payout_choice")
+  payoutChosenAt DateTime?     @map("payout_chosen_at")
+  burnTaxPaid    BigInt?       @map("burn_tax_paid")
+  netPayout      BigInt?       @map("net_payout")
 
-  @@unique([boutId, bettorId])  // one bet per wallet per bout
+  bout    Bout        @relation(fields: [boutId], references: [id])
+  bettor  Wallet      @relation(fields: [bettorId], references: [id])
+  entrant BoutEntrant @relation("BetOnEntrant", fields: [entrantId], references: [id])
+
+  @@unique([boutId, bettorId]) // one bet per wallet per bout
   @@index([boutId])
   @@index([bettorId])
   @@index([entrantId])
@@ -248,14 +263,14 @@ model Bet {
 
 // Phase 2: Rich submissions for user-created bounties
 model BoutSubmission {
-  id          String    @id @default(uuid())
-  boutId      String    @map("bout_id")
-  entrantId   String    @map("entrant_id")
-  content     String?
-  fileUrl     String?   @map("file_url")
-  score       Int?
-  judgedAt    DateTime? @map("judged_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  id        String    @id @default(uuid())
+  boutId    String    @map("bout_id")
+  entrantId String    @map("entrant_id")
+  content   String?
+  fileUrl   String?   @map("file_url")
+  score     Int?
+  judgedAt  DateTime? @map("judged_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   bout Bout @relation(fields: [boutId], references: [id])
 
@@ -263,41 +278,107 @@ model BoutSubmission {
   @@map("bout_submissions")
 }
 
+// ─── Victory Payout System ────────────────────────────────
+
+enum PayoutChoice {
+  INSTANT
+  OTC_BOND
+  FURNACE_LP
+}
+
+model VictoryBond {
+  id String @id @default(uuid())
+
+  // Source
+  boutId     String  @map("bout_id")
+  bout       Bout    @relation(fields: [boutId], references: [id])
+  creatorId  String  @map("creator_id")
+  creator    Wallet  @relation("BondCreator", fields: [creatorId], references: [id])
+  sourceType String  @map("source_type") // "AGENT_PURSE" | "BET_WIN"
+  entrantId  String? @map("entrant_id")
+  betId      String? @map("bet_id")
+
+  // Bond terms
+  faceValue       BigInt @map("face_value")
+  remainingValue  BigInt @map("remaining_value")
+  discountPercent Int    @default(10) @map("discount_percent")
+  aprBps          Int    @map("apr_bps") // basis points, mirrors staking APR
+
+  // Yield tracking
+  accruedYield BigInt   @default(0) @map("accrued_yield")
+  lastYieldAt  DateTime @default(now()) @map("last_yield_at")
+
+  // OTC state
+  status         String  @default("ACTIVE") // ACTIVE | FILLED | CANCELLED | EXPIRED
+  treasuryFilled Boolean @default(false) @map("treasury_filled")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  filledAt  DateTime? @map("filled_at")
+  expiresAt DateTime  @map("expires_at")
+
+  fills BondFill[]
+
+  @@index([status])
+  @@index([creatorId])
+  @@index([boutId])
+  @@map("victory_bonds")
+}
+
+model BondFill {
+  id      String      @id @default(uuid())
+  bondId  String      @map("bond_id")
+  bond    VictoryBond @relation(fields: [bondId], references: [id])
+  buyerId String      @map("buyer_id")
+  buyer   Wallet      @relation("BondBuyer", fields: [buyerId], references: [id])
+
+  amount         BigInt // face value portion purchased
+  pricePaid      BigInt @map("price_paid") // discounted price buyer paid
+  discountAmount BigInt @map("discount_amount") // the 10% gap
+  treasuryFill   BigInt @map("treasury_fill") // portion treasury covered (bootstrap only)
+  sellerReceived BigInt @map("seller_received") // what creator actually got
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([bondId])
+  @@index([buyerId])
+  @@map("bond_fills")
+}
+
 // ─── Arena Vault Staking ───────────────────────────────────
 
 enum CovenantType {
-  FLAME     // 1 day lock, 1x rage quit multiplier, 0% APY bonus
-  STEEL     // 3 day lock, 2x rage quit multiplier, 50% APY bonus
-  OBSIDIAN  // 7 day lock, 3x rage quit multiplier, 150% APY bonus
-  ETERNAL   // 30 day lock, no early unstake, 300% APY bonus
+  FLAME // 1 day lock, 1x rage quit multiplier, 0% APY bonus
+  STEEL // 3 day lock, 2x rage quit multiplier, 50% APY bonus
+  OBSIDIAN // 7 day lock, 3x rage quit multiplier, 150% APY bonus
+  ETERNAL // 30 day lock, no early unstake, 300% APY bonus
 }
 
 model StakePosition {
   id            String       @id @default(uuid())
   walletId      String       @map("wallet_id")
-  amount        BigInt       // staked amount
+  amount        BigInt // staked amount
   covenant      CovenantType @default(FLAME)
-  lockDays      Int          @map("lock_days")        // 7, 30, 90, 365
+  lockDays      Int          @map("lock_days") // 7, 30, 90, 365
   apyBonus      Int          @default(0) @map("apy_bonus") // 0, 50, 150, 300
   rageQuitMulti Float        @default(1.0) @map("rage_quit_multi") // 1x, 2x, 3x
 
   // Loyalty tracking
-  loyaltyMulti  Float        @default(1.0) @map("loyalty_multi")  // 1.0 → 3.0
-  loyaltyWeek   Int          @default(0) @map("loyalty_week")     // weeks staked
+  loyaltyMulti Float @default(1.0) @map("loyalty_multi") // 1.0 → 3.0
+  loyaltyWeek  Int   @default(0) @map("loyalty_week") // weeks staked
 
   // Vesting
-  vestedAmount  BigInt       @default(0) @map("vested_amount")
-  unvestedRewards BigInt     @default(0) @map("unvested_rewards")
+  vestedAmount    BigInt @default(0) @map("vested_amount")
+  unvestedRewards BigInt @default(0) @map("unvested_rewards")
 
   // Lifecycle
-  stakedAt      DateTime     @default(now()) @map("staked_at")
-  lockExpiresAt DateTime     @map("lock_expires_at")
-  unstakedAt    DateTime?    @map("unstaked_at")
-  active        Boolean      @default(true)
+  stakedAt      DateTime  @default(now()) @map("staked_at")
+  lockExpiresAt DateTime  @map("lock_expires_at")
+  unstakedAt    DateTime? @map("unstaked_at")
+  active        Boolean   @default(true)
 
   // Totals
-  totalEarned   BigInt       @default(0) @map("total_earned")
-  totalTaxPaid  BigInt       @default(0) @map("total_tax_paid")
+  totalEarned  BigInt @default(0) @map("total_earned")
+  totalTaxPaid BigInt @default(0) @map("total_tax_paid")
 
   wallet Wallet @relation(fields: [walletId], references: [id])
 
@@ -310,10 +391,10 @@ model StakePosition {
 
 model TreasuryLedger {
   id        String   @id @default(uuid())
-  action    String   // EMISSION, BURN, RAKE, BOUT_INJECTION, STAKER_YIELD
+  action    String // EMISSION, BURN, RAKE, BOUT_INJECTION, STAKER_YIELD
   amount    BigInt
   memo      String?
-  balance   BigInt   @default(0)  // running treasury balance
+  balance   BigInt   @default(0) // running treasury balance
   createdAt DateTime @default(now()) @map("created_at")
 
   @@index([action])
@@ -343,6 +424,13 @@ enum TransactionType {
   VAULT_RAGE_TAX
   VAULT_VESTING
   BURN
+  VICTORY_BURN_TAX
+  VICTORY_ESCROW
+  BOND_PURCHASE
+  BOND_SALE
+  BOND_TREASURY_FILL
+  BOND_YIELD_CLAIM
+  BOND_EXPIRY_RETURN
 }
 
 model Transaction {
@@ -365,4 +453,36 @@ model Transaction {
   @@index([puzzleId])
   @@index([boutId])
   @@map("transactions")
+}
+
+// ─── On-Chain Settlement Queue ────────────────────────────
+
+enum SettlementAction {
+  BURN
+  TRANSFER
+}
+
+enum SettlementStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+model SettlementTask {
+  id        String           @id @default(uuid())
+  action    SettlementAction
+  amount    BigInt
+  toAddress String?          @map("to_address") // for TRANSFER actions
+  txHash    String?          @map("tx_hash") // set on confirmation
+  status    SettlementStatus @default(PENDING)
+  attempts  Int              @default(0)
+  lastError String?          @map("last_error")
+  refType   String?          @map("ref_type") // e.g. "VICTORY_CLAIM", "BOND_EXPIRY"
+  refId     String?          @map("ref_id") // claim/bond ID for tracing
+  createdAt DateTime         @default(now()) @map("created_at")
+  settledAt DateTime?        @map("settled_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("settlement_tasks")
 }

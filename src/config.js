@@ -98,6 +98,17 @@ const config = {
             { maxStaker: 750, bonus: 500 },
         ],
     },
+    victory: {
+        instantBurnPercent: 5,
+        bond: {
+            discountPercent: 10,
+            treasuryFillDays: 14,
+            treasuryFillBudget: 500000,
+            minBondSize: 100,
+            partialFillMin: 50,
+            expiryDays: 7,
+        },
+    },
     chain: {
         rpcUrl: process.env.BASE_RPC_URL || '',
         forgeTokenAddress: '0xC446d1796006e53294A2402e55DEd018D0155150',
