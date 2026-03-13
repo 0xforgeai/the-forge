@@ -410,7 +410,6 @@ function handleBondError(err, res) {
     };
 
     const entry = map[err.message];
-    const entry = map[err.message];
     if (entry) {
         res.status(entry[0]).json({ error: entry[1] });
         return true;
