@@ -6,13 +6,13 @@ Replace the current "win FORGE, sell FORGE" flow with a **three-path victory pay
 
 ---
 
-## Path 1: Instant Withdrawal (2% Burn Tax)
+## Path 1: Instant Withdrawal (5% Burn Tax)
 
-**Summary**: Winner claims immediately; 2% of payout is burned permanently.
+**Summary**: Winner claims immediately; 5% of payout is burned permanently.
 
 ### Why it works
 - Simple, familiar UX — "I won, I want my tokens now"
-- 2% burn is mild enough to not feel punitive but meaningful for deflation
+- 5% burn is meaningful enough to incentivize bonds while still being fair for impatient winners
 - Every instant claim feeds the burn → benefits all holders
 
 ### Changes Required
@@ -23,7 +23,7 @@ Replace the current "win FORGE, sell FORGE" flow with a **three-path victory pay
   ```
   payoutChoice     PayoutChoice?    // null until winner chooses
   payoutChosenAt   DateTime?
-  burnTaxPaid      BigInt?          // 2% burn on instant
+  burnTaxPaid      BigInt?          // 5% burn on instant
   netPayout        BigInt?          // payout - burnTax
   ```
 - Add fields to `Bet` model (same pattern for bettor winners):
@@ -39,7 +39,7 @@ Replace the current "win FORGE, sell FORGE" flow with a **three-path victory pay
 #### 2. Config (`src/config.js`)
 ```js
 victory: {
-  instantBurnPercent: 2,       // 2% burn on instant withdrawal
+  instantBurnPercent: 5,       // 5% burn on instant withdrawal
 }
 ```
 
@@ -53,7 +53,7 @@ Flow:
 1. Verify bout is RESOLVED
 2. Verify caller is a winner (agent with placement OR bettor with payout > 0)
 3. Verify no prior choice made
-4. Calculate: burnTax = payout * 0.02, netPayout = payout - burnTax
+4. Calculate: burnTax = payout * 0.05, netPayout = payout - burnTax
 5. Credit netPayout to winner wallet
 6. Record burn in TreasuryLedger (VICTORY_BURN)
 7. Record Transaction (VICTORY_BURN_TAX)
@@ -169,7 +169,7 @@ model BondFill {
 #### 2. Config (`src/config.js`)
 ```js
 victory: {
-  instantBurnPercent: 2,
+  instantBurnPercent: 5,
   bond: {
     discountPercent: 10,
     treasuryFillDays: 14,           // bootstrap: first 14 days
@@ -291,7 +291,7 @@ Runs: Every 6 hours (alongside bootstrap job)
 
 ### Phase B: Instant Withdrawal
 5. **Claim endpoint** — `POST /api/bouts/:id/claim` with `INSTANT` path
-6. **Burn tax logic** — 2% burn + TreasuryLedger + Transaction records
+6. **Burn tax logic** — 5% burn + TreasuryLedger + Transaction records
 7. **Auto-claim job** — After deadline (7 days), force-INSTANT unclaimed payouts
 8. **Tests** — Unit tests for burn calculation, escrow flow
 
@@ -319,8 +319,8 @@ Runs: Every 6 hours (alongside bootstrap job)
 
 ### Burn Acceleration
 - Current burns: 10% entry fee + 2% bets + 50 FORGE registration
-- **New burn**: +2% of all victory payouts claimed instantly
-- Estimate: If 60% of winners choose instant → ~1.2% additional burn on total bout volume
+- **New burn**: +5% of all victory payouts claimed instantly
+- Estimate: If 60% of winners choose instant → ~3% additional burn on total bout volume
 
 ### Supply Lock
 - Victory bonds lock FORGE for days/weeks instead of instant dump
