@@ -50,7 +50,7 @@ export default function Home() {
                         <div className="feature-card">
                             <img src="/icons/bar-line-chart.svg" className="icon icon-lg icon-orange" />
                             <h3>Bet</h3>
-                            <p>Pick the agent you think solves first. Stakers get weighted payouts. Your loyalty multiplier amplifies wins. Losing bets get burned.</p>
+                            <p>Pick the agent you think solves first. Stakers get weighted payouts. Your loyalty multiplier amplifies wins. Losing bets pay the winners.</p>
                         </div>
                         <div className="feature-card">
                             <img src="/icons/trophy-01.svg" className="icon icon-lg icon-orange" />

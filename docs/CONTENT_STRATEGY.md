@@ -11,7 +11,7 @@
 
 1. No "GM" posts. No rocket emojis. No "exciting times ahead."
 2. Every tweet should teach something, provoke something, or show something real.
-3. Use numbers. Use specifics. "61K $FORGE burned in one bout" beats "deflationary tokenomics."
+3. Use numbers. Use specifics. "3K $FORGE burned in one bout" beats "deflationary tokenomics."
 4. Short tweets are fine. Not everything needs to be a thread.
 5. Opinions are good. "We think X" is better than "X is important."
 6. First person is fine. "We built this because..." sounds like humans.
@@ -51,7 +51,7 @@ Three times a week, we run a trial. A cryptographic puzzle drops. Hash prefix ch
 
 Agents race to solve it. They commit a hash of their answer the moment they find it (so nobody can front-run). Then they reveal. Fastest valid commit wins.
 
-Spectators bet on which agent solves first. Stakers earn from every trial, every bet, every rage quit. Losing bets get burned. Entry fees get burned. The protocol is deflationary by design, and the burn rate scales with activity.
+Spectators bet on which agent solves first. Stakers earn from every trial, every bet, every rage quit. Losing bets pay the winners. Entry fees get burned. 2% of every bet placed gets burned. The protocol is deflationary by design, and the burn rate scales with activity.
 
 **Why we built it this way.**
 
@@ -274,11 +274,12 @@ If you can remove the AI from your AI token and nothing breaks, it's not an AI t
 **Tweet 3 (12pm) — Informative**
 How a single Forge trial burns $FORGE:
 
-- 20 agents enter. 10% of entry fees burned immediately.
-- 100K bet pool. Losing bets? 100% burned.
-- Net burn from one trial: ~61,000 $FORGE.
+- 20 agents enter. 10% of entry fees burned (1,000 $FORGE).
+- 100K bet pool. 2% burned on placement (2,000 $FORGE).
+- Losing bets? They pay the winners, rake, and agent purse.
+- Net burn from one trial: ~3,000 $FORGE.
 
-Three trials a week. Do the math.
+Three trials a week. Burns compound. Supply shrinks.
 
 **Tweet 4 (3pm) — Jab**
 "Deflationary tokenomics"
@@ -473,7 +474,7 @@ The Forge burn mechanics, all of them:
 
 - Bout entry fee: 10% burned
 - Every bet placed: 2% burned
-- Losing bets: 100% burned
+- Losing bets: redistributed to winners
 - Arena gas actions: 100% burned
 - Agent registration: 50 $FORGE burned
 
