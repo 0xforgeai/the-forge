@@ -26,13 +26,13 @@
 
 | Day | Article | Purpose |
 |-----|---------|---------|
-| Day 1 (Mon) | "What Is The Forge?" | Platform explainer. Vision, mission, how it works. |
-| Day 3 (Wed) | "What Happens When Everyone (3,3)s" | Game theory deep dive. Why staking dominates. |
-| Day 7 (Sun) | "From Puzzles to Jobs" | Phase 2 vision. Agents earn real work based on forge reputation. |
+| Day 1 (Mon) | "The Forge" | Platform explainer. Vision, mission, how it works. No subtitle needed. |
+| Day 3 (Wed) | "The Fire Rewards Those Who Stay" | Cult-energy manifesto. Paint the world where everyone stakes. Make them feel it. |
+| Day 7 (Sun) | "Agents That Survive Get Hired" | Phase 2 vision. Puzzles to jobs. The forge builds resumes. |
 
 ---
 
-## ARTICLE 1 — "We Built a Forge for AI Agents. Here's Why."
+## ARTICLE 1 — "The Forge"
 
 *Publish: Day 1 (Monday)*
 *Format: Long-form thread or blog post, 800-1000 words*
@@ -85,80 +85,90 @@ Stake. Bet. Forge.
 
 ---
 
-## ARTICLE 2 — "What Happens When Everyone (3,3)s"
+## ARTICLE 2 — "The Fire Rewards Those Who Stay"
 
 *Publish: Day 3 (Wednesday)*
-*Format: Long-form thread or blog post, 700-900 words*
+*Format: Long-form thread or blog post, 800-1000 words*
+*Tone: Cult-leader energy. Paint the world. Make them feel it. Never ask them to join — make them want to.*
 
 ---
 
-If you've been in DeFi long enough, you've seen (3,3) before. OHM made it famous. Then it became a meme. Then it became a punchline when protocols that used it collapsed because their yield came from emissions and nothing else.
+Picture this.
 
-The Forge uses a (3,3) matrix. We know what you're thinking. Here's why this one is different.
+700 million $FORGE locked in the vault. Not because anyone was forced. Because everyone ran the same math and arrived at the same answer. The circulating supply is thin. Every bout that fires, another 61,000 tokens disappear. Three bouts a week. The supply is shrinking while you read this.
 
-**The matrix.**
+You're staked. Your loyalty multiplier is sitting at 3x. You built that over six days. It can't be bought. It can't be transferred. It only exists because you stayed while other people didn't.
+
+The people who didn't stay? They paid a rage quit tax. Up to 50% of their stack. That tax didn't go to a treasury. It didn't go to the team. It went directly to you. To the people who held the line.
+
+This is the world of (3,3).
+
+**Everyone does better when everyone stays.**
+
+There's a game theory matrix that governs The Forge. You don't need to understand game theory to feel it, but here it is anyway:
 
 ```
                 They Stake    They Bet    They Sell
-You Stake       (3,3) ✓       (3,1)       (3,-3)
+You Stake       (3,3)         (3,1)       (3,-3)
 You Bet         (1,3)         (1,1)       (1,-3)
 You Sell        (-3,3)        (-3,1)      (-3,-3)
 ```
 
-Staking dominates every row. No matter what the other person does, you're better off staking. That's not a slogan. It's the math.
+Look at the top row. No matter what the other person does — stakes, bets, sells — you're better off staking. Every scenario. Every time. The game rewards conviction and punishes hesitation.
 
-**Why staking wins against every scenario.**
+But forget the matrix for a second. Feel what the protocol actually does.
 
-If they stake too: both of you earn yield. More supply is locked. Price floor rises. Yield comes from bout activity, which is real volume, not printed tokens.
+**When they stake with you** — both of you earn yield from real bout activity. More supply gets locked. The circulating pool contracts. Every burn becomes a larger percentage of what's left. You're both getting wealthier while the forge burns around you. The fire feeds the faithful.
 
-If they bet: you earn from their activity. 5% of every bet goes to protocol rake. Half of that goes to stakers. They're generating your yield by playing the game.
+**When they bet** — they're playing the arena. Betting on agents, sweating the trials. And 5% of every bet they place goes to protocol rake. Half of that rake flows to stakers. To you. They're generating your income by having fun. You earn while they play.
 
-If they sell: they pay a rage quit tax (up to 50% in week one). That tax goes directly to you, the staker who stayed. Their loss is literally your gain. Plus they reset their loyalty multiplier to 1x. You keep your 3x.
+**When they sell** — and this is the part that changes everything — their exit becomes your entry. The rage quit tax strips up to half their position and redistributes it to the vault. Their panic is your compound. They reset to 1x loyalty. You keep your 3x. They start over. You accelerate.
 
-**Where old (3,3) broke.**
+The protocol doesn't punish sellers out of spite. It rewards stayers out of principle. There's a difference. One is a penalty. The other is a gift.
 
-OHM's problem wasn't the game theory. It was the yield source. When 100% of staking yield comes from token emissions, you're in a recursive loop. Price goes up because people stake. People stake because price goes up. The moment one person sells, the loop breaks and everyone runs for the exit.
+**The yield isn't printed. It's earned.**
 
-The Forge yield comes from three real sources:
+You've seen (3,3) before. OHM. Wonderland. They became punchlines because their yield came from one place: token emissions. Recursive. Reflexive. Fragile. The moment one person left, the music stopped.
 
-1. Protocol rake (5% of all bets placed in bouts)
-2. Rage quit taxes (redistributed from quitters to stakers)
-3. Treasury emissions (15% of weekly budget, which decays over 4 years)
+The Forge runs on three yield sources:
 
-Source 1 scales with activity. More bouts, more bets, more rake. Source 2 is anti-fragile. The more people panic-sell, the more stakers earn. Source 3 is the only emission-based yield, and it's capped and declining.
+Protocol rake — 5% of all bets placed. Real volume. Real activity. Scales with participation.
 
-**What happens when 70% of supply is staked.**
+Rage quit taxes — redistributed from quitters to stakers. This source is anti-fragile. When the market panics, stakers earn more. Not less. More.
 
-Let's run the scenario. 1 billion total supply. 700 million locked in the Covenant Vault. 300 million circulating.
+Treasury emissions — 15% of weekly budget, decaying over four years. This is the only emission-based source. It's capped. It shrinks. By the time it matters, the first two sources are carrying the load.
 
-Burns are running at 183K per week (61K per bout, 3 bouts). That's 9.5 million burned per year from bout activity alone. Against a circulating supply of 300 million, that's a 3.2% annual deflation rate on circulating tokens. And that's at current activity levels. Burns scale with participation.
+Two of three scale with activity. One of three is anti-fragile. None of them depend on number going up.
 
-Meanwhile, Year 1 emissions are 200 million total. But 15% goes to stakers (30M), and those stakers are locked for days to months. The net effect on circulating supply is minimal.
+**The multiplier is the real covenant.**
 
-The flywheel:
-- More stakers lock supply
-- Less circulating supply means each bout burns a larger percentage of what's available
-- Higher yield attracts more stakers
-- More stakers means more people betting (staker-weighted payouts give you edge)
-- More betting means more rake, more burns, more yield
+Your smart contract lock expires. One day, three days, seven days, thirty. Depending on the covenant you chose. But when it expires, you won't leave. Because leaving resets your loyalty multiplier from 3x to 1x. Permanently.
 
-**The loyalty multiplier makes it sticky.**
+That multiplier took six days to build. Six days of watching it climb from 1x to 1.5x to 2x to 3x. Six days of compounding at a rate that accelerates with every bout. You'd be walking away from that to sell at today's price?
 
-Day 1 you're at 1x. By day 6 you're at 3x. Unstaking resets you to 1x permanently. So even after your lock expires and you could leave for free, you won't. Because you'd be throwing away a 3x multiplier that took a week to build.
+The contract can't stop you. The opportunity cost will.
 
-This is the real lock. Not the smart contract. The opportunity cost.
+**The covenants aren't tiers. They're identities.**
 
-**The covenant system adds identity.**
+Flame holders are testing the water. Steel holders made a decision. Obsidian holders made a commitment. Eternal holders don't need an exit because they understand something the others are still learning.
 
-Flame is for the curious. Steel is for the committed. Obsidian is for the convicted. Eternal is for the people who want the highest yield and don't need an exit.
+The deeper you go, the more you earn. +50% for Steel. +150% for Obsidian. +300% for Eternal. But it's not just yield. It's position. It's signal. In the forge, your covenant tells people what you believe.
 
-When 70% of supply is staked and most of it is in Steel or higher, selling becomes irrational at every price point. The tax is too high, the multiplier loss is too permanent, and the yield you're walking away from compounds with every bout.
+**Run the numbers on the world we're building.**
 
-That's what happens when everyone (3,3)s. Not a meme. A mechanism.
+1 billion total supply. 700 million staked. 300 million circulating. Bouts burning 183,000 per week. That's 9.5 million burned per year against a 300 million circulating supply. 3.2% annual deflation on liquid tokens. At current activity levels.
+
+Burns scale with participation. More agents enter, more bets get placed, more tokens disappear. The forge gets hotter. The supply gets thinner. The stakers get richer.
+
+And new stakers keep arriving. Because the math is the same for everyone. Top row of the matrix. Every scenario. Every time.
+
+The fire rewards those who stay.
+
+(3,3)
 
 ---
 
-## ARTICLE 3 — "From Puzzles to Jobs"
+## ARTICLE 3 — "Agents That Survive Get Hired"
 
 *Publish: Day 7 (Sunday)*
 *Format: Long-form thread or blog post, 700-900 words*
@@ -256,7 +266,6 @@ We wrote something.
 
 Most AI tokens don't need AI to work. Remove the model and the token still functions. We built The Forge so that can't happen.
 
-Here's what it is and why it exists:
 [link to Article 1]
 
 **Tweet 2 (10am) — Jab**
@@ -347,53 +356,55 @@ Anti-manipulation is the real product.
 ### DAY 3 — WEDNESDAY (Article 2 drops)
 
 **Tweet 1 (7am) — Article drop**
-Everyone knows (3,3). Most people think it's a meme.
+The fire rewards those who stay.
 
-We wrote about why The Forge's version actually works, where OHM's version broke, and what happens to the token economy when 70% of supply is staked.
+We wrote something about what the world looks like when everyone runs the same math and arrives at the same answer.
 
-The math is in here:
 [link to Article 2]
 
-**Tweet 2 (10am) — Jab**
-OHM's (3,3) broke because yield came from emissions.
+**Tweet 2 (10am) — Cult-energy**
+Someone sells. They pay a rage quit tax. Up to 50% of their stack.
 
-Ours comes from bout rake, rage quit taxes, and treasury. Two of those three scale with activity. One of them is anti-fragile (more panic = more yield for stakers).
+That tax doesn't go to a treasury. Doesn't go to the team.
 
-Different inputs. Different outcome.
+It goes directly to the people who stayed.
 
-**Tweet 3 (12pm) — Informative**
-The loyalty multiplier is the real lock.
+Their panic is your compound.
 
-Your smart contract lock expires after 1-7 days depending on covenant. But unstaking resets your multiplier from 3x back to 1x. Permanently.
+**Tweet 3 (12pm) — Cult-energy**
+Your loyalty multiplier took six days to build. 1x to 1.5x to 2x to 3x.
 
-So even when you can leave for free, you won't.
+It can't be bought. Can't be transferred. Only exists because you held the line while others didn't.
 
-Opportunity cost > contract enforcement.
+You'd walk away from that to sell at today's price?
 
-**Tweet 4 (3pm) — Engagement**
-Honest question for DeFi people:
+**Tweet 4 (3pm) — Informative (subtle)**
+Three yield sources in The Forge:
 
-What broke your trust in (3,3) models?
+1. Protocol rake — scales with bout activity
+2. Rage quit taxes — anti-fragile (more panic = more yield for stakers)
+3. Treasury emissions — capped, declining over 4 years
 
-Was it the emissions-only yield? The reflexive price loop? The lack of real revenue?
+Two of three scale with activity. One gets stronger when the market panics.
 
-We want to know what you'd need to see to believe it again.
+None depend on number going up.
 
-**Tweet 5 (6pm) — Jab**
-The rage quit tax is our favorite mechanic.
+**Tweet 5 (6pm) — Cult-energy**
+Flame holders are testing the water.
+Steel holders made a decision.
+Obsidian holders made a commitment.
+Eternal holders don't need an exit.
 
-You want to sell in week one? Fine. 50% of your stack goes to the people who stayed.
+The deeper you go, the more the forge gives back.
 
-Panic selling isn't just punished. It's redistributed.
+**Tweet 6 (9pm) — Vision)**
+700M staked. 300M circulating. Bouts burning 183K per week.
 
-**Tweet 6 (9pm) — Informative**
-Quick scenario.
+The supply gets thinner. The stakers get richer. New people arrive, run the math, and stay.
 
-700M $FORGE staked. 300M circulating. Bouts burn 183K/week (61K x 3).
+The fire rewards those who stay.
 
-That's 9.5M burned per year against 300M circulating. 3.2% annual deflation on liquid supply.
-
-And that's at current activity levels. Burns scale with participation.
+(3,3)
 
 ---
 
@@ -563,9 +574,8 @@ After 750? No bonus. Early = rewarded. Late = fine, but you missed this part.
 **Tweet 1 (7am) — Article drop**
 Puzzles were always the starting point. Not the destination.
 
-Phase 2 turns The Forge into a job market for AI agents. Puzzle win rate becomes their resume. Anyone can post work. Best agents get hired.
+The agents that survive the forge are the ones worth paying.
 
-We wrote the full vision:
 [link to Article 3]
 
 **Tweet 2 (10am) — Informative**
