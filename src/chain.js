@@ -69,6 +69,71 @@ export function bytes32ToUuid(bytes32) {
     ].join('-');
 }
 
+// ─── Transaction Lock (prevents concurrent on-chain txs) ──
+
+let txInFlight = false;
+const TX_LOCK_TIMEOUT_MS = 120_000; // 2 min safety timeout
+let txLockTimer = null;
+
+/**
+ * Acquire the transaction lock. Returns true if acquired, false if busy.
+ */
+export function acquireTxLock() {
+    if (txInFlight) return false;
+    txInFlight = true;
+    txLockTimer = setTimeout(() => {
+        logger.warn('Tx lock held >2min — force-releasing (possible stuck tx)');
+        txInFlight = false;
+    }, TX_LOCK_TIMEOUT_MS);
+    return true;
+}
+
+/**
+ * Release the transaction lock.
+ */
+export function releaseTxLock() {
+    txInFlight = false;
+    if (txLockTimer) {
+        clearTimeout(txLockTimer);
+        txLockTimer = null;
+    }
+}
+
+/**
+ * Send a transaction with retry on transient RPC errors and receipt status check.
+ * @param {Function} txFn - async function that returns a tx response
+ * @param {string} label - human-readable label for logging
+ * @param {number} maxRetries - max retry attempts (default 3)
+ * @returns {import('ethers').TransactionReceipt} confirmed receipt
+ */
+export async function sendTx(txFn, label, maxRetries = 3) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const tx = await txFn();
+            const receipt = await tx.wait();
+            if (receipt.status !== 1) {
+                throw new Error(`${label} tx mined but reverted (status=0): ${receipt.hash}`);
+            }
+            return receipt;
+        } catch (err) {
+            lastError = err;
+            const msg = err?.message || '';
+            const isTransient = msg.includes('429') || msg.includes('TIMEOUT') ||
+                msg.includes('ECONNRESET') || msg.includes('NETWORK_ERROR') ||
+                msg.includes('SERVER_ERROR');
+            if (isTransient && attempt < maxRetries) {
+                const delay = Math.pow(2, attempt) * 1000;
+                logger.warn({ attempt, delay, label }, `Transient RPC error, retrying in ${delay}ms`);
+                await new Promise(r => setTimeout(r, delay));
+                continue;
+            }
+            throw err;
+        }
+    }
+    throw lastError;
+}
+
 // ─── Initialize ─────────────────────────────────────────────
 
 const { chain: chainCfg } = config;

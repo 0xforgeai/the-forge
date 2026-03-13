@@ -168,7 +168,7 @@ model Bout {
   resolvedAt          DateTime?      @map("resolved_at")
 
   // On-chain tracking
-  onChainBoutId       String?        @map("on_chain_bout_id")     // bytes32 hex of the on-chain bout ID
+  onChainBoutId       String?        @unique @map("on_chain_bout_id")  // bytes32 hex of the on-chain bout ID
   onChainCreated      Boolean        @default(false) @map("on_chain_created")
 
   // Economics

@@ -161,10 +161,10 @@ export default function Dashboard() {
                                         <>
                                             <div className="dash-stat"><span className="ds-key">Covenant</span><span className="ds-val orange">{stake.active.covenant}</span></div>
                                             <div className="dash-stat"><span className="ds-key">Staked Amount</span><span className="ds-val green">{Number(stake.active.amount).toLocaleString()} $FORGE</span></div>
-                                            <div className="dash-stat"><span className="ds-key">Loyalty Multiplier</span><span className="ds-val">{stake.active.loyaltyMultiplier}x</span></div>
-                                            <div className="dash-stat"><span className="ds-key">Days Staked</span><span className="ds-val">{stake.active.daysStaked}</span></div>
+                                            <div className="dash-stat"><span className="ds-key">Loyalty Multiplier</span><span className="ds-val">{stake.active.currentLoyaltyMulti}x</span></div>
+                                            <div className="dash-stat"><span className="ds-key">Days Staked</span><span className="ds-val">{stake.active.currentDay}</span></div>
                                             <div className="dash-stat"><span className="ds-key">Lock Expires</span><span className="ds-val dim">{new Date(stake.active.lockExpiresAt).toLocaleDateString()}</span></div>
-                                            <div className="dash-stat"><span className="ds-key">Rage Quit Tax</span><span className="ds-val red">{stake.active.rageQuitPct}%</span></div>
+                                            <div className="dash-stat"><span className="ds-key">Rage Quit Tax</span><span className="ds-val red">{stake.active.currentRageQuitTax}</span></div>
                                             <div className="dash-stat"><span className="ds-key">You'd Receive</span><span className="ds-val">{Number(stake.active.youWouldReceive).toLocaleString()} $FORGE</span></div>
                                         </>
                                     ) : (

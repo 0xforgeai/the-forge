@@ -15,7 +15,7 @@ import prisma from '../db.js';
 import config from '../config.js';
 import { generatePuzzle, verifyCryptoPuzzle } from '../crypto-puzzles.js';
 import { calculatePayouts } from '../bout-payout.js';
-import { forgeArena, chainReady, uuidToBytes32 } from '../chain.js';
+import { forgeArena, chainReady, uuidToBytes32, acquireTxLock, releaseTxLock, sendTx } from '../chain.js';
 import sse from '../sse.js';
 import logger from '../logger.js';
 
@@ -74,30 +74,43 @@ async function transitionBouts() {
         const boutBytes32 = uuidToBytes32(bout.id);
         let onChainCreated = false;
         if (chainReady && forgeArena) {
-            try {
-                const cc = config.chain;
-                const entryFeeWei = ethers.parseEther(bout.entryFee.toString());
+            // Acquire tx lock to prevent concurrent on-chain txs
+            if (!acquireTxLock()) {
+                logger.warn({ boutId: bout.id }, 'Tx lock busy — skipping on-chain createBout this tick');
+            } else {
+                try {
+                    // Idempotency check: verify bout doesn't already exist on-chain
+                    const existing = await forgeArena.getBout(boutBytes32);
+                    if (existing.status !== 0n) {
+                        logger.info({ boutId: bout.id }, 'Bout already exists on-chain — skipping createBout');
+                        onChainCreated = true;
+                    } else {
+                        const cc = config.chain;
+                        const entryFeeWei = ethers.parseEther(bout.entryFee.toString());
 
-                const createTx = await forgeArena.createBout(
-                    boutBytes32,
-                    entryFeeWei,
-                    cc.entryBurnBps,
-                    cc.betBurnBps,
-                    cc.protocolRakeBps,
-                    cc.agentPurseBps,
-                    cc.bettorPoolBps,
-                    cc.maxEntrants,
-                );
-                await createTx.wait();
-                logger.info({ boutId: bout.id, txHash: createTx.hash }, 'On-chain: createBout() confirmed');
+                        const createReceipt = await sendTx(
+                            () => forgeArena.createBout(
+                                boutBytes32, entryFeeWei,
+                                cc.entryBurnBps, cc.betBurnBps, cc.protocolRakeBps,
+                                cc.agentPurseBps, cc.bettorPoolBps, cc.maxEntrants,
+                            ),
+                            'createBout',
+                        );
+                        logger.info({ boutId: bout.id, txHash: createReceipt.hash }, 'On-chain: createBout() confirmed');
 
-                const liveTx = await forgeArena.setBoutLive(boutBytes32);
-                await liveTx.wait();
-                logger.info({ boutId: bout.id, txHash: liveTx.hash }, 'On-chain: setBoutLive() confirmed');
+                        const liveReceipt = await sendTx(
+                            () => forgeArena.setBoutLive(boutBytes32),
+                            'setBoutLive',
+                        );
+                        logger.info({ boutId: bout.id, txHash: liveReceipt.hash }, 'On-chain: setBoutLive() confirmed');
 
-                onChainCreated = true;
-            } catch (err) {
-                logger.error({ err, boutId: bout.id }, 'On-chain createBout/setBoutLive failed — proceeding with DB only');
+                        onChainCreated = true;
+                    }
+                } catch (err) {
+                    logger.error({ err, boutId: bout.id }, 'On-chain createBout/setBoutLive failed — proceeding with DB only');
+                } finally {
+                    releaseTxLock();
+                }
             }
         }
 
@@ -265,33 +278,37 @@ async function transitionBouts() {
         await prisma.$transaction(ops);
 
         // ── On-chain: resolveBout on ForgeArena ──
+        // In hybrid mode, no agents entered on-chain (enterBout() is not called).
+        // The on-chain boutEntrants array is empty, so resolveBout() with any
+        // placement indices would revert ("Invalid placement idx").
+        // Only call resolveBout on-chain with empty placements (triggers no-solver path
+        // which adds agentPurse to protocolRake — acceptable for hybrid accounting).
         if (chainReady && forgeArena && bout.onChainCreated) {
-            try {
-                const boutBytes32 = bout.onChainBoutId || uuidToBytes32(bout.id);
+            if (!acquireTxLock()) {
+                logger.warn({ boutId: bout.id }, 'Tx lock busy — skipping on-chain resolveBout this tick');
+            } else {
+                try {
+                    const boutBytes32 = bout.onChainBoutId || uuidToBytes32(bout.id);
 
-                // Build placements array: indices of solvers sorted by solve time
-                // The placements array contains entrant indices in the on-chain boutEntrants array
-                // Since DB entrants map 1:1 to on-chain order, we use the sorted solver indices
-                const solvers = bout.entrants
-                    .map((e, idx) => ({ ...e, idx }))
-                    .filter(e => e.solved)
-                    .sort((a, b) => (a.solveTime || Infinity) - (b.solveTime || Infinity));
-                const placements = solvers.slice(0, 3).map(s => s.idx);
+                    // Pass empty placements — no on-chain entrants in hybrid mode
+                    const resolveReceipt = await sendTx(
+                        () => forgeArena.resolveBout(boutBytes32, []),
+                        'resolveBout',
+                    );
+                    logger.info({ boutId: bout.id, txHash: resolveReceipt.hash }, 'On-chain: resolveBout() confirmed (hybrid — empty placements)');
 
-                const resolveTx = await forgeArena.resolveBout(boutBytes32, placements);
-                await resolveTx.wait();
-                logger.info({ boutId: bout.id, txHash: resolveTx.hash, placements }, 'On-chain: resolveBout() confirmed');
-
-                // Record tx hash in treasury ledger for audit trail
-                await prisma.treasuryLedger.create({
-                    data: {
-                        action: 'ON_CHAIN_RESOLVE',
-                        amount: 0,
-                        memo: `resolveBout tx: ${resolveTx.hash} — placements: [${placements}]`,
-                    },
-                });
-            } catch (err) {
-                logger.error({ err, boutId: bout.id }, 'On-chain resolveBout failed — DB resolution still applied');
+                    await prisma.treasuryLedger.create({
+                        data: {
+                            action: 'ON_CHAIN_RESOLVE',
+                            amount: 0,
+                            memo: `resolveBout tx: ${resolveReceipt.hash} — hybrid mode (empty placements)`,
+                        },
+                    });
+                } catch (err) {
+                    logger.error({ err, boutId: bout.id }, 'On-chain resolveBout failed — DB resolution still applied');
+                } finally {
+                    releaseTxLock();
+                }
             }
         }
 

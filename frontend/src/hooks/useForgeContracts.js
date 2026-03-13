@@ -59,10 +59,11 @@ export function useVaultPosition(address) {
         amount: formatEther(data.amount),
         amountRaw: data.amount,
         stakedAt: Number(data.stakedAt),
-        lockExpires: Number(data.lockExpires),
-        loyaltyMultiplier: Number(data.loyaltyMultiplier) / 100,
-        totalClaimed: formatEther(data.totalClaimed),
+        lockExpires: Number(data.lockExpiresAt),
+        totalEarned: formatEther(data.totalEarned),
         totalTaxPaid: formatEther(data.totalTaxPaid),
+        unvestedRewards: formatEther(data.unvestedRewards),
+        vestedRewards: formatEther(data.vestedRewards),
     } : null;
 
     return { position, raw: data, ...rest };
