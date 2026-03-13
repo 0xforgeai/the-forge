@@ -578,4 +578,233 @@ router.get('/:id/results', async (req, res) => {
     });
 });
 
+// ─── Victory Claim ────────────────────────────────────────
+
+const claimSchema = z.object({
+    choice: z.enum(['INSTANT', 'OTC_BOND', 'FURNACE_LP']),
+});
+
+router.post('/:id/claim', authenticate, async (req, res) => {
+    const parsed = claimSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues[0].message });
+    }
+
+    const { choice } = parsed.data;
+    const wallet = req.wallet;
+
+    if (choice === 'FURNACE_LP') {
+        return res.status(400).json({ error: 'Forge Furnace LP coming soon — choose INSTANT or OTC_BOND.' });
+    }
+
+    const bout = await prisma.bout.findUnique({
+        where: { id: req.params.id },
+        include: {
+            entrants: { where: { walletId: wallet.id } },
+            bets: { where: { bettorId: wallet.id } },
+        },
+    });
+
+    if (!bout) return res.status(404).json({ error: 'Bout not found.' });
+    if (bout.status !== 'RESOLVED') {
+        return res.status(400).json({ error: `Bout is ${bout.status}, not resolved.` });
+    }
+
+    // Find all unclaimed payouts for this wallet (agent placement + bet win)
+    const claims = [];
+
+    for (const entrant of bout.entrants) {
+        if (entrant.payout > 0 && !entrant.payoutChoice) {
+            claims.push({ type: 'AGENT_PURSE', id: entrant.id, payout: entrant.payout, walletId: entrant.walletId });
+        }
+    }
+    for (const bet of bout.bets) {
+        if (bet.payout > 0 && !bet.payoutChoice) {
+            claims.push({ type: 'BET_WIN', id: bet.id, payout: bet.payout, walletId: bet.bettorId });
+        }
+    }
+
+    if (claims.length === 0) {
+        return res.status(400).json({ error: 'No unclaimed payouts found for you on this bout.' });
+    }
+
+    const totalPayout = claims.reduce((sum, c) => sum + c.payout, 0n);
+    const vc = config.victory;
+    const now = new Date();
+
+    if (choice === 'INSTANT') {
+        const burnTax = totalPayout * BigInt(vc.instantBurnPercent) / 100n;
+        const netPayout = totalPayout - burnTax;
+
+        const ops = [];
+
+        // Credit net payout to winner
+        ops.push(prisma.wallet.update({
+            where: { id: wallet.id },
+            data: { balance: { increment: netPayout } },
+        }));
+
+        // Record burn
+        if (burnTax > 0n) {
+            ops.push(prisma.treasuryLedger.create({
+                data: {
+                    action: 'VICTORY_BURN',
+                    amount: burnTax,
+                    memo: `Instant claim burn: ${bout.title}`,
+                },
+            }));
+            ops.push(prisma.transaction.create({
+                data: {
+                    fromId: wallet.id,
+                    amount: burnTax,
+                    type: 'VICTORY_BURN_TAX',
+                    boutId: bout.id,
+                    memo: `5% instant claim burn: ${bout.title}`,
+                },
+            }));
+        }
+
+        // Record payout transaction
+        ops.push(prisma.transaction.create({
+            data: {
+                toId: wallet.id,
+                amount: netPayout,
+                type: claims[0].type === 'AGENT_PURSE' ? 'BOUT_PURSE' : 'BOUT_BET_WIN',
+                boutId: bout.id,
+                memo: `Instant claim: ${bout.title}`,
+            },
+        }));
+
+        // Mark claims as chosen
+        for (const claim of claims) {
+            if (claim.type === 'AGENT_PURSE') {
+                ops.push(prisma.boutEntrant.update({
+                    where: { id: claim.id },
+                    data: { payoutChoice: 'INSTANT', payoutChosenAt: now, burnTaxPaid: burnTax, netPayout },
+                }));
+            } else {
+                ops.push(prisma.bet.update({
+                    where: { id: claim.id },
+                    data: { payoutChoice: 'INSTANT', payoutChosenAt: now, burnTaxPaid: burnTax, netPayout },
+                }));
+            }
+        }
+
+        await prisma.$transaction(ops);
+
+        logger.info({ boutId: bout.id, wallet: wallet.name, payout: netPayout, burnTax }, 'Victory claimed (INSTANT)');
+
+        sse.broadcast('victory.claimed', {
+            boutId: bout.id,
+            wallet: wallet.name,
+            choice: 'INSTANT',
+            netPayout,
+            burnTax,
+        });
+
+        return res.json({
+            choice: 'INSTANT',
+            totalPayout,
+            burnTax,
+            netPayout,
+            message: `Claimed ${netPayout} $FORGE (${burnTax} burned).`,
+        });
+    }
+
+    if (choice === 'OTC_BOND') {
+        if (Number(totalPayout) < vc.bond.minBondSize) {
+            return res.status(400).json({ error: `Payout too small for bond. Minimum: ${vc.bond.minBondSize} $FORGE.` });
+        }
+
+        // Snapshot current staking APR (floating — will be updated by bond yield job)
+        const currentAprBps = await getCurrentStakingAprBps();
+        const expiresAt = new Date(now.getTime() + vc.bond.expiryDays * 24 * 60 * 60 * 1000);
+
+        const ops = [];
+
+        // Create bond for each claim source
+        const bondIds = [];
+        for (const claim of claims) {
+            const bondId = crypto.randomUUID();
+            bondIds.push(bondId);
+
+            ops.push(prisma.victoryBond.create({
+                data: {
+                    id: bondId,
+                    boutId: bout.id,
+                    creatorId: wallet.id,
+                    sourceType: claim.type,
+                    entrantId: claim.type === 'AGENT_PURSE' ? claim.id : null,
+                    betId: claim.type === 'BET_WIN' ? claim.id : null,
+                    faceValue: claim.payout,
+                    remainingValue: claim.payout,
+                    discountPercent: vc.bond.discountPercent,
+                    aprBps: currentAprBps,
+                    expiresAt,
+                },
+            }));
+
+            // Mark claim as chosen
+            if (claim.type === 'AGENT_PURSE') {
+                ops.push(prisma.boutEntrant.update({
+                    where: { id: claim.id },
+                    data: { payoutChoice: 'OTC_BOND', payoutChosenAt: now },
+                }));
+            } else {
+                ops.push(prisma.bet.update({
+                    where: { id: claim.id },
+                    data: { payoutChoice: 'OTC_BOND', payoutChosenAt: now },
+                }));
+            }
+        }
+
+        await prisma.$transaction(ops);
+
+        logger.info({ boutId: bout.id, wallet: wallet.name, bondCount: bondIds.length, totalPayout }, 'Victory bond(s) created');
+
+        sse.broadcast('victory.claimed', {
+            boutId: bout.id,
+            wallet: wallet.name,
+            choice: 'OTC_BOND',
+            bondIds,
+            totalPayout,
+        });
+
+        return res.json({
+            choice: 'OTC_BOND',
+            bondIds,
+            totalPayout,
+            discountPercent: vc.bond.discountPercent,
+            aprBps: currentAprBps,
+            expiresAt,
+            message: `Created ${bondIds.length} bond(s) worth ${totalPayout} $FORGE on OTC marketplace.`,
+        });
+    }
+});
+
+/**
+ * Get current effective staking APR in basis points.
+ * Uses the bootstrap schedule if active, otherwise defaults to base rate.
+ */
+async function getCurrentStakingAprBps() {
+    const firstEntry = await prisma.treasuryLedger.findFirst({
+        orderBy: { createdAt: 'asc' },
+    });
+
+    if (!firstEntry) return 500; // 5% default base APR
+
+    const daysSinceLaunch = Math.floor((Date.now() - firstEntry.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    const activeTier = config.bootstrap.schedule.find(
+        t => daysSinceLaunch >= t.dayStart && daysSinceLaunch <= t.dayEnd
+    );
+
+    if (activeTier) {
+        // Bootstrap APR — convert percent to basis points
+        return activeTier.apyPercent * 100;
+    }
+
+    // Post-bootstrap: base organic APR
+    return 500; // 5% base
+}
+
 export default router;

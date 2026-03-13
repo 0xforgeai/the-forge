@@ -194,51 +194,53 @@ async function transitionBouts() {
             },
         }));
 
-        // Agent placements and payouts
+        // Agent placements — record payout amounts but do NOT credit wallets (escrow pattern).
+        // Winners must claim via POST /api/bouts/:id/claim to choose their payout path.
         for (const ap of payouts.agentPayouts) {
-            const entrant = bout.entrants.find(e => e.id === ap.entrantId);
             ops.push(prisma.boutEntrant.update({
                 where: { id: ap.entrantId },
                 data: { placement: ap.placement, payout: ap.payout },
             }));
-            if (ap.payout > 0 && entrant) {
-                ops.push(prisma.wallet.update({
-                    where: { id: entrant.walletId },
-                    data: {
-                        balance: { increment: ap.payout },
-                        reputation: { increment: ap.placement <= 3 ? (4 - ap.placement) * 5 : 0 },
-                    },
-                }));
-                ops.push(prisma.transaction.create({
-                    data: {
-                        toId: entrant.walletId,
-                        amount: ap.payout,
-                        type: 'BOUT_PURSE',
-                        boutId: bout.id,
-                        memo: `${ordinal(ap.placement)} place: ${bout.title}`,
-                    },
-                }));
+            // Reputation is immediate (not escrowed)
+            if (ap.payout > 0) {
+                const entrant = bout.entrants.find(e => e.id === ap.entrantId);
+                if (entrant && ap.placement <= 3) {
+                    ops.push(prisma.wallet.update({
+                        where: { id: entrant.walletId },
+                        data: {
+                            reputation: { increment: (4 - ap.placement) * 5 },
+                        },
+                    }));
+                }
+                // Record escrow transaction (tokens held, not yet credited)
+                if (entrant) {
+                    ops.push(prisma.transaction.create({
+                        data: {
+                            toId: entrant.walletId,
+                            amount: ap.payout,
+                            type: 'VICTORY_ESCROW',
+                            boutId: bout.id,
+                            memo: `${ordinal(ap.placement)} place (escrowed): ${bout.title}`,
+                        },
+                    }));
+                }
             }
         }
 
-        // Bettor payouts
+        // Bettor payouts — record amounts but do NOT credit wallets (escrow pattern).
         for (const bp of payouts.bettorPayouts) {
             if (bp.payout > 0) {
                 ops.push(prisma.bet.update({
                     where: { id: bp.betId },
                     data: { payout: bp.payout },
                 }));
-                ops.push(prisma.wallet.update({
-                    where: { id: bp.bettorId },
-                    data: { balance: { increment: bp.payout } },
-                }));
                 ops.push(prisma.transaction.create({
                     data: {
                         toId: bp.bettorId,
                         amount: bp.payout,
-                        type: 'BOUT_BET_WIN',
+                        type: 'VICTORY_ESCROW',
                         boutId: bout.id,
-                        memo: `Bet payout: ${bout.title}`,
+                        memo: `Bet win (escrowed): ${bout.title}`,
                     },
                 }));
             }

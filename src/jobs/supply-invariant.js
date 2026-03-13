@@ -50,7 +50,7 @@ async function checkSupplyInvariant() {
 
         // 4. Sum all burns (ledger tracks burns under multiple action names)
         const burnLedger = await prisma.treasuryLedger.aggregate({
-            where: { action: { in: ['BURN', 'ENTRY_FEE_BURN', 'BET_BURN'] } },
+            where: { action: { in: ['BURN', 'ENTRY_FEE_BURN', 'BET_BURN', 'VICTORY_BURN'] } },
             _sum: { amount: true },
         });
         const totalBurned = burnLedger._sum.amount ?? 0n;
@@ -79,8 +79,43 @@ async function checkSupplyInvariant() {
         });
         const totalRageTax = rageTaxLedger._sum.amount ?? 0n;
 
+        // 4d. Sum escrowed victory payouts (resolved but unclaimed by winners)
+        // Agent purse payouts where winner hasn't chosen a payout path yet
+        const escrowedAgentAgg = await prisma.boutEntrant.aggregate({
+            where: {
+                payout: { gt: 0 },
+                payoutChoice: null,
+                bout: { status: 'RESOLVED' },
+            },
+            _sum: { payout: true },
+        });
+        const totalEscrowedAgent = escrowedAgentAgg._sum.payout ?? 0n;
+
+        // Bettor payouts where winner hasn't chosen a payout path yet
+        const escrowedBetAgg = await prisma.bet.aggregate({
+            where: {
+                payout: { gt: 0 },
+                payoutChoice: null,
+                bout: { status: 'RESOLVED' },
+            },
+            _sum: { payout: true },
+        });
+        const totalEscrowedBets = escrowedBetAgg._sum.payout ?? 0n;
+        const totalEscrowedPayouts = totalEscrowedAgent + totalEscrowedBets;
+
+        // 4e. Sum tokens locked in active victory bonds (unsold portions)
+        const bondEscrowAgg = await prisma.victoryBond.aggregate({
+            where: { status: 'ACTIVE' },
+            _sum: {
+                remainingValue: true,
+                accruedYield: true,
+            },
+        });
+        const totalBondEscrowed = bondEscrowAgg._sum.remainingValue ?? 0n;
+        const totalBondYieldAccrued = bondEscrowAgg._sum.accruedYield ?? 0n;
+
         // 5. Calculate invariant
-        const circulatingSide = totalWalletBalance + totalStaked + totalUnvested + totalVested + totalBoutPools + totalRageTax;
+        const circulatingSide = totalWalletBalance + totalStaked + totalUnvested + totalVested + totalBoutPools + totalRageTax + totalEscrowedPayouts + totalBondEscrowed + totalBondYieldAccrued;
         const supplySide = totalRegistrationMinted + totalEmissions;
         const burnSide = totalBurned > totalBurnedTx ? totalBurned : totalBurnedTx;
 
@@ -94,6 +129,9 @@ async function checkSupplyInvariant() {
             totalVested,
             totalBoutPools,
             totalRageTax,
+            totalEscrowedPayouts,
+            totalBondEscrowed,
+            totalBondYieldAccrued,
             circulatingSide,
             totalRegistrationMinted,
             totalEmissions,

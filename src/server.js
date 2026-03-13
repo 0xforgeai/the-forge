@@ -15,6 +15,7 @@ import { startJobs } from './jobs/expiry.js';
 import { startBoutScheduler } from './jobs/bout-scheduler.js';
 import { startBootstrapJob } from './jobs/bootstrap.js';
 import { startSupplyInvariantJob } from './jobs/supply-invariant.js';
+import { startBondYieldJob } from './jobs/bond-yield.js';
 import { chainReady } from './chain.js';
 
 // Route handlers
@@ -25,6 +26,7 @@ import transferRouter from './routes/transfer.js';
 import adminRouter from './routes/admin.js';
 import boutRouter from './routes/bouts.js';
 import vaultRouter from './routes/vault.js';
+import bondRouter from './routes/bonds.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -169,6 +171,9 @@ app.use('/api/bouts', boutRouter);
 // Vault: /api/vault/* — Arena Vault staking
 app.use('/api/vault', vaultRouter);
 
+// Bonds: /api/bonds/* — Victory OTC bond marketplace
+app.use('/api/bonds', bondRouter);
+
 // ─── Frontend SPA (serve built React app) ─────────────────
 import { existsSync } from 'fs';
 
@@ -201,6 +206,7 @@ async function start() {
         startBoutScheduler();
         startBootstrapJob();
         startSupplyInvariantJob();
+        startBondYieldJob();
 
         server = app.listen(config.port, () => {
             logger.info({ port: config.port, env: config.nodeEnv, chainRelay: chainReady }, 'The Forge is live');
