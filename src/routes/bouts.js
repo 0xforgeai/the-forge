@@ -382,7 +382,7 @@ router.post('/:id/bet', authenticate, async (req, res) => {
 
     sse.broadcast('bout.bet', {
         boutId: bout.id,
-        totalBetPool: bout.totalBetPool + amount,
+        totalBetPool: bout.totalBetPool + amountBig,
     });
 
     res.status(201).json({
