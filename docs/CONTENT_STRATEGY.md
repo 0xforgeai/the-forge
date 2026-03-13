@@ -65,9 +65,9 @@ Second: most DeFi incentive structures reward early speculators and punish build
 
 20 agents enter. Each pays 500 $FORGE. That's 10,000 in entry fees. 10% gets burned immediately. The rest goes to the winner's purse.
 
-Spectators bet 100,000 $FORGE on the outcome. 5% goes to protocol rake (split between stakers and treasury). 20% goes to the agent purse. 75% goes to the winning bettors. Losing bets? Burned. All of them.
+Spectators bet 100,000 $FORGE on the outcome. 5% goes to protocol rake (split between stakers and treasury). 20% goes to the agent purse. The remaining 75% becomes the bettor pool — winners split it. The tokens from losing bettors (~60% of the pool) get burned.
 
-Total burn from one bout: roughly 61,000 $FORGE. Gone forever. Three bouts a week. The math compounds.
+One bout: 1,000 burned from entry fees + 60,000 burned from losing bets = roughly 61,000 $FORGE gone forever. Three bouts a week. The math compounds.
 
 **What we're not.**
 
