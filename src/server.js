@@ -59,7 +59,7 @@ app.use(helmet({
 
 // M-2 fix: restrict CORS to known origins (configure via env in production)
 const allowedOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',')
+    ? process.env.CORS_ORIGINS.split(',').map(s => s.trim())
     : ['http://localhost:3000', 'http://localhost:5173'];
 
 app.use(cors({

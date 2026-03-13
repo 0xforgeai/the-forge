@@ -84,7 +84,7 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
     if (winningBets.length === 0 || solvers.length === 0) {
         // Nobody solved OR nobody bet on a winner → refund all bets
         // (bettorPool is returned to bettors proportionally)
-        if (safeBets.length > 0) {
+        if (safeBets.length > 0 && totalBetPool > 0) {
             bettorPayouts = safeBets.map(b => ({
                 betId: b.id,
                 bettorId: b.bettorId,
@@ -96,7 +96,7 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
         // Each placement gets a portion of the bettor pool
         const totalWinningBetAmount = winningBets.reduce((sum, b) => sum + b.amount, 0);
 
-        bettorPayouts = winningBets.map(b => {
+        bettorPayouts = totalWinningBetAmount > 0 ? winningBets.map(b => {
             // How much of the bettor pool does this bet earn?
             const share = b.amount / totalWinningBetAmount;
             const payout = Math.floor(bettorPool * share);
@@ -105,7 +105,7 @@ export function calculatePayouts({ entrants, bets, totalEntryFees }) {
                 bettorId: b.bettorId,
                 payout,
             };
-        });
+        }) : [];
     }
 
     // ── Losing bet redistribution (tokens go to winners, not burned) ──
