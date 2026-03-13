@@ -7,6 +7,7 @@ import { authenticate } from '../middleware/auth.js';
 import { verifyCryptoPuzzle, isComputational } from '../crypto-puzzles.js';
 import sse from '../sse.js';
 import logger from '../logger.js';
+import { settleBurn } from '../chain.js';
 
 const router = Router();
 const bc = config.bout;
@@ -691,6 +692,13 @@ router.post('/:id/claim', authenticate, async (req, res) => {
         }
 
         await prisma.$transaction(ops);
+
+        // On-chain: burn the tax from hot wallet (fire-and-settle, DB already committed)
+        if (burnTax > 0n) {
+            settleBurn(burnTax, 'VICTORY_CLAIM', bout.id, prisma).catch(err => {
+                logger.error({ err, boutId: bout.id }, 'settleBurn background error');
+            });
+        }
 
         logger.info({ boutId: bout.id, wallet: wallet.name, payout: netPayout, burnTax }, 'Victory claimed (INSTANT)');
 

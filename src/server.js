@@ -16,6 +16,7 @@ import { startBoutScheduler } from './jobs/bout-scheduler.js';
 import { startBootstrapJob } from './jobs/bootstrap.js';
 import { startSupplyInvariantJob } from './jobs/supply-invariant.js';
 import { startBondYieldJob } from './jobs/bond-yield.js';
+import { startSettlementJob } from './jobs/settlement.js';
 import { chainReady } from './chain.js';
 
 // Route handlers
@@ -207,6 +208,7 @@ async function start() {
         startBootstrapJob();
         startSupplyInvariantJob();
         startBondYieldJob();
+        startSettlementJob();
 
         server = app.listen(config.port, () => {
             logger.info({ port: config.port, env: config.nodeEnv, chainRelay: chainReady }, 'The Forge is live');

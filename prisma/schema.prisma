@@ -454,3 +454,35 @@ model Transaction {
   @@index([boutId])
   @@map("transactions")
 }
+
+// ─── On-Chain Settlement Queue ────────────────────────────
+
+enum SettlementAction {
+  BURN
+  TRANSFER
+}
+
+enum SettlementStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+model SettlementTask {
+  id        String           @id @default(uuid())
+  action    SettlementAction
+  amount    BigInt
+  toAddress String?          @map("to_address") // for TRANSFER actions
+  txHash    String?          @map("tx_hash") // set on confirmation
+  status    SettlementStatus @default(PENDING)
+  attempts  Int              @default(0)
+  lastError String?          @map("last_error")
+  refType   String?          @map("ref_type") // e.g. "VICTORY_CLAIM", "BOND_EXPIRY"
+  refId     String?          @map("ref_id") // claim/bond ID for tracing
+  createdAt DateTime         @default(now()) @map("created_at")
+  settledAt DateTime?        @map("settled_at")
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("settlement_tasks")
+}
