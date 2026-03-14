@@ -1,14 +1,17 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { ethers } from 'ethers';
 import prisma from '../db.js';
 import config from '../config.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireChain } from '../middleware/auth.js';
 import { verifyCryptoPuzzle, isComputational } from '../crypto-puzzles.js';
 import sse from '../sse.js';
 import logger from '../logger.js';
-import { forgeToken, chainReady } from '../chain/index.js';
-import { submitTx } from '../chain/tx.js';
+import { chainReady } from '../chain/index.js';
+import { enterBoutFor, placeBetFor } from '../chain/arena.js';
+import { claimInstantFor, claimAsBondFor, getEscrows } from '../chain/escrow.js';
+import { balanceOf } from '../chain/token.js';
 
 const router = Router();
 const bc = config.bout;
@@ -139,7 +142,7 @@ router.get('/:id', async (req, res) => {
 
 // ─── Enter Bout ────────────────────────────────────────────
 
-router.post('/:id/enter', authenticate, async (req, res) => {
+router.post('/:id/enter', authenticate, requireChain, async (req, res) => {
     const wallet = req.wallet;
     const bout = await prisma.bout.findUnique({ where: { id: req.params.id } });
     if (!bout) return res.status(404).json({ error: 'Bout not found.' });
@@ -167,8 +170,17 @@ router.post('/:id/enter', authenticate, async (req, res) => {
         });
     }
 
-    // NOTE: Balance checks are enforced on-chain via ForgeArena.enterBout()
-    // Route rewrite pending deployed contract addresses
+    // On-chain balance check
+    if (!wallet.address) {
+        return res.status(400).json({ error: 'No on-chain address linked. Register with an address.' });
+    }
+    const onChainBalance = await balanceOf(wallet.address);
+    const entryFeeWei = ethers.parseEther(bout.entryFee.toString());
+    if (onChainBalance < entryFeeWei) {
+        return res.status(400).json({
+            error: `Insufficient on-chain balance. Need ${bout.entryFee} $FORGE, have ${ethers.formatEther(onChainBalance)}.`,
+        });
+    }
 
     // Already entered?
     const existing = await prisma.boutEntrant.findUnique({
@@ -178,7 +190,23 @@ router.post('/:id/enter', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'You are already entered in this bout.' });
     }
 
-    // Enter — on-chain token transfer & burn handled by ForgeArena contract
+    // On-chain: enter bout via relay (agent must have approved ForgeArena)
+    let txHash;
+    try {
+        const receipt = await enterBoutFor(bout.id, wallet.address);
+        txHash = receipt.hash;
+    } catch (err) {
+        logger.error({ err, boutId: bout.id, agent: wallet.name }, 'On-chain enterBoutFor failed');
+        const msg = err?.message || '';
+        if (msg.includes('CALL_EXCEPTION') || msg.includes('revert')) {
+            return res.status(400).json({
+                error: 'On-chain entry failed. Ensure you have approved ForgeArena for the entry fee.',
+            });
+        }
+        return res.status(500).json({ error: 'On-chain transaction failed. Try again.' });
+    }
+
+    // DB cache update (after chain succeeds)
     const burnAmount = bout.entryFee * BigInt(burnCfg.entryFeePercent) / 100n;
     const netEntryFee = bout.entryFee - burnAmount;
 
@@ -196,12 +224,12 @@ router.post('/:id/enter', authenticate, async (req, res) => {
                 amount: bout.entryFee,
                 type: 'BOUT_ENTRY',
                 boutId: bout.id,
-                memo: `Entry fee for bout: ${bout.title}`,
+                memo: `Entry fee for bout: ${bout.title} (tx: ${txHash})`,
             },
         }),
     ]);
 
-    logger.info({ boutId: bout.id, agent: wallet.name }, 'Agent entered bout');
+    logger.info({ boutId: bout.id, agent: wallet.name, txHash }, 'Agent entered bout (on-chain)');
 
     sse.broadcast('bout.entry', {
         boutId: bout.id,
@@ -215,6 +243,7 @@ router.post('/:id/enter', authenticate, async (req, res) => {
         boutId: bout.id,
         entryFeePaid: bout.entryFee,
         burned: burnAmount,
+        txHash,
         message: `Entered "${bout.title}". Entry fee: ${bout.entryFee} $FORGE (${burnAmount} burned).`,
     });
 });
@@ -226,7 +255,7 @@ const betSchema = z.object({
     amount: z.number().int().min(10),
 });
 
-router.post('/:id/bet', authenticate, async (req, res) => {
+router.post('/:id/bet', authenticate, requireChain, async (req, res) => {
     const parsed = betSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues[0].message });
@@ -264,10 +293,47 @@ router.post('/:id/bet', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'You already placed a bet on this bout. One bet per bout.' });
     }
 
-    // NOTE: Balance checks are enforced on-chain via token transfer
-    // Route rewrite pending deployed contract addresses
+    // On-chain balance check
+    if (!wallet.address) {
+        return res.status(400).json({ error: 'No on-chain address linked.' });
+    }
+    const amountWei = ethers.parseEther(amount.toString());
+    const onChainBalance = await balanceOf(wallet.address);
+    if (onChainBalance < amountWei) {
+        return res.status(400).json({
+            error: `Insufficient on-chain balance. Need ${amount} $FORGE, have ${ethers.formatEther(onChainBalance)}.`,
+        });
+    }
 
-    // Place bet atomically with max bet check (C-5 fix: serialized read-check-write)
+    // Resolve the entrant's on-chain index (order in the boutEntrants array)
+    // We need to find the entrant's position among all bout entrants by creation order
+    const allEntrants = await prisma.boutEntrant.findMany({
+        where: { boutId: bout.id },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true },
+    });
+    const entrantIdx = allEntrants.findIndex(e => e.id === entrantId);
+    if (entrantIdx === -1) {
+        return res.status(400).json({ error: 'Entrant index not found.' });
+    }
+
+    // On-chain: place bet via relay (bettor must have approved ForgeArena)
+    let txHash;
+    try {
+        const receipt = await placeBetFor(bout.id, wallet.address, entrantIdx, amountWei);
+        txHash = receipt.hash;
+    } catch (err) {
+        logger.error({ err, boutId: bout.id, bettor: wallet.name }, 'On-chain placeBetFor failed');
+        const msg = err?.message || '';
+        if (msg.includes('CALL_EXCEPTION') || msg.includes('revert')) {
+            return res.status(400).json({
+                error: 'On-chain bet failed. Ensure you have approved ForgeArena for the bet amount.',
+            });
+        }
+        return res.status(500).json({ error: 'On-chain transaction failed. Try again.' });
+    }
+
+    // DB cache update (after chain succeeds)
     const amountBig = BigInt(amount);
     const betBurn = amountBig * BigInt(burnCfg.betPercent) / 100n;
     const netBetAmount = amountBig - betBurn;
@@ -292,8 +358,6 @@ router.post('/:id/bet', authenticate, async (req, res) => {
                 data: { boutId: bout.id, bettorId: wallet.id, entrantId, amount: netBetAmount },
             });
 
-            // NOTE: Token deduction handled on-chain via ForgeArena contract
-
             await tx.bout.update({
                 where: { id: bout.id },
                 data: { totalBetPool: { increment: netBetAmount } },
@@ -305,7 +369,7 @@ router.post('/:id/bet', authenticate, async (req, res) => {
                     amount: amountBig,
                     type: 'BOUT_BET',
                     boutId: bout.id,
-                    memo: `Bet on entrant in: ${bout.title} (${betBurn} burned)`,
+                    memo: `Bet on entrant in: ${bout.title} (${betBurn} burned, tx: ${txHash})`,
                 },
             });
 
@@ -333,7 +397,7 @@ router.post('/:id/bet', authenticate, async (req, res) => {
         throw err;
     }
 
-    logger.info({ boutId: bout.id, bettor: wallet.name, amount, entrantId }, 'Bet placed');
+    logger.info({ boutId: bout.id, bettor: wallet.name, amount, entrantId, txHash }, 'Bet placed (on-chain)');
 
     sse.broadcast('bout.bet', {
         boutId: bout.id,
@@ -346,6 +410,7 @@ router.post('/:id/bet', authenticate, async (req, res) => {
         entrantId,
         amount: netBetAmount,
         burned: betBurn,
+        txHash,
         message: `Bet ${amount} $FORGE placed (${betBurn} burned, ${netBetAmount} in pool).`,
     });
 });
@@ -382,7 +447,6 @@ router.post('/:id/commit', authenticate, async (req, res) => {
     }
 
     // H-7 fix: Enforce 60-second buffer before solve window close
-    // Prevents the late-commit-no-risk exploit where agents commit at the last second
     const COMMIT_BUFFER_SECS = 60;
     const remaining = bout.solveDurationSecs - elapsed;
     if (remaining < COMMIT_BUFFER_SECS) {
@@ -539,7 +603,7 @@ const claimSchema = z.object({
     choice: z.enum(['INSTANT', 'OTC_BOND', 'FURNACE_LP']),
 });
 
-router.post('/:id/claim', authenticate, async (req, res) => {
+router.post('/:id/claim', authenticate, requireChain, async (req, res) => {
     const parsed = claimSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues[0].message });
@@ -587,15 +651,46 @@ router.post('/:id/claim', authenticate, async (req, res) => {
     const vc = config.victory;
     const now = new Date();
 
+    // Look up the winner's escrow entries on-chain
+    let escrowEntries;
+    try {
+        escrowEntries = await getEscrows(bout.id);
+    } catch (err) {
+        logger.error({ err, boutId: bout.id }, 'Failed to read escrow entries');
+        return res.status(500).json({ error: 'Failed to read on-chain escrow. Try again.' });
+    }
+
+    // Find the escrow index for this wallet's payout
+    const myEscrows = [];
+    for (let i = 0; i < escrowEntries.length; i++) {
+        if (escrowEntries[i].winner.toLowerCase() === wallet.address?.toLowerCase() && !escrowEntries[i].claimed) {
+            myEscrows.push(i);
+        }
+    }
+
+    if (myEscrows.length === 0) {
+        return res.status(400).json({ error: 'No unclaimed escrow entries found on-chain for your address.' });
+    }
+
     if (choice === 'INSTANT') {
         const burnTax = totalPayout * BigInt(vc.instantBurnPercent) / 100n;
         const netPayout = totalPayout - burnTax;
 
+        // On-chain: claim instant for each escrow entry
+        const txHashes = [];
+        try {
+            for (const escrowIdx of myEscrows) {
+                const receipt = await claimInstantFor(bout.id, escrowIdx, wallet.address);
+                txHashes.push(receipt.hash);
+            }
+        } catch (err) {
+            logger.error({ err, boutId: bout.id, wallet: wallet.name }, 'On-chain claimInstantFor failed');
+            return res.status(500).json({ error: 'On-chain instant claim failed. Try again.' });
+        }
+
+        // DB cache update
         const ops = [];
 
-        // NOTE: Token credit handled on-chain via VictoryEscrow contract
-
-        // Record burn
         if (burnTax > 0n) {
             ops.push(prisma.treasuryLedger.create({
                 data: {
@@ -610,12 +705,11 @@ router.post('/:id/claim', authenticate, async (req, res) => {
                     amount: burnTax,
                     type: 'VICTORY_BURN_TAX',
                     boutId: bout.id,
-                    memo: `5% instant claim burn: ${bout.title}`,
+                    memo: `5% instant claim burn: ${bout.title} (tx: ${txHashes.join(', ')})`,
                 },
             }));
         }
 
-        // Record payout transaction
         ops.push(prisma.transaction.create({
             data: {
                 toId: wallet.id,
@@ -626,7 +720,6 @@ router.post('/:id/claim', authenticate, async (req, res) => {
             },
         }));
 
-        // Mark claims as chosen
         for (const claim of claims) {
             if (claim.type === 'AGENT_PURSE') {
                 ops.push(prisma.boutEntrant.update({
@@ -643,9 +736,7 @@ router.post('/:id/claim', authenticate, async (req, res) => {
 
         await prisma.$transaction(ops);
 
-        // On-chain burn is handled by VictoryEscrow contract
-
-        logger.info({ boutId: bout.id, wallet: wallet.name, payout: netPayout, burnTax }, 'Victory claimed (INSTANT)');
+        logger.info({ boutId: bout.id, wallet: wallet.name, payout: netPayout, burnTax, txHashes }, 'Victory claimed (INSTANT, on-chain)');
 
         sse.broadcast('victory.claimed', {
             boutId: bout.id,
@@ -660,6 +751,7 @@ router.post('/:id/claim', authenticate, async (req, res) => {
             totalPayout,
             burnTax,
             netPayout,
+            txHashes,
             message: `Claimed ${netPayout} $FORGE (${burnTax} burned).`,
         });
     }
@@ -669,13 +761,25 @@ router.post('/:id/claim', authenticate, async (req, res) => {
             return res.status(400).json({ error: `Payout too small for bond. Minimum: ${vc.bond.minBondSize} $FORGE.` });
         }
 
-        // Snapshot current staking APR (floating — will be updated by bond yield job)
         const currentAprBps = await getCurrentStakingAprBps();
         const expiresAt = new Date(now.getTime() + vc.bond.expiryDays * 24 * 60 * 60 * 1000);
+        const discountBps = vc.bond.discountPercent * 100; // convert % to bps
+        const expiryTimestamp = Math.floor(expiresAt.getTime() / 1000);
 
+        // On-chain: claim as bond for each escrow entry
+        const txHashes = [];
+        try {
+            for (const escrowIdx of myEscrows) {
+                const receipt = await claimAsBondFor(bout.id, escrowIdx, wallet.address, discountBps, expiryTimestamp);
+                txHashes.push(receipt.hash);
+            }
+        } catch (err) {
+            logger.error({ err, boutId: bout.id, wallet: wallet.name }, 'On-chain claimAsBondFor failed');
+            return res.status(500).json({ error: 'On-chain bond creation failed. Try again.' });
+        }
+
+        // DB cache update
         const ops = [];
-
-        // Create bond for each claim source
         const bondIds = [];
         for (const claim of claims) {
             const bondId = crypto.randomUUID();
@@ -697,7 +801,6 @@ router.post('/:id/claim', authenticate, async (req, res) => {
                 },
             }));
 
-            // Mark claim as chosen
             if (claim.type === 'AGENT_PURSE') {
                 ops.push(prisma.boutEntrant.update({
                     where: { id: claim.id },
@@ -713,7 +816,7 @@ router.post('/:id/claim', authenticate, async (req, res) => {
 
         await prisma.$transaction(ops);
 
-        logger.info({ boutId: bout.id, wallet: wallet.name, bondCount: bondIds.length, totalPayout }, 'Victory bond(s) created');
+        logger.info({ boutId: bout.id, wallet: wallet.name, bondCount: bondIds.length, totalPayout, txHashes }, 'Victory bond(s) created (on-chain)');
 
         sse.broadcast('victory.claimed', {
             boutId: bout.id,
@@ -730,6 +833,7 @@ router.post('/:id/claim', authenticate, async (req, res) => {
             discountPercent: vc.bond.discountPercent,
             aprBps: currentAprBps,
             expiresAt,
+            txHashes,
             message: `Created ${bondIds.length} bond(s) worth ${totalPayout} $FORGE on OTC marketplace.`,
         });
     }
@@ -737,7 +841,6 @@ router.post('/:id/claim', authenticate, async (req, res) => {
 
 /**
  * Get current effective staking APR in basis points.
- * Uses the bootstrap schedule if active, otherwise defaults to base rate.
  */
 async function getCurrentStakingAprBps() {
     const firstEntry = await prisma.treasuryLedger.findFirst({
@@ -752,11 +855,9 @@ async function getCurrentStakingAprBps() {
     );
 
     if (activeTier) {
-        // Bootstrap APR — convert percent to basis points
         return activeTier.apyPercent * 100;
     }
 
-    // Post-bootstrap: base organic APR
     return 500; // 5% base
 }
 

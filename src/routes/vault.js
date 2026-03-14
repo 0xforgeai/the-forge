@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { ethers } from 'ethers';
 import prisma from '../db.js';
 import config from '../config.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireChain } from '../middleware/auth.js';
 import sse from '../sse.js';
 import logger from '../logger.js';
+import { chainReady, arenaVault } from '../chain/index.js';
+import { balanceOf } from '../chain/token.js';
 
 const router = Router();
 const vc = config.vault;
@@ -43,11 +46,20 @@ router.get('/info', async (req, res) => {
 
     const totalEarned = activeStakes.reduce((s, p) => s + p.totalEarned, 0n);
 
-    // Get total burns from treasury ledger
     const burnResult = await prisma.treasuryLedger.aggregate({
         where: { action: 'BURN' },
         _sum: { amount: true },
     });
+
+    // On-chain stats (best effort)
+    let onChainTotalStaked = null;
+    let onChainStakerCount = null;
+    if (chainReady && arenaVault) {
+        try {
+            onChainTotalStaked = (await arenaVault.totalStaked()).toString();
+            onChainStakerCount = Number(await arenaVault.getStakerCount());
+        } catch { /* swallow */ }
+    }
 
     res.json({
         totalStaked,
@@ -56,6 +68,8 @@ router.get('/info', async (req, res) => {
         covenantBreakdown,
         totalEarned,
         totalBurned: burnResult._sum.amount || 0n,
+        onChainTotalStaked,
+        onChainStakerCount,
         covenants: Object.entries(vc.covenants).map(([name, c]) => ({
             name,
             lockDays: c.lockDays,
@@ -84,6 +98,20 @@ router.get('/me', authenticate, async (req, res) => {
     const loyalty = getLoyaltyMultiplier(days);
     const rageQuitPct = getRageQuitTaxPercent(days, active.rageQuitMulti);
 
+    // On-chain position info (best effort)
+    let onChainPosition = null;
+    if (chainReady && arenaVault && req.wallet.address) {
+        try {
+            const pos = await arenaVault.getPosition(req.wallet.address);
+            onChainPosition = {
+                amount: pos.amount.toString(),
+                vestedRewards: pos.vestedRewards.toString(),
+                unvestedRewards: pos.unvestedRewards.toString(),
+                active: pos.active,
+            };
+        } catch { /* swallow */ }
+    }
+
     res.json({
         staked: true,
         active: {
@@ -94,6 +122,7 @@ router.get('/me', authenticate, async (req, res) => {
             rageQuitCost: Number(active.amount) * rageQuitPct / 100 | 0,
             youWouldReceive: Number(active.amount) - (Number(active.amount) * rageQuitPct / 100 | 0),
             lockExpired: new Date() >= active.lockExpiresAt,
+            onChainPosition,
         },
         history: positions.filter(p => !p.active).map(formatPosition),
     });
@@ -120,6 +149,10 @@ function formatPosition(p) {
 }
 
 // ─── Stake ─────────────────────────────────────────────────
+// NOTE: ArenaVault has no stakeFor() relay — agents must call
+// arenaVault.stake(amount, covenant) directly from their wallet.
+// This endpoint records the intent + DB cache, but the agent
+// must sign the on-chain tx themselves.
 
 const stakeSchema = z.object({
     amount: z.number().int().min(100),
@@ -140,8 +173,6 @@ router.post('/stake', authenticate, async (req, res) => {
     if (existing) {
         return res.status(400).json({ error: 'You already have an active stake. Unstake first.' });
     }
-
-    // NOTE: Balance checks are enforced on-chain via token transfer
 
     // Min stake check
     if (amount < vc.minStake) {
@@ -169,14 +200,12 @@ router.post('/stake', authenticate, async (req, res) => {
                 covenant,
                 lockDays: covConfig.lockDays,
                 apyBonus: covConfig.apyBonus,
-                // C-4 fix: use 999 as sentinel for ETERNAL (matches onchain 10000/100 = 100x cap)
                 rageQuitMulti: covConfig.rageQuitMulti === Infinity ? 999 : covConfig.rageQuitMulti,
                 lockExpiresAt,
                 loyaltyMulti: 1.0,
                 loyaltyWeek: 0,
             },
         }),
-        // NOTE: Token deduction handled on-chain via ArenaVault contract
         prisma.transaction.create({
             data: {
                 fromId: wallet.id,
@@ -194,7 +223,7 @@ router.post('/stake', authenticate, async (req, res) => {
         lockDays: covConfig.lockDays,
         bonus,
         stakeId: position.id,
-    }, 'Agent staked in Arena Vault');
+    }, 'Agent staked in Arena Vault (DB — agent must sign on-chain tx)');
 
     sse.broadcast('vault.stake', {
         agent: wallet.name,
@@ -202,6 +231,10 @@ router.post('/stake', authenticate, async (req, res) => {
         covenant,
         totalStakers: totalStakers + 1,
     });
+
+    // Build contract call info for the agent
+    const enumMap = { FLAME: 0, STEEL: 1, OBSIDIAN: 2, ETERNAL: 3 };
+    const amountWei = ethers.parseEther((amount + bonus).toString()).toString();
 
     res.status(201).json({
         stakeId: position.id,
@@ -211,11 +244,23 @@ router.post('/stake', authenticate, async (req, res) => {
         lockExpiresAt,
         apyBonus: covConfig.apyBonus,
         firstStakerBonus: bonus,
-        message: `Staked ${amount}${bonus > 0 ? ` (+${bonus} bonus)` : ''} $FORGE under ${covenant} covenant. Lock: ${covConfig.lockDays} days.`,
+        onChainAction: {
+            description: 'You must sign this on-chain transaction yourself to complete staking.',
+            contract: config.chain.arenaVaultAddress,
+            method: 'stake(uint256 amount, uint8 covenant)',
+            args: { amount: amountWei, covenant: enumMap[covenant] },
+            approveFirst: {
+                contract: config.chain.forgeTokenAddress,
+                method: 'approve(address spender, uint256 amount)',
+                args: { spender: config.chain.arenaVaultAddress, amount: amountWei },
+            },
+        },
+        message: `Staked ${amount}${bonus > 0 ? ` (+${bonus} bonus)` : ''} $FORGE under ${covenant} covenant. Lock: ${covConfig.lockDays} days. IMPORTANT: Sign the on-chain transaction to finalize.`,
     });
 });
 
 // ─── Unstake ───────────────────────────────────────────────
+// Same as stake — agent must call arenaVault.unstake() directly.
 
 router.post('/unstake', authenticate, async (req, res) => {
     const wallet = req.wallet;
@@ -227,7 +272,7 @@ router.post('/unstake', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'No active stake found.' });
     }
 
-    // Lock period check — applies to ALL covenants including ETERNAL (H-10 fix)
+    // Lock period check
     const now = new Date();
     if (now < position.lockExpiresAt) {
         const daysLeft = Math.ceil((position.lockExpiresAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
@@ -257,7 +302,6 @@ router.post('/unstake', authenticate, async (req, res) => {
                 totalTaxPaid: taxAmount,
             },
         }),
-        // NOTE: Token credit handled on-chain via ArenaVault contract
         prisma.transaction.create({
             data: {
                 toId: wallet.id,
@@ -268,7 +312,7 @@ router.post('/unstake', authenticate, async (req, res) => {
         }),
     ];
 
-    // Tax goes to remaining stakers (distributed later by yield job)
+    // Tax goes to remaining stakers
     if (taxAmount > 0) {
         ops.push(prisma.transaction.create({
             data: {
@@ -308,7 +352,7 @@ router.post('/unstake', authenticate, async (req, res) => {
         rageQuitPct,
         daysStaked,
         forfeitedRewards,
-    }, 'Agent unstaked from Arena Vault');
+    }, 'Agent unstaked from Arena Vault (DB — agent must sign on-chain tx)');
 
     sse.broadcast('vault.unstake', {
         agent: wallet.name,
@@ -325,9 +369,15 @@ router.post('/unstake', authenticate, async (req, res) => {
         returned: returnAmount,
         forfeitedRewards,
         daysStaked,
+        onChainAction: {
+            description: 'You must sign this on-chain transaction yourself to complete unstaking.',
+            contract: config.chain.arenaVaultAddress,
+            method: 'unstake()',
+            args: {},
+        },
         message: taxAmount > 0
-            ? `Unstaked. Rage quit tax: ${taxAmount} (${rageQuitPct}%). Returned: ${returnAmount} $FORGE. Loyalty multiplier reset.`
-            : `Unstaked ${returnAmount} $FORGE. No tax — you served your time. Loyalty multiplier reset.`,
+            ? `Unstaked. Rage quit tax: ${taxAmount} (${rageQuitPct}%). Returned: ${returnAmount} $FORGE. Sign the on-chain tx to finalize.`
+            : `Unstaked ${returnAmount} $FORGE. No tax — you served your time. Sign the on-chain tx to finalize.`,
     });
 });
 

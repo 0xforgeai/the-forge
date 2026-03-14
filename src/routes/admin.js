@@ -1,8 +1,13 @@
 import { Router } from 'express';
+import { ethers } from 'ethers';
 import prisma from '../db.js';
 import { adminAuth } from '../middleware/auth.js';
 import config from '../config.js';
 import logger from '../logger.js';
+import { chainReady, forgeToken } from '../chain/index.js';
+import { submitTx } from '../chain/tx.js';
+import { totalSupply } from '../chain/token.js';
+import { getTotalBurned } from '../chain/arena.js';
 
 const router = Router();
 
@@ -24,11 +29,27 @@ router.get('/stats', async (req, res) => {
         }),
     ]);
 
+    // On-chain stats (best effort)
+    let onChainStats = null;
+    if (chainReady) {
+        try {
+            const [supply, burned] = await Promise.all([
+                totalSupply(),
+                getTotalBurned(),
+            ]);
+            onChainStats = {
+                totalSupply: supply.toString(),
+                totalBurned: burned.toString(),
+            };
+        } catch { /* swallow */ }
+    }
+
     res.json({
         wallets,
         puzzlesByStatus: Object.fromEntries(puzzles.map((p) => [p.status, p._count])),
         totalTransactions: transactions._count,
         totalVolume: transactions._sum.amount || 0,
+        onChainStats,
     });
 });
 
@@ -86,11 +107,12 @@ router.get('/wallets', async (req, res) => {
             take: limit,
             select: {
                 id: true,
-                name: true,
-                xHandle: true,
-                reputation: true,
-                createdAt: true,
-                // Never expose API keys, not even to admin
+            name: true,
+            address: true,
+            xHandle: true,
+            reputation: true,
+            createdAt: true,
+            // Never expose API keys, not even to admin
             },
         }),
         prisma.wallet.count(),
@@ -100,7 +122,8 @@ router.get('/wallets', async (req, res) => {
 });
 
 // ─── Adjust Wallet Balance (dispute resolution) ────────────
-// H-4 fix: max adjustment limit, dedicated ADMIN_ADJUSTMENT type, re-query balance after tx
+// On-chain: positive amounts transfer from treasury to wallet.
+// Negative amounts are not supported on-chain (tokens can't be force-withdrawn).
 
 const MAX_ADMIN_ADJUSTMENT = 100000; // max single adjustment
 
@@ -110,39 +133,67 @@ router.post('/wallets/:id/adjust', async (req, res) => {
         return res.status(400).json({ error: 'Provide numeric amount and memo.' });
     }
 
-    if (Math.abs(amount) > MAX_ADMIN_ADJUSTMENT) {
+    if (amount < 0) {
         return res.status(400).json({
-            error: `Adjustment exceeds maximum of ${MAX_ADMIN_ADJUSTMENT}. Got ${Math.abs(amount)}.`,
+            error: 'Negative adjustments not supported on-chain. Use contract admin functions for penalties.',
+        });
+    }
+
+    if (amount > MAX_ADMIN_ADJUSTMENT) {
+        return res.status(400).json({
+            error: `Adjustment exceeds maximum of ${MAX_ADMIN_ADJUSTMENT}. Got ${amount}.`,
         });
     }
 
     const wallet = await prisma.wallet.findUnique({ where: { id: req.params.id } });
     if (!wallet) return res.status(404).json({ error: 'Wallet not found.' });
 
-    // NOTE: Balance adjustments are now handled on-chain; DB records the intent
+    if (!wallet.address) {
+        return res.status(400).json({ error: 'Wallet has no on-chain address.' });
+    }
+
+    // On-chain: transfer from treasury (deployer) to wallet
+    let txHash;
+    if (chainReady && forgeToken) {
+        try {
+            const amountWei = ethers.parseEther(amount.toString());
+            const receipt = await submitTx(
+                () => forgeToken.transfer(wallet.address, amountWei),
+                `adminAdjust(${wallet.name}, ${amount})`,
+            );
+            txHash = receipt.hash;
+        } catch (err) {
+            logger.error({ err, walletId: wallet.id, amount }, 'On-chain admin adjustment failed');
+            return res.status(500).json({ error: 'On-chain transfer failed.' });
+        }
+    } else {
+        return res.status(503).json({ error: 'Chain not available for on-chain adjustments.' });
+    }
+
+    // DB record
     await prisma.transaction.create({
         data: {
-            toId: amount > 0 ? wallet.id : undefined,
-            fromId: amount < 0 ? wallet.id : undefined,
+            toId: wallet.id,
             amount: Math.abs(amount),
-            type: 'BURN',
-            memo: `[ADMIN ADJUST] ${memo}`,
+            type: 'ADMIN_ADJUSTMENT',
+            memo: `[ADMIN ADJUST] ${memo} (tx: ${txHash})`,
         },
     });
 
-    // Log admin action for audit trail
     logger.info({
         adminAction: 'WALLET_ADJUST',
         walletId: wallet.id,
         walletName: wallet.name,
         amount,
         memo,
-    }, 'Admin wallet adjustment');
+        txHash,
+    }, 'Admin wallet adjustment (on-chain)');
 
     res.json({
         wallet: wallet.name,
         adjustment: amount,
         memo,
+        txHash,
     });
 });
 

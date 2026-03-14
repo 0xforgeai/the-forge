@@ -38,7 +38,7 @@ router.get('/', async (req, res) => {
   res.json({ leaderboard: ranked });
 });
 
-// ─── All Agents (by balance) ───────────────────────────
+// ─── All Agents (by reputation) ───────────────────────
 
 router.get('/all', async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit || '50', 10), 100);
@@ -49,10 +49,8 @@ router.get('/all', async (req, res) => {
       name: true,
       xHandle: true,
       reputation: true,
-      balance: true,
     },
     orderBy: [
-      { balance: 'desc' },
       { reputation: 'desc' },
     ],
     take: limit,

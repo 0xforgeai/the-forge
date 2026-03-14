@@ -1,10 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { ethers } from 'ethers';
 import prisma from '../db.js';
 import config from '../config.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireChain } from '../middleware/auth.js';
 import logger from '../logger.js';
 import sse from '../sse.js';
+import { chainReady } from '../chain/index.js';
+import { buyBondFor, claimYieldFor, pendingYield as chainPendingYield, getBond as chainGetBond } from '../chain/bonds.js';
+import { balanceOf } from '../chain/token.js';
 
 const router = Router();
 const vc = config.victory;
@@ -65,8 +69,15 @@ router.get('/my', authenticate, async (req, res) => {
         }),
     ]);
 
-    res.json({
-        created: created.map(b => ({
+    // Enrich with on-chain pending yield where available
+    const createdBonds = await Promise.all(created.map(async b => {
+        let onChainYield = null;
+        if (chainReady && b.onChainBondId != null) {
+            try {
+                onChainYield = (await chainPendingYield(b.onChainBondId)).toString();
+            } catch { /* swallow */ }
+        }
+        return {
             id: b.id,
             boutTitle: b.bout.title,
             faceValue: b.faceValue,
@@ -74,7 +85,12 @@ router.get('/my', authenticate, async (req, res) => {
             status: b.status,
             expiresAt: b.expiresAt,
             createdAt: b.createdAt,
-        })),
+            onChainPendingYield: onChainYield,
+        };
+    }));
+
+    res.json({
+        created: createdBonds,
         purchased: purchased.map(f => ({
             fillId: f.id,
             bondId: f.bondId,
@@ -104,6 +120,14 @@ router.get('/:id', async (req, res) => {
 
     if (!bond) return res.status(404).json({ error: 'Bond not found.' });
 
+    // On-chain pending yield
+    let onChainYield = null;
+    if (chainReady && bond.onChainBondId != null) {
+        try {
+            onChainYield = (await chainPendingYield(bond.onChainBondId)).toString();
+        } catch { /* swallow */ }
+    }
+
     res.json({
         id: bond.id,
         boutId: bond.boutId,
@@ -119,6 +143,7 @@ router.get('/:id', async (req, res) => {
         expiresAt: bond.expiresAt,
         createdAt: bond.createdAt,
         filledAt: bond.filledAt,
+        onChainPendingYield: onChainYield,
         fills: bond.fills.map(f => ({
             id: f.id,
             buyer: f.buyer.name,
@@ -138,7 +163,7 @@ const buySchema = z.object({
     amount: z.number().int().positive().optional(),
 });
 
-router.post('/:id/buy', authenticate, async (req, res) => {
+router.post('/:id/buy', authenticate, requireChain, async (req, res) => {
     const parsed = buySchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues[0].message });
@@ -172,7 +197,21 @@ router.post('/:id/buy', authenticate, async (req, res) => {
         const pricePaid = amountBig * BigInt(100 - discountPct) / 100n;
         const discountAmount = amountBig - pricePaid;
 
-        // NOTE: Balance checks are enforced on-chain via token transfer
+        // On-chain balance check
+        if (!wallet.address) throw new Error('NO_ADDRESS');
+        const onChainBalance = await balanceOf(wallet.address);
+        const priceWei = ethers.parseEther(pricePaid.toString());
+        if (onChainBalance < priceWei) {
+            throw new Error('INSUFFICIENT_BALANCE');
+        }
+
+        // On-chain: buy bond (buyer must have approved ForgeBonds)
+        let txHash;
+        if (bond.onChainBondId != null) {
+            const amountWei = ethers.parseEther(requestedAmount.toString());
+            const receipt = await buyBondFor(bond.onChainBondId, amountWei, wallet.address);
+            txHash = receipt.hash;
+        }
 
         // Determine treasury fill (bootstrap period)
         let treasuryFill = 0n;
@@ -180,7 +219,6 @@ router.post('/:id/buy', authenticate, async (req, res) => {
 
         const isBootstrap = await isWithinBootstrapPeriod(tx);
         if (isBootstrap) {
-            // Check treasury budget for bond fills
             const totalFilled = await tx.treasuryLedger.aggregate({
                 where: { action: 'BOND_DISCOUNT_FILL' },
                 _sum: { amount: true },
@@ -194,8 +232,6 @@ router.post('/:id/buy', authenticate, async (req, res) => {
             }
         }
 
-        // NOTE: Token transfers (buyer deduction, seller credit) handled on-chain
-
         // Treasury fill ledger
         if (treasuryFill > 0n) {
             await tx.treasuryLedger.create({
@@ -206,8 +242,6 @@ router.post('/:id/buy', authenticate, async (req, res) => {
                 },
             });
         }
-
-        // NOTE: Bond yield is lazy-calculated on-chain via forgeBonds.pendingYield()
 
         // Update bond
         const newRemaining = bond.remainingValue - amountBig;
@@ -244,7 +278,7 @@ router.post('/:id/buy', authenticate, async (req, res) => {
                 amount: pricePaid,
                 type: 'BOND_PURCHASE',
                 boutId: bond.boutId,
-                memo: `Bond purchase: ${amountBig} face value at ${discountPct}% discount`,
+                memo: `Bond purchase: ${amountBig} face value at ${discountPct}% discount${txHash ? ` (tx: ${txHash})` : ''}`,
             },
         });
 
@@ -269,7 +303,7 @@ router.post('/:id/buy', authenticate, async (req, res) => {
             seller: bond.creator.name,
             bondStatus: isFilled ? 'FILLED' : 'ACTIVE',
             remainingValue: newRemaining,
-            yieldPaidToSeller: 0,
+            txHash: txHash || null,
         };
     });
     } catch (err) {
@@ -285,7 +319,8 @@ router.post('/:id/buy', authenticate, async (req, res) => {
         amount: result.amount,
         pricePaid: result.pricePaid,
         treasuryFill: result.treasuryFill,
-    }, 'Bond purchased');
+        txHash: result.txHash,
+    }, 'Bond purchased (on-chain)');
 
     sse.broadcast('bond.purchased', {
         bondId: result.bondId,
@@ -302,7 +337,7 @@ router.post('/:id/buy', authenticate, async (req, res) => {
 
 // ─── Claim Accrued Yield ──────────────────────────────────
 
-router.post('/:id/claim-yield', authenticate, async (req, res) => {
+router.post('/:id/claim-yield', authenticate, requireChain, async (req, res) => {
     const wallet = req.wallet;
     let result;
 
@@ -313,9 +348,35 @@ router.post('/:id/claim-yield', authenticate, async (req, res) => {
             if (bond.creatorId !== wallet.id) throw new Error('NOT_OWNER');
             if (bond.status !== 'ACTIVE') throw new Error('BOND_NOT_ACTIVE');
 
-            // NOTE: Bond yield is now lazy-calculated on-chain via forgeBonds.pendingYield()
-            // This endpoint records the claim intent; actual token transfer happens on-chain
-            return { bondId: bond.id, yieldClaimed: 0n };
+            // On-chain: claim yield
+            let txHash;
+            let yieldClaimed = 0n;
+            if (bond.onChainBondId != null) {
+                // Read pending yield first
+                const pending = await chainPendingYield(bond.onChainBondId);
+                if (pending <= 0n) {
+                    throw new Error('BOND_NOT_ACTIVE'); // reuse error — nothing to claim
+                }
+
+                const receipt = await claimYieldFor(bond.onChainBondId, wallet.address);
+                txHash = receipt.hash;
+                yieldClaimed = pending;
+            }
+
+            // Record transaction
+            if (yieldClaimed > 0n) {
+                await tx.transaction.create({
+                    data: {
+                        toId: wallet.id,
+                        amount: yieldClaimed,
+                        type: 'BOND_YIELD_CLAIM',
+                        boutId: bond.boutId,
+                        memo: `Bond yield claim (tx: ${txHash})`,
+                    },
+                });
+            }
+
+            return { bondId: bond.id, yieldClaimed, txHash: txHash || null };
         });
     } catch (err) {
         const handled = handleBondError(err, res);
@@ -323,7 +384,7 @@ router.post('/:id/claim-yield', authenticate, async (req, res) => {
         throw err;
     }
 
-    logger.info({ bondId: result.bondId, wallet: wallet.name, yield: result.yieldClaimed }, 'Bond yield claimed');
+    logger.info({ bondId: result.bondId, wallet: wallet.name, yield: result.yieldClaimed, txHash: result.txHash }, 'Bond yield claimed (on-chain)');
 
     res.json({
         ...result,
@@ -348,11 +409,13 @@ async function isWithinBootstrapPeriod(tx) {
 function handleBondError(err, res) {
     const map = {
         BOND_NOT_FOUND: [404, 'Bond not found.'],
-        BOND_NOT_ACTIVE: [400, 'Bond is no longer active.'],
+        BOND_NOT_ACTIVE: [400, 'Bond is no longer active or has no yield.'],
         SELF_PURCHASE: [400, "You can't buy your own bond."],
         EXCEEDS_REMAINING: [400, 'Amount exceeds remaining bond value.'],
         BELOW_MIN_FILL: [400, `Minimum partial fill is ${vc.bond.partialFillMin} $FORGE.`],
         NOT_OWNER: [403, 'You are not the bond creator.'],
+        NO_ADDRESS: [400, 'No on-chain address linked. Register with an address.'],
+        INSUFFICIENT_BALANCE: [400, 'Insufficient on-chain balance for this purchase.'],
     };
 
     const entry = map[err.message];
