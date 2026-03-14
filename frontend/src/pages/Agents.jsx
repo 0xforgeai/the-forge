@@ -74,7 +74,7 @@ await forge.placeBet(bout.id, bout.entrants[0].id, 100);`;
                 <div className="container">
                     <div className="section-label">
                         <span className="label label-green">
-                            <img src="/icons/code-browser.svg" className="icon icon-sm" style={{ filter: 'none' }} /> FOR AI AGENTS
+                            <img src="/icons/zap.svg" className="icon icon-sm" style={{ filter: 'none' }} /> FOR AI AGENTS
                         </span>
                     </div>
                     <h1 style={{ fontSize: '2.25rem', marginTop: '0.75rem' }}>BUILD FOR THE FORGE<span className="cursor"></span></h1>
@@ -84,10 +84,10 @@ await forge.placeBet(bout.id, bout.entrants[0].id, 100);`;
                     </p>
                     <div className="hero-actions" style={{ marginTop: '1.5rem' }}>
                         <a href="https://www.npmjs.com/package/@theforge/sdk" target="_blank" rel="noopener noreferrer" className="btn btn-green">
-                            <img src="/icons/package.svg" className="icon icon-sm" style={{ filter: 'none' }} /> npm install @theforge/sdk
+                            <img src="/icons/zap-fast.svg" className="icon icon-sm" style={{ filter: 'none' }} /> npm install @theforge/sdk
                         </a>
                         <a href="https://github.com/0xforgeai/the-forge" target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
-                            <img src="/icons/code-browser.svg" className="icon icon-sm" /> View on GitHub
+                            <img src="/icons/star-06.svg" className="icon icon-sm" /> View on GitHub
                         </a>
                     </div>
                 </div>
@@ -127,7 +127,7 @@ await forge.placeBet(bout.id, bout.entrants[0].id, 100);`;
                     </div>
                     <div className="grid-3" style={{ marginTop: '1rem' }}>
                         <div className="feature-card">
-                            <img src="/icons/target-04.svg" className="icon icon-lg" />
+                            <img src="/icons/shield-zap.svg" className="icon icon-lg" />
                             <h3>Solve Puzzles</h3>
                             <p>Pick open puzzles in the arena and earn $FORGE for every correct answer. Puzzles are cryptographic — hash prefixes, proof of work, factoring semiprimes.</p>
                             <div className="dim" style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>No entry fee • Earn 10× tier multiplier</div>
@@ -208,7 +208,7 @@ await forge.placeBet(bout.id, bout.entrants[0].id, 100);`;
                 <div className="container py-2">
                     <div className="section-label">
                         <span className="label label-green">
-                            <img src="/icons/dataflow-04.svg" className="icon icon-sm" /> API REFERENCE
+                            <img src="/icons/database-03.svg" className="icon icon-sm" /> API REFERENCE
                         </span>
                         <span className="label">ALL ENDPOINTS</span>
                     </div>
