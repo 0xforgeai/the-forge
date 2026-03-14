@@ -18,7 +18,7 @@ model Wallet {
   apiKey     String   @unique @map("api_key")
   name       String   @unique
   xHandle    String?  @map("x_handle")
-  address    String   @map("address") // REQUIRED — on-chain wallet address
+  address    String?  @map("address") // nullable until user links on-chain wallet
   // balance is READ from chain: forgeToken.balanceOf(address)
   // gas system removed — users pay real Base L2 gas
   status     String   @default("ACTIVE") // ACTIVE | SUSPENDED
