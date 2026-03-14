@@ -100,8 +100,8 @@ Prevents front-running:
 
 | Allocation | % | Tokens | Vesting |
 |-----------|---|--------|---------|
-| Treasury (Rewards) | 50% | 500M | Emitted over 4 years |
-| Liquidity | 50% | 500M | LP on Uniswap |
+| Treasury (Rewards) | 40% | 400M | Emitted over 4 years |
+| Liquidity | 60% | 600M | LP on Uniswap |
 
 ### 3.3 Emission Schedule (Post-Bootstrap)
 

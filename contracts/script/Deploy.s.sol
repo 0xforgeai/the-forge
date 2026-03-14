@@ -31,10 +31,10 @@ contract DeployForge is Script {
         vault.setDepositor(address(arena), true);
         console.log("ForgeArena authorized as vault depositor");
 
-        // 5. Transfer 50% (500M) to vault as treasury
-        uint256 vaultTreasury = 500_000_000 ether;
+        // 5. Transfer 40% (400M) to vault as treasury
+        uint256 vaultTreasury = 400_000_000 ether;
         token.transfer(address(vault), vaultTreasury);
-        console.log("Transferred 500M FORGE to vault");
+        console.log("Transferred 400M FORGE to vault");
 
         // 6. Approve vault to spend deployer's tokens (for yield deposits)
         token.approve(address(vault), type(uint256).max);
