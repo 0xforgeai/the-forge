@@ -1015,6 +1015,43 @@ a:hover {
   color: var(--text-dim);
 }
 
+.footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.footer-link {
+  color: var(--text-dim);
+  transition: color 0.2s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.footer-link:hover {
+  color: var(--green);
+}
+
+/* ─── Nav Social Links ──────────────────── */
+.nav-socials {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-left: auto;
+  margin-right: 0.75rem;
+}
+
+.nav-socials a {
+  color: var(--text-dim);
+  transition: color 0.2s;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-socials a:hover {
+  color: var(--green);
+}
+
 /* ─── Covenant Card Borders ──────────────── */
 .cov-flame {
   border-left: 2px solid var(--orange);
