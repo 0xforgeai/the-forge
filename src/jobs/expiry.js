@@ -107,5 +107,32 @@ export function startJobs() {
         }
     });
 
-    logger.info('Background jobs started (expiry + slashing, every 60s)');
+    // ─── Expire bonds past their expiry timestamp (on-chain) ─────
+    // Contracts can't self-execute, so backend calls expireBond() as a public service
+    cron.schedule('*/15 * * * *', async () => {
+        try {
+            const { chainReady } = await import('../chain/index.js');
+            if (!chainReady) return;
+
+            const { getActiveBonds, getBond, expireBond } = await import('../chain/bonds.js');
+            const activeBondIds = await getActiveBonds();
+
+            for (const bondId of activeBondIds) {
+                try {
+                    const bond = await getBond(bondId);
+                    const now = Math.floor(Date.now() / 1000);
+                    if (bond.expiresAt <= now && !bond.expired) {
+                        await expireBond(bondId);
+                        logger.info({ bondId: bondId.toString() }, 'Bond expired on-chain');
+                    }
+                } catch (err) {
+                    logger.error({ err, bondId: bondId.toString() }, 'Failed to expire bond');
+                }
+            }
+        } catch (err) {
+            logger.error({ err }, 'Bond expiry job error');
+        }
+    });
+
+    logger.info('Background jobs started (expiry + slashing + bond expiry)');
 }

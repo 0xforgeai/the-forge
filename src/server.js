@@ -15,9 +15,8 @@ import { startJobs } from './jobs/expiry.js';
 import { startBoutScheduler } from './jobs/bout-scheduler.js';
 import { startBootstrapJob } from './jobs/bootstrap.js';
 import { startSupplyInvariantJob } from './jobs/supply-invariant.js';
-import { startBondYieldJob } from './jobs/bond-yield.js';
-import { startSettlementJob } from './jobs/settlement.js';
-import { chainReady } from './chain.js';
+import { chainReady } from './chain/index.js';
+import { startEventIndexer } from './chain/events.js';
 
 // Route handlers
 import walletRouter from './routes/wallet.js';
@@ -207,8 +206,10 @@ async function start() {
         startBoutScheduler();
         startBootstrapJob();
         startSupplyInvariantJob();
-        startBondYieldJob();
-        startSettlementJob();
+        // bond-yield and settlement jobs DELETED — yield is lazy on-chain, no fire-and-forget
+
+        // Start chain event indexer (subscribes to contract events, syncs DB)
+        await startEventIndexer();
 
         server = app.listen(config.port, () => {
             logger.info({ port: config.port, env: config.nodeEnv, chainRelay: chainReady }, 'The Forge is live');

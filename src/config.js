@@ -26,12 +26,7 @@ const config = {
     sentryDsn: process.env.SENTRY_DSN || '',
     game: {
         initialBalance: parseInt(process.env.INITIAL_BALANCE || '1000', 10),
-        initialGas: parseInt(process.env.INITIAL_GAS || '500', 10),
-        // Gas costs
-        gasCostCreate: 50,
-        gasCostPick: 25,
-        gasCostSolve: 10,
-        gasCostTransfer: 5,
+        // Gas system removed — users pay real Base L2 gas
         // Tier config: [minStake, minTimeWindow, maxTimeWindow] in seconds
         tiers: {
             1: { minStake: 100, minTime: 3600, maxTime: 14400 },         // 1-4h
@@ -111,10 +106,13 @@ const config = {
     },
     chain: {
         rpcUrl: process.env.BASE_RPC_URL || '',
-        forgeTokenAddress: '0xC446d1796006e53294A2402e55DEd018D0155150',
-        arenaVaultAddress: '0x42795b1E9965A54a9E54A9c504F7B48D5a2dE32f',
-        forgeArenaAddress: '0x132c8b38ca8E0c6D204B2fFEa6260753Bc9e2687',
-        deployerAddress: '0x64A4eA07B1caAE927FD2ecACd4d295db38049c39',
+        forgeTokenAddress: process.env.FORGE_TOKEN_ADDRESS || '0xC446d1796006e53294A2402e55DEd018D0155150',
+        arenaVaultAddress: process.env.ARENA_VAULT_ADDRESS || '0x42795b1E9965A54a9E54A9c504F7B48D5a2dE32f',
+        forgeArenaAddress: process.env.FORGE_ARENA_ADDRESS || '0x132c8b38ca8E0c6D204B2fFEa6260753Bc9e2687',
+        victoryEscrowAddress: process.env.VICTORY_ESCROW_ADDRESS || '',
+        forgeBondsAddress: process.env.FORGE_BONDS_ADDRESS || '',
+        deployerAddress: process.env.DEPLOYER_ADDRESS || '0x64A4eA07B1caAE927FD2ecACd4d295db38049c39',
+        confirmations: 1,
         maxEntrants: 16,
         entryBurnBps: 1000,   // 10%
         betBurnBps: 200,      // 2%
