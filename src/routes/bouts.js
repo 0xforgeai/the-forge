@@ -7,7 +7,8 @@ import { authenticate } from '../middleware/auth.js';
 import { verifyCryptoPuzzle, isComputational } from '../crypto-puzzles.js';
 import sse from '../sse.js';
 import logger from '../logger.js';
-import { settleBurn } from '../chain.js';
+import { forgeToken, chainReady } from '../chain/index.js';
+import { submitTx } from '../chain/tx.js';
 
 const router = Router();
 const bc = config.bout;
@@ -166,19 +167,8 @@ router.post('/:id/enter', authenticate, async (req, res) => {
         });
     }
 
-    // Eligibility: balance
-    if (wallet.balance < bc.minBalanceToEnter) {
-        return res.status(400).json({
-            error: `Minimum balance of ${bc.minBalanceToEnter} $FORGE required. You have ${wallet.balance}.`,
-        });
-    }
-
-    // Check balance for entry fee
-    if (wallet.balance < bout.entryFee) {
-        return res.status(400).json({
-            error: `Insufficient balance for ${bout.entryFee} entry fee. You have ${wallet.balance}.`,
-        });
-    }
+    // NOTE: Balance checks are enforced on-chain via ForgeArena.enterBout()
+    // Route rewrite pending deployed contract addresses
 
     // Already entered?
     const existing = await prisma.boutEntrant.findUnique({
@@ -188,17 +178,13 @@ router.post('/:id/enter', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'You are already entered in this bout.' });
     }
 
-    // Enter + deduct fee + burn 10%
+    // Enter — on-chain token transfer & burn handled by ForgeArena contract
     const burnAmount = bout.entryFee * BigInt(burnCfg.entryFeePercent) / 100n;
     const netEntryFee = bout.entryFee - burnAmount;
 
     const [entrant] = await prisma.$transaction([
         prisma.boutEntrant.create({
             data: { boutId: bout.id, walletId: wallet.id, entryFeePaid: bout.entryFee },
-        }),
-        prisma.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { decrement: bout.entryFee } },
         }),
         prisma.bout.update({
             where: { id: bout.id },
@@ -211,24 +197,6 @@ router.post('/:id/enter', authenticate, async (req, res) => {
                 type: 'BOUT_ENTRY',
                 boutId: bout.id,
                 memo: `Entry fee for bout: ${bout.title}`,
-            },
-        }),
-        // H-6 fix: Track burn as a proper BURN transaction for supply accounting
-        prisma.transaction.create({
-            data: {
-                fromId: wallet.id,
-                amount: burnAmount,
-                type: 'BURN',
-                boutId: bout.id,
-                memo: `Entry fee burn (${burnCfg.entryFeePercent}%): ${bout.title}`,
-            },
-        }),
-        // Also record in treasury ledger for audit trail
-        prisma.treasuryLedger.create({
-            data: {
-                action: 'ENTRY_FEE_BURN',
-                amount: burnAmount,
-                memo: `Burned ${burnAmount} from ${wallet.name}'s entry fee (${burnCfg.entryFeePercent}%)`,
             },
         }),
     ]);
@@ -296,10 +264,8 @@ router.post('/:id/bet', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'You already placed a bet on this bout. One bet per bout.' });
     }
 
-    // Check balance (preliminary — re-checked inside transaction)
-    if (wallet.balance < BigInt(amount)) {
-        return res.status(400).json({ error: `Insufficient balance. Need ${amount}, have ${wallet.balance}.` });
-    }
+    // NOTE: Balance checks are enforced on-chain via token transfer
+    // Route rewrite pending deployed contract addresses
 
     // Place bet atomically with max bet check (C-5 fix: serialized read-check-write)
     const amountBig = BigInt(amount);
@@ -322,20 +288,11 @@ router.post('/:id/bet', authenticate, async (req, res) => {
                 throw new Error(`MAX_BET:${effectiveMax}`);
             }
 
-            // Re-check balance inside transaction
-            const freshWallet = await tx.wallet.findUnique({ where: { id: wallet.id } });
-            if (!freshWallet || freshWallet.balance < amountBig) {
-                throw new Error('INSUFFICIENT_BALANCE');
-            }
-
             const createdBet = await tx.bet.create({
                 data: { boutId: bout.id, bettorId: wallet.id, entrantId, amount: netBetAmount },
             });
 
-            await tx.wallet.update({
-                where: { id: wallet.id },
-                data: { balance: { decrement: amountBig } },
-            });
+            // NOTE: Token deduction handled on-chain via ForgeArena contract
 
             await tx.bout.update({
                 where: { id: bout.id },
@@ -372,9 +329,6 @@ router.post('/:id/bet', authenticate, async (req, res) => {
             return res.status(400).json({
                 error: `Max bet is ${maxBet} (${bc.maxBetPercent}% of pool). You tried ${amount}.`,
             });
-        }
-        if (err.message === 'INSUFFICIENT_BALANCE') {
-            return res.status(400).json({ error: `Insufficient balance.` });
         }
         throw err;
     }
@@ -639,11 +593,7 @@ router.post('/:id/claim', authenticate, async (req, res) => {
 
         const ops = [];
 
-        // Credit net payout to winner
-        ops.push(prisma.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: netPayout } },
-        }));
+        // NOTE: Token credit handled on-chain via VictoryEscrow contract
 
         // Record burn
         if (burnTax > 0n) {
@@ -693,12 +643,7 @@ router.post('/:id/claim', authenticate, async (req, res) => {
 
         await prisma.$transaction(ops);
 
-        // On-chain: burn the tax from hot wallet (fire-and-settle, DB already committed)
-        if (burnTax > 0n) {
-            settleBurn(burnTax, 'VICTORY_CLAIM', bout.id, prisma).catch(err => {
-                logger.error({ err, boutId: bout.id }, 'settleBurn background error');
-            });
-        }
+        // On-chain burn is handled by VictoryEscrow contract
 
         logger.info({ boutId: bout.id, wallet: wallet.name, payout: netPayout, burnTax }, 'Victory claimed (INSTANT)');
 

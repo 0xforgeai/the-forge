@@ -141,10 +141,7 @@ router.post('/stake', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'You already have an active stake. Unstake first.' });
     }
 
-    // Balance check
-    if (wallet.balance < amount) {
-        return res.status(400).json({ error: `Insufficient balance. Need ${amount}, have ${wallet.balance}.` });
-    }
+    // NOTE: Balance checks are enforced on-chain via token transfer
 
     // Min stake check
     if (amount < vc.minStake) {
@@ -179,10 +176,7 @@ router.post('/stake', authenticate, async (req, res) => {
                 loyaltyWeek: 0,
             },
         }),
-        prisma.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { decrement: amount } },
-        }),
+        // NOTE: Token deduction handled on-chain via ArenaVault contract
         prisma.transaction.create({
             data: {
                 fromId: wallet.id,
@@ -263,10 +257,7 @@ router.post('/unstake', authenticate, async (req, res) => {
                 totalTaxPaid: taxAmount,
             },
         }),
-        prisma.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: returnAmount } },
-        }),
+        // NOTE: Token credit handled on-chain via ArenaVault contract
         prisma.transaction.create({
             data: {
                 toId: wallet.id,

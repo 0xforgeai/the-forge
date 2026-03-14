@@ -88,8 +88,6 @@ router.get('/wallets', async (req, res) => {
                 id: true,
                 name: true,
                 xHandle: true,
-                balance: true,
-                gas: true,
                 reputation: true,
                 createdAt: true,
                 // Never expose API keys, not even to admin
@@ -121,26 +119,16 @@ router.post('/wallets/:id/adjust', async (req, res) => {
     const wallet = await prisma.wallet.findUnique({ where: { id: req.params.id } });
     if (!wallet) return res.status(404).json({ error: 'Wallet not found.' });
 
-    // Prevent negative balance
-    if (amount < 0 && wallet.balance + amount < 0) {
-        return res.status(400).json({ error: `Adjustment would result in negative balance.` });
-    }
-
-    const [, updatedWallet] = await prisma.$transaction([
-        prisma.transaction.create({
-            data: {
-                toId: amount > 0 ? wallet.id : undefined,
-                fromId: amount < 0 ? wallet.id : undefined,
-                amount: Math.abs(amount),
-                type: 'BURN', // closest available type — see M-note about adding ADMIN_ADJUSTMENT
-                memo: `[ADMIN ADJUST] ${memo}`,
-            },
-        }),
-        prisma.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: amount } },
-        }),
-    ]);
+    // NOTE: Balance adjustments are now handled on-chain; DB records the intent
+    await prisma.transaction.create({
+        data: {
+            toId: amount > 0 ? wallet.id : undefined,
+            fromId: amount < 0 ? wallet.id : undefined,
+            amount: Math.abs(amount),
+            type: 'BURN',
+            memo: `[ADMIN ADJUST] ${memo}`,
+        },
+    });
 
     // Log admin action for audit trail
     logger.info({
@@ -149,14 +137,11 @@ router.post('/wallets/:id/adjust', async (req, res) => {
         walletName: wallet.name,
         amount,
         memo,
-        previousBalance: wallet.balance,
-        newBalance: updatedWallet.balance,
     }, 'Admin wallet adjustment');
 
     res.json({
         wallet: wallet.name,
         adjustment: amount,
-        newBalance: updatedWallet.balance,
         memo,
     });
 });

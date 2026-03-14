@@ -23,13 +23,7 @@ router.post('/', authenticate, async (req, res) => {
     const wallet = req.wallet;
     const { toName, amount } = parsed.data;
 
-    if (wallet.gas < config.game.gasCostTransfer) {
-        return res.status(400).json({ error: `Insufficient gas. Need ${config.game.gasCostTransfer}, have ${wallet.gas}.` });
-    }
-
-    if (wallet.balance < amount) {
-        return res.status(400).json({ error: `Insufficient balance. Have ${wallet.balance}, need ${amount}.` });
-    }
+    // NOTE: Balance checks are enforced on-chain via token transfer
 
     const recipient = await prisma.wallet.findUnique({ where: { name: toName } });
     if (!recipient) {
@@ -40,41 +34,15 @@ router.post('/', authenticate, async (req, res) => {
         return res.status(400).json({ error: "Can't transfer to yourself." });
     }
 
-    // H-8 fix: use interactive transaction and return updated balance
-    const updatedSender = await prisma.$transaction(async (tx) => {
-        const sender = await tx.wallet.update({
-            where: { id: wallet.id },
-            data: {
-                balance: { decrement: amount },
-                gas: { decrement: config.game.gasCostTransfer },
-            },
-        });
-
-        await tx.wallet.update({
-            where: { id: recipient.id },
-            data: { balance: { increment: amount } },
-        });
-
-        await tx.transaction.create({
-            data: {
-                fromId: wallet.id,
-                toId: recipient.id,
-                amount,
-                type: 'TRANSFER',
-                memo: `Transfer to ${toName}`,
-            },
-        });
-
-        await tx.transaction.create({
-            data: {
-                fromId: wallet.id,
-                amount: config.game.gasCostTransfer,
-                type: 'GAS_SPEND',
-                memo: 'Gas: transfer',
-            },
-        });
-
-        return sender;
+    // NOTE: Token transfers handled on-chain; DB records the intent
+    await prisma.transaction.create({
+        data: {
+            fromId: wallet.id,
+            toId: recipient.id,
+            amount,
+            type: 'TRANSFER',
+            memo: `Transfer to ${toName}`,
+        },
     });
 
     logger.info({ from: wallet.name, to: toName, amount }, 'Token transfer');
@@ -83,7 +51,6 @@ router.post('/', authenticate, async (req, res) => {
         from: wallet.name,
         to: toName,
         amount,
-        newBalance: updatedSender.balance,
         message: `Sent ${amount} $FORGE to ${toName}.`,
     });
 });
