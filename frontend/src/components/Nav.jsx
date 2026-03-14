@@ -47,6 +47,7 @@ export default function Nav() {
                     <li><NavLink to="/vault" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>Covenant Vault</NavLink></li>
                     <li><NavLink to="/leaderboard" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>Leaderboard</NavLink></li>
                     <li><NavLink to="/dashboard" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>Dashboard</NavLink></li>
+                    <li><NavLink to="/agents" className={({ isActive }) => isActive ? 'active' : ''} onClick={handleNavClick}>Agents</NavLink></li>
                     <li><a href="/docs.html" onClick={handleNavClick}>Docs</a></li>
                 </ul>
 

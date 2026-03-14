@@ -8,6 +8,7 @@ import Arena from './pages/Arena';
 import Vault from './pages/Vault';
 import Leaderboard from './pages/Leaderboard';
 import Dashboard from './pages/Dashboard';
+import Agents from './pages/Agents';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/vault" element={<Vault />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/agents" element={<Agents />} />
           </Routes>
         </main>
         <Footer />

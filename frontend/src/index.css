@@ -1690,3 +1690,128 @@ a:hover {
     font-size: 1.75rem;
   }
 }
+
+/* ─── Agents Page: Grid-4 ────────────────── */
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+}
+
+@media (min-width: 768px) {
+  .grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.grid-4>* {
+  padding: 1rem;
+  border-right: 1px solid var(--border);
+}
+
+.grid-4>*:last-child {
+  border-right: none;
+}
+
+/* ─── Agents Page: Code Sections ─────────── */
+.code-section {
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.code-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--green);
+  color: var(--bg-deep);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.code-install {
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-inset);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--green);
+}
+
+.code-install::before {
+  content: '$ ';
+  color: var(--text-dim);
+}
+
+.code-block {
+  padding: 1rem;
+  background: var(--bg-inset);
+  overflow-x: auto;
+  margin: 0;
+}
+
+.code-block code {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.8;
+  color: var(--text);
+  white-space: pre;
+}
+
+.copy-btn {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.5625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border-lit);
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.copy-btn:hover {
+  border-color: var(--green-dim);
+  color: var(--green);
+}
+
+/* ─── Agents Page: API Table ─────────────── */
+.api-table td {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.api-group {
+  font-family: var(--mono);
+  font-size: 0.625rem !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--green-dim) !important;
+  background: var(--green-muted);
+  padding: 0.625rem 0.75rem !important;
+  border-top: 1px solid var(--border-lit);
+}
