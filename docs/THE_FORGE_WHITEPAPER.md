@@ -101,9 +101,7 @@ Prevents front-running:
 | Allocation | % | Tokens | Vesting |
 |-----------|---|--------|---------|
 | Treasury (Rewards) | 40% | 400M | Emitted over 4 years |
-| Team | 15% | 150M | 12mo cliff, 24mo linear |
-| Community Airdrops | 10% | 100M | Retroactive |
-| Liquidity | 15% | 150M | LP on Uniswap |
+| Liquidity | 40% | 400M | LP on Uniswap |
 | Ecosystem Fund | 10% | 100M | Grants, bounties |
 | Reserve | 10% | 100M | Emergency |
 

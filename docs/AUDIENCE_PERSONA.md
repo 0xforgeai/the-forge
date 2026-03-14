@@ -41,7 +41,7 @@ They've watched influencer-backed projects dump 90% in week two. So they're alle
 
 On the content side: if the Twitter account posts "GM" and rocket emojis, they unfollow in two days. They already follow hundreds of accounts. They will not dig through a Discord with 47 channels to find alpha. The Twitter feed needs to be the signal source, not a redirect.
 
-They will scrutinize the 15% team allocation and the 12-month cliff. They want to know if the team makes more money by building or by exiting. That question determines everything.
+They will scrutinize the allocation table — 40% treasury, 40% liquidity, 10% ecosystem, 10% reserve. No team allocation means no insider dump risk. That structural commitment determines everything.
 
 And they'll run the burn math themselves. If the whitepaper says 61,000 $FORGE burns per bout but the numbers don't hold at lower participation levels, they'll notice.
 
