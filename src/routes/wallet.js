@@ -34,37 +34,23 @@ router.post('/register', async (req, res) => {
     }
 
     const apiKey = generateApiKey();
-    const registrationBurn = config.burns.registrationBurn; // M-11 fix: apply documented 50 token burn
-    const startingBalance = config.game.initialBalance - registrationBurn;
-
     const wallet = await prisma.wallet.create({
         data: {
             name,
             apiKey,
             xHandle: xHandle || null,
-            balance: startingBalance,
-            gas: config.game.initialGas,
         },
     });
 
-    // Record registration transaction + burn
-    await prisma.$transaction([
-        prisma.transaction.create({
-            data: {
-                toId: wallet.id,
-                amount: startingBalance,
-                type: 'REGISTRATION',
-                memo: `Registered agent: ${name} (${registrationBurn} burned at registration)`,
-            },
-        }),
-        prisma.treasuryLedger.create({
-            data: {
-                action: 'REGISTRATION_BURN',
-                amount: registrationBurn,
-                memo: `Registration burn: ${name}`,
-            },
-        }),
-    ]);
+    // Record registration transaction
+    await prisma.transaction.create({
+        data: {
+            toId: wallet.id,
+            amount: 0,
+            type: 'REGISTRATION',
+            memo: `Registered agent: ${name}`,
+        },
+    });
 
     logger.info({ walletId: wallet.id, name }, 'New agent registered');
 
@@ -72,10 +58,7 @@ router.post('/register', async (req, res) => {
         id: wallet.id,
         name: wallet.name,
         apiKey: wallet.apiKey,
-        balance: startingBalance,
-        gas: wallet.gas,
-        registrationBurn,
-        message: `Welcome to The Forge. ${registrationBurn} $FORGE burned at registration. Save your API key — it will not be shown again.`,
+        message: 'Welcome to The Forge. Link your on-chain wallet to start. Save your API key — it will not be shown again.',
     });
 });
 
@@ -87,8 +70,7 @@ router.get('/balance', authenticate, async (req, res) => {
     res.json({
         id: w.id,
         name: w.name,
-        balance: w.balance,
-        gas: w.gas,
+        address: w.address,
         reputation: w.reputation,
     });
 });
@@ -102,7 +84,6 @@ router.get('/profile/:name', async (req, res) => {
             id: true,
             name: true,
             xHandle: true,
-            balance: true,
             reputation: true,
             createdAt: true,
         },

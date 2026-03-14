@@ -38,15 +38,7 @@ router.post('/', authenticate, async (req, res) => {
         return res.status(400).json({ error: tierCheck.error });
     }
 
-    // Check gas
-    if (wallet.gas < config.game.gasCostCreate) {
-        return res.status(400).json({ error: `Insufficient gas. Need ${config.game.gasCostCreate}, have ${wallet.gas}.` });
-    }
-
-    // Check balance for stake
-    if (wallet.balance < stake) {
-        return res.status(400).json({ error: `Insufficient balance to stake ${stake}. Have ${wallet.balance}.` });
-    }
+    // NOTE: Balance checks are enforced on-chain via token transfer
 
     // Hash the answer server-side with HMAC
     const answerHash = hashAnswer(answer, answerType);
@@ -66,27 +58,13 @@ router.post('/', authenticate, async (req, res) => {
                 maxAttempts,
             },
         }),
-        prisma.wallet.update({
-            where: { id: wallet.id },
-            data: {
-                balance: { decrement: stake },
-                gas: { decrement: config.game.gasCostCreate },
-            },
-        }),
+        // NOTE: Token deduction handled on-chain
         prisma.transaction.create({
             data: {
                 fromId: wallet.id,
                 amount: stake,
                 type: 'STAKE_LOCK',
                 memo: `Staked ${stake} on puzzle: ${title}`,
-            },
-        }),
-        prisma.transaction.create({
-            data: {
-                fromId: wallet.id,
-                amount: config.game.gasCostCreate,
-                type: 'GAS_SPEND',
-                memo: 'Gas: create puzzle',
             },
         }),
     ]);
@@ -138,13 +116,7 @@ router.post('/generate', authenticate, async (req, res) => {
         return res.status(400).json({ error: tierCheck.error });
     }
 
-    // Check gas & balance
-    if (wallet.gas < config.game.gasCostCreate) {
-        return res.status(400).json({ error: `Insufficient gas. Need ${config.game.gasCostCreate}, have ${wallet.gas}.` });
-    }
-    if (wallet.balance < stake) {
-        return res.status(400).json({ error: `Insufficient balance to stake ${stake}. Have ${wallet.balance}.` });
-    }
+    // NOTE: Balance checks are enforced on-chain via token transfer
 
     // Generate the puzzle
     const generated = generatePuzzle(puzzleType, difficultyTier);
@@ -165,27 +137,13 @@ router.post('/generate', authenticate, async (req, res) => {
                 maxAttempts,
             },
         }),
-        prisma.wallet.update({
-            where: { id: wallet.id },
-            data: {
-                balance: { decrement: stake },
-                gas: { decrement: config.game.gasCostCreate },
-            },
-        }),
+        // NOTE: Token deduction handled on-chain
         prisma.transaction.create({
             data: {
                 fromId: wallet.id,
                 amount: stake,
                 type: 'STAKE_LOCK',
                 memo: `Staked ${stake} on ${puzzleType}: ${generated.title}`,
-            },
-        }),
-        prisma.transaction.create({
-            data: {
-                fromId: wallet.id,
-                amount: config.game.gasCostCreate,
-                type: 'GAS_SPEND',
-                memo: 'Gas: create puzzle',
             },
         }),
     ]);
@@ -312,10 +270,6 @@ router.get('/:id', async (req, res) => {
 router.post('/:id/pick', authenticate, async (req, res) => {
     const wallet = req.wallet;
 
-    if (wallet.gas < config.game.gasCostPick) {
-        return res.status(400).json({ error: `Insufficient gas. Need ${config.game.gasCostPick}, have ${wallet.gas}.` });
-    }
-
     const puzzle = await prisma.puzzle.findUnique({ where: { id: req.params.id } });
     if (!puzzle) return res.status(404).json({ error: 'Puzzle not found.' });
     if (puzzle.status !== 'OPEN') return res.status(400).json({ error: `Puzzle is ${puzzle.status}, not open.` });
@@ -329,19 +283,6 @@ router.post('/:id/pick', authenticate, async (req, res) => {
                 solverId: wallet.id,
                 pickedAt: new Date(),
                 attemptsUsed: 0,
-            },
-        }),
-        prisma.wallet.update({
-            where: { id: wallet.id },
-            data: { gas: { decrement: config.game.gasCostPick } },
-        }),
-        prisma.transaction.create({
-            data: {
-                fromId: wallet.id,
-                amount: config.game.gasCostPick,
-                type: 'GAS_SPEND',
-                puzzleId: puzzle.id,
-                memo: 'Gas: pick puzzle',
             },
         }),
     ]);
@@ -386,10 +327,6 @@ router.post('/:id/solve', authenticate, async (req, res) => {
     const wallet = req.wallet;
     const { answer } = parsed.data;
 
-    if (wallet.gas < config.game.gasCostSolve) {
-        return res.status(400).json({ error: `Insufficient gas. Need ${config.game.gasCostSolve}, have ${wallet.gas}.` });
-    }
-
     const puzzle = await prisma.puzzle.findUnique({ where: { id: req.params.id } });
     if (!puzzle) return res.status(404).json({ error: 'Puzzle not found.' });
     if (puzzle.status !== 'PICKED') return res.status(400).json({ error: `Puzzle is ${puzzle.status}, not picked.` });
@@ -419,22 +356,6 @@ router.post('/:id/solve', authenticate, async (req, res) => {
         },
     });
 
-    // Deduct gas
-    await prisma.wallet.update({
-        where: { id: wallet.id },
-        data: { gas: { decrement: config.game.gasCostSolve } },
-    });
-
-    await prisma.transaction.create({
-        data: {
-            fromId: wallet.id,
-            amount: config.game.gasCostSolve,
-            type: 'GAS_SPEND',
-            puzzleId: puzzle.id,
-            memo: 'Gas: solve attempt',
-        },
-    });
-
     if (correct) {
         // ✅ SOLVED: solver gets stake + tier reward
         const reward = BigInt(puzzle.difficultyTier * config.game.solveRewardMultiplier);
@@ -449,10 +370,10 @@ router.post('/:id/solve', authenticate, async (req, res) => {
                     attemptsUsed: { increment: 1 },
                 },
             }),
+            // NOTE: Token credit handled on-chain
             prisma.wallet.update({
                 where: { id: wallet.id },
                 data: {
-                    balance: { increment: totalPayout },
                     reputation: { increment: puzzle.difficultyTier },
                 },
             }),
@@ -569,10 +490,10 @@ router.post('/:id/reveal', authenticate, async (req, res) => {
                 revealedAnswer: answer,
             },
         }),
+        // NOTE: Token credit handled on-chain
         prisma.wallet.update({
             where: { id: wallet.id },
             data: {
-                balance: { increment: totalReturn },
                 reputation: { increment: 1 },
             },
         }),

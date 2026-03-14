@@ -13,7 +13,8 @@ import cron from 'node-cron';
 import { ethers } from 'ethers';
 import prisma from '../db.js';
 import config from '../config.js';
-import { forgeToken, arenaVault, chainReady, acquireTxLock, releaseTxLock, sendTx } from '../chain.js';
+import { forgeToken, arenaVault, chainReady } from '../chain/index.js';
+import { submitTx } from '../chain/tx.js';
 import logger from '../logger.js';
 import sse from '../sse.js';
 
@@ -138,11 +139,7 @@ async function runBootstrapEmission() {
             },
         }));
 
-        // Credit vested amount to wallet
-        ops.push(prisma.wallet.update({
-            where: { id: stake.walletId },
-            data: { balance: { increment: vestAmount } },
-        }));
+        // NOTE: Token credit handled on-chain via ArenaVault contract
 
         ops.push(prisma.transaction.create({
             data: {
@@ -174,40 +171,34 @@ async function runBootstrapEmission() {
 
     // ── On-chain: deposit yield to ArenaVault ────────────
     if (totalEmitted > 0 && chainReady && forgeToken && arenaVault) {
-        if (!acquireTxLock()) {
-            logger.warn('Tx lock busy — skipping on-chain depositYield');
-        } else {
-            try {
-                const emittedWei = ethers.parseEther(totalEmitted.toString());
-                const deployerAddr = config.chain.deployerAddress;
+        try {
+            const emittedWei = ethers.parseEther(totalEmitted.toString());
+            const deployerAddr = config.chain.deployerAddress;
 
-                // Balance check: ensure deployer holds enough tokens
-                const balance = await forgeToken.balanceOf(deployerAddr);
-                if (balance < emittedWei) {
-                    logger.error({
-                        required: totalEmitted,
-                        balance: balance.toString(),
-                    }, 'Deployer has insufficient $FORGE balance for depositYield — skipping on-chain deposit');
-                } else {
-                    const vaultAddress = config.chain.arenaVaultAddress;
+            // Balance check: ensure deployer holds enough tokens
+            const balance = await forgeToken.balanceOf(deployerAddr);
+            if (balance < emittedWei) {
+                logger.error({
+                    required: totalEmitted,
+                    balance: balance.toString(),
+                }, 'Deployer has insufficient $FORGE balance for depositYield — skipping on-chain deposit');
+            } else {
+                const vaultAddress = config.chain.arenaVaultAddress;
 
-                    await sendTx(
-                        () => forgeToken.approve(vaultAddress, emittedWei),
-                        'approve for depositYield',
-                    );
+                await submitTx(
+                    () => forgeToken.approve(vaultAddress, emittedWei),
+                    'approve for depositYield',
+                );
 
-                    const depositReceipt = await sendTx(
-                        () => arenaVault.depositYield(emittedWei),
-                        'depositYield',
-                    );
+                const depositReceipt = await submitTx(
+                    () => arenaVault.depositYield(emittedWei),
+                    'depositYield',
+                );
 
-                    logger.info({ totalEmitted, txHash: depositReceipt.hash }, 'On-chain: depositYield() confirmed');
-                }
-            } catch (err) {
-                logger.error({ err, totalEmitted }, 'On-chain depositYield failed — DB emission still applied');
-            } finally {
-                releaseTxLock();
+                logger.info({ totalEmitted, txHash: depositReceipt.hash }, 'On-chain: depositYield() confirmed');
             }
+        } catch (err) {
+            logger.error({ err, totalEmitted }, 'On-chain depositYield failed — DB emission still applied');
         }
     }
 

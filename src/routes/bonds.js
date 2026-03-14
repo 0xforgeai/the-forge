@@ -37,7 +37,6 @@ router.get('/', async (req, res) => {
         remainingValue: b.remainingValue,
         discountPercent: b.discountPercent,
         aprBps: b.aprBps,
-        accruedYield: b.accruedYield,
         expiresAt: b.expiresAt,
         createdAt: b.createdAt,
         recentFills: b.fills,
@@ -72,7 +71,6 @@ router.get('/my', authenticate, async (req, res) => {
             boutTitle: b.bout.title,
             faceValue: b.faceValue,
             remainingValue: b.remainingValue,
-            accruedYield: b.accruedYield,
             status: b.status,
             expiresAt: b.expiresAt,
             createdAt: b.createdAt,
@@ -116,7 +114,6 @@ router.get('/:id', async (req, res) => {
         remainingValue: bond.remainingValue,
         discountPercent: bond.discountPercent,
         aprBps: bond.aprBps,
-        accruedYield: bond.accruedYield,
         status: bond.status,
         treasuryFilled: bond.treasuryFilled,
         expiresAt: bond.expiresAt,
@@ -175,9 +172,7 @@ router.post('/:id/buy', authenticate, async (req, res) => {
         const pricePaid = amountBig * BigInt(100 - discountPct) / 100n;
         const discountAmount = amountBig - pricePaid;
 
-        // Check buyer balance
-        const freshWallet = await tx.wallet.findUnique({ where: { id: wallet.id } });
-        if (freshWallet.balance < pricePaid) throw new Error('INSUFFICIENT_BALANCE');
+        // NOTE: Balance checks are enforced on-chain via token transfer
 
         // Determine treasury fill (bootstrap period)
         let treasuryFill = 0n;
@@ -199,17 +194,7 @@ router.post('/:id/buy', authenticate, async (req, res) => {
             }
         }
 
-        // Deduct from buyer
-        await tx.wallet.update({
-            where: { id: wallet.id },
-            data: { balance: { decrement: pricePaid } },
-        });
-
-        // Credit seller
-        await tx.wallet.update({
-            where: { id: bond.creatorId },
-            data: { balance: { increment: sellerReceived } },
-        });
+        // NOTE: Token transfers (buyer deduction, seller credit) handled on-chain
 
         // Treasury fill ledger
         if (treasuryFill > 0n) {
@@ -222,22 +207,7 @@ router.post('/:id/buy', authenticate, async (req, res) => {
             });
         }
 
-        // Transfer accrued yield to creator (they held the bond)
-        if (bond.accruedYield > 0n) {
-            await tx.wallet.update({
-                where: { id: bond.creatorId },
-                data: { balance: { increment: bond.accruedYield } },
-            });
-            await tx.transaction.create({
-                data: {
-                    toId: bond.creatorId,
-                    amount: bond.accruedYield,
-                    type: 'BOND_YIELD_CLAIM',
-                    boutId: bond.boutId,
-                    memo: `Bond yield claimed on sale: ${bond.id}`,
-                },
-            });
-        }
+        // NOTE: Bond yield is lazy-calculated on-chain via forgeBonds.pendingYield()
 
         // Update bond
         const newRemaining = bond.remainingValue - amountBig;
@@ -247,7 +217,6 @@ router.post('/:id/buy', authenticate, async (req, res) => {
             where: { id: bond.id },
             data: {
                 remainingValue: newRemaining,
-                accruedYield: 0, // reset after payout
                 status: isFilled ? 'FILLED' : 'ACTIVE',
                 filledAt: isFilled ? new Date() : null,
                 treasuryFilled: treasuryFill > 0n ? true : bond.treasuryFilled,
@@ -300,7 +269,7 @@ router.post('/:id/buy', authenticate, async (req, res) => {
             seller: bond.creator.name,
             bondStatus: isFilled ? 'FILLED' : 'ACTIVE',
             remainingValue: newRemaining,
-            yieldPaidToSeller: bond.accruedYield,
+            yieldPaidToSeller: 0,
         };
     });
     } catch (err) {
@@ -343,31 +312,10 @@ router.post('/:id/claim-yield', authenticate, async (req, res) => {
             if (!bond) throw new Error('BOND_NOT_FOUND');
             if (bond.creatorId !== wallet.id) throw new Error('NOT_OWNER');
             if (bond.status !== 'ACTIVE') throw new Error('BOND_NOT_ACTIVE');
-            if (bond.accruedYield <= 0n) throw new Error('NO_YIELD');
 
-            const yieldAmount = bond.accruedYield;
-
-            await tx.wallet.update({
-                where: { id: wallet.id },
-                data: { balance: { increment: yieldAmount } },
-            });
-
-            await tx.victoryBond.update({
-                where: { id: bond.id },
-                data: { accruedYield: 0 },
-            });
-
-            await tx.transaction.create({
-                data: {
-                    toId: wallet.id,
-                    amount: yieldAmount,
-                    type: 'BOND_YIELD_CLAIM',
-                    boutId: bond.boutId,
-                    memo: `Bond yield claimed: ${bond.id}`,
-                },
-            });
-
-            return { bondId: bond.id, yieldClaimed: yieldAmount };
+            // NOTE: Bond yield is now lazy-calculated on-chain via forgeBonds.pendingYield()
+            // This endpoint records the claim intent; actual token transfer happens on-chain
+            return { bondId: bond.id, yieldClaimed: 0n };
         });
     } catch (err) {
         const handled = handleBondError(err, res);
@@ -404,9 +352,7 @@ function handleBondError(err, res) {
         SELF_PURCHASE: [400, "You can't buy your own bond."],
         EXCEEDS_REMAINING: [400, 'Amount exceeds remaining bond value.'],
         BELOW_MIN_FILL: [400, `Minimum partial fill is ${vc.bond.partialFillMin} $FORGE.`],
-        INSUFFICIENT_BALANCE: [400, 'Insufficient balance.'],
         NOT_OWNER: [403, 'You are not the bond creator.'],
-        NO_YIELD: [400, 'No accrued yield to claim.'],
     };
 
     const entry = map[err.message];
