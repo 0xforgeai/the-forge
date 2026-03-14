@@ -1,14 +1,19 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { ethers } from 'ethers';
 import prisma from '../db.js';
 import config from '../config.js';
 import { hashAnswer, verifyAnswer, validateTier } from '../utils.js';
 import { generatePuzzle, verifyCryptoPuzzle, isComputational, PUZZLE_TYPES } from '../crypto-puzzles.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireChain } from '../middleware/auth.js';
 import sse from '../sse.js';
 import logger from '../logger.js';
+import { chainReady, forgeToken } from '../chain/index.js';
+import { submitTx } from '../chain/tx.js';
+import { balanceOf } from '../chain/token.js';
 
 const router = Router();
+const deployerAddress = config.chain.deployerAddress;
 
 // ─── Create Puzzle ─────────────────────────────────────────
 
@@ -23,7 +28,7 @@ const createSchema = z.object({
     maxAttempts: z.number().int().min(1).max(10).default(3),
 });
 
-router.post('/', authenticate, async (req, res) => {
+router.post('/', authenticate, requireChain, async (req, res) => {
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues[0].message });
@@ -38,12 +43,37 @@ router.post('/', authenticate, async (req, res) => {
         return res.status(400).json({ error: tierCheck.error });
     }
 
-    // NOTE: Balance checks are enforced on-chain via token transfer
+    // On-chain balance check
+    if (!wallet.address) {
+        return res.status(400).json({ error: 'No on-chain address linked. Register with an address.' });
+    }
+    const stakeWei = ethers.parseEther(stake.toString());
+    const onChainBalance = await balanceOf(wallet.address);
+    if (onChainBalance < stakeWei) {
+        return res.status(400).json({
+            error: `Insufficient on-chain balance. Need ${stake} $FORGE, have ${ethers.formatEther(onChainBalance)}.`,
+        });
+    }
+
+    // On-chain: escrow stake from smith to deployer (relay holds funds)
+    let txHash;
+    try {
+        const receipt = await submitTx(
+            () => forgeToken.transferFrom(wallet.address, deployerAddress, stakeWei),
+            `puzzleStake(${wallet.name}, ${stake})`,
+        );
+        txHash = receipt.hash;
+    } catch (err) {
+        logger.error({ err, smith: wallet.name, stake }, 'On-chain puzzle stake escrow failed');
+        return res.status(400).json({
+            error: 'On-chain stake failed. Ensure you have approved the relay for the stake amount.',
+        });
+    }
 
     // Hash the answer server-side with HMAC
     const answerHash = hashAnswer(answer, answerType);
 
-    // Create puzzle + deduct stake + gas in a transaction
+    // DB cache update (after chain succeeds)
     const [puzzle] = await prisma.$transaction([
         prisma.puzzle.create({
             data: {
@@ -58,18 +88,17 @@ router.post('/', authenticate, async (req, res) => {
                 maxAttempts,
             },
         }),
-        // NOTE: Token deduction handled on-chain
         prisma.transaction.create({
             data: {
                 fromId: wallet.id,
                 amount: stake,
                 type: 'STAKE_LOCK',
-                memo: `Staked ${stake} on puzzle: ${title}`,
+                memo: `Staked ${stake} on puzzle: ${title} (tx: ${txHash})`,
             },
         }),
     ]);
 
-    logger.info({ puzzleId: puzzle.id, smith: wallet.name, tier: difficultyTier, stake }, 'Puzzle created');
+    logger.info({ puzzleId: puzzle.id, smith: wallet.name, tier: difficultyTier, stake, txHash }, 'Puzzle created (on-chain stake)');
 
     sse.broadcast('puzzle.created', {
         id: puzzle.id,
@@ -87,7 +116,8 @@ router.post('/', authenticate, async (req, res) => {
         status: puzzle.status,
         timeWindowSeconds: puzzle.timeWindowSeconds,
         maxAttempts: puzzle.maxAttempts,
-        message: 'Puzzle created. Stake locked.',
+        txHash,
+        message: 'Puzzle created. Stake locked on-chain.',
     });
 });
 
@@ -101,7 +131,7 @@ const generateSchema = z.object({
     maxAttempts: z.number().int().min(1).max(10).default(3),
 });
 
-router.post('/generate', authenticate, async (req, res) => {
+router.post('/generate', authenticate, requireChain, async (req, res) => {
     const parsed = generateSchema.safeParse(req.body);
     if (!parsed.success) {
         return res.status(400).json({ error: parsed.error.issues[0].message });
@@ -116,7 +146,32 @@ router.post('/generate', authenticate, async (req, res) => {
         return res.status(400).json({ error: tierCheck.error });
     }
 
-    // NOTE: Balance checks are enforced on-chain via token transfer
+    // On-chain balance check
+    if (!wallet.address) {
+        return res.status(400).json({ error: 'No on-chain address linked. Register with an address.' });
+    }
+    const stakeWei = ethers.parseEther(stake.toString());
+    const onChainBalance = await balanceOf(wallet.address);
+    if (onChainBalance < stakeWei) {
+        return res.status(400).json({
+            error: `Insufficient on-chain balance. Need ${stake} $FORGE, have ${ethers.formatEther(onChainBalance)}.`,
+        });
+    }
+
+    // On-chain: escrow stake
+    let txHash;
+    try {
+        const receipt = await submitTx(
+            () => forgeToken.transferFrom(wallet.address, deployerAddress, stakeWei),
+            `puzzleStake(${wallet.name}, ${stake})`,
+        );
+        txHash = receipt.hash;
+    } catch (err) {
+        logger.error({ err, smith: wallet.name, stake }, 'On-chain puzzle stake escrow failed');
+        return res.status(400).json({
+            error: 'On-chain stake failed. Ensure you have approved the relay for the stake amount.',
+        });
+    }
 
     // Generate the puzzle
     const generated = generatePuzzle(puzzleType, difficultyTier);
@@ -137,18 +192,17 @@ router.post('/generate', authenticate, async (req, res) => {
                 maxAttempts,
             },
         }),
-        // NOTE: Token deduction handled on-chain
         prisma.transaction.create({
             data: {
                 fromId: wallet.id,
                 amount: stake,
                 type: 'STAKE_LOCK',
-                memo: `Staked ${stake} on ${puzzleType}: ${generated.title}`,
+                memo: `Staked ${stake} on ${puzzleType}: ${generated.title} (tx: ${txHash})`,
             },
         }),
     ]);
 
-    logger.info({ puzzleId: puzzle.id, smith: wallet.name, puzzleType, tier: difficultyTier, stake }, 'Computational puzzle created');
+    logger.info({ puzzleId: puzzle.id, smith: wallet.name, puzzleType, tier: difficultyTier, stake, txHash }, 'Computational puzzle created (on-chain stake)');
 
     sse.broadcast('puzzle.created', {
         id: puzzle.id,
@@ -168,7 +222,8 @@ router.post('/generate', authenticate, async (req, res) => {
         status: puzzle.status,
         timeWindowSeconds: puzzle.timeWindowSeconds,
         maxAttempts: puzzle.maxAttempts,
-        message: `${puzzleType} puzzle created. Stake locked.`,
+        txHash,
+        message: `${puzzleType} puzzle created. Stake locked on-chain.`,
     });
 });
 
@@ -338,7 +393,7 @@ router.post('/:id/solve', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'Time window expired. Puzzle will be marked expired by the system.' });
     }
 
-    // Verify answer — use crypto verification for computational puzzles
+    // Verify answer
     let correct;
     if (isComputational(puzzle.puzzleType)) {
         correct = verifyCryptoPuzzle(answer, puzzle.puzzleType, puzzle.challengeData, puzzle.answerHash);
@@ -361,6 +416,22 @@ router.post('/:id/solve', authenticate, async (req, res) => {
         const reward = BigInt(puzzle.difficultyTier * config.game.solveRewardMultiplier);
         const totalPayout = puzzle.stake + reward;
 
+        // On-chain: transfer reward from deployer to solver
+        let txHash;
+        if (chainReady && wallet.address) {
+            try {
+                const payoutWei = ethers.parseEther(totalPayout.toString());
+                const receipt = await submitTx(
+                    () => forgeToken.transfer(wallet.address, payoutWei),
+                    `solveReward(${wallet.name}, ${totalPayout})`,
+                );
+                txHash = receipt.hash;
+            } catch (err) {
+                logger.error({ err, solver: wallet.name, payout: totalPayout }, 'On-chain solve reward transfer failed');
+                // Continue — DB payout still recorded
+            }
+        }
+
         await prisma.$transaction([
             prisma.puzzle.update({
                 where: { id: puzzle.id },
@@ -370,7 +441,6 @@ router.post('/:id/solve', authenticate, async (req, res) => {
                     attemptsUsed: { increment: 1 },
                 },
             }),
-            // NOTE: Token credit handled on-chain
             prisma.wallet.update({
                 where: { id: wallet.id },
                 data: {
@@ -383,12 +453,12 @@ router.post('/:id/solve', authenticate, async (req, res) => {
                     amount: totalPayout,
                     type: 'SOLVE_REWARD',
                     puzzleId: puzzle.id,
-                    memo: `Solved! Stake ${puzzle.stake} + reward ${reward}`,
+                    memo: `Solved! Stake ${puzzle.stake} + reward ${reward}${txHash ? ` (tx: ${txHash})` : ''}`,
                 },
             }),
         ]);
 
-        logger.info({ puzzleId: puzzle.id, solver: wallet.name, payout: totalPayout }, 'Puzzle solved');
+        logger.info({ puzzleId: puzzle.id, solver: wallet.name, payout: totalPayout, txHash }, 'Puzzle solved');
 
         sse.broadcast('puzzle.solved', {
             id: puzzle.id,
@@ -403,6 +473,7 @@ router.post('/:id/solve', authenticate, async (req, res) => {
             payout: totalPayout,
             stake: puzzle.stake,
             reward,
+            txHash: txHash || null,
             message: `Correct! You earned ${totalPayout} $FORGE (${puzzle.stake} stake + ${reward} reward).`,
         });
     }
@@ -411,7 +482,6 @@ router.post('/:id/solve', authenticate, async (req, res) => {
     const newAttempts = puzzle.attemptsUsed + 1;
 
     if (newAttempts >= puzzle.maxAttempts) {
-        // Max attempts reached — reset puzzle to open
         await prisma.puzzle.update({
             where: { id: puzzle.id },
             data: {
@@ -482,6 +552,21 @@ router.post('/:id/reveal', authenticate, async (req, res) => {
     const reward = BigInt(puzzle.difficultyTier * config.game.smithRewardMultiplier);
     const totalReturn = puzzle.stake + reward;
 
+    // On-chain: return stake + reward from deployer to smith
+    let txHash;
+    if (chainReady && wallet.address) {
+        try {
+            const returnWei = ethers.parseEther(totalReturn.toString());
+            const receipt = await submitTx(
+                () => forgeToken.transfer(wallet.address, returnWei),
+                `smithReveal(${wallet.name}, ${totalReturn})`,
+            );
+            txHash = receipt.hash;
+        } catch (err) {
+            logger.error({ err, smith: wallet.name, totalReturn }, 'On-chain reveal reward transfer failed');
+        }
+    }
+
     await prisma.$transaction([
         prisma.puzzle.update({
             where: { id: puzzle.id },
@@ -490,7 +575,6 @@ router.post('/:id/reveal', authenticate, async (req, res) => {
                 revealedAnswer: answer,
             },
         }),
-        // NOTE: Token credit handled on-chain
         prisma.wallet.update({
             where: { id: wallet.id },
             data: {
@@ -503,12 +587,12 @@ router.post('/:id/reveal', authenticate, async (req, res) => {
                 amount: totalReturn,
                 type: 'SMITH_REWARD',
                 puzzleId: puzzle.id,
-                memo: `Revealed. Stake ${puzzle.stake} returned + reward ${reward}`,
+                memo: `Revealed. Stake ${puzzle.stake} returned + reward ${reward}${txHash ? ` (tx: ${txHash})` : ''}`,
             },
         }),
     ]);
 
-    logger.info({ puzzleId: puzzle.id, smith: wallet.name, totalReturn }, 'Puzzle revealed by smith');
+    logger.info({ puzzleId: puzzle.id, smith: wallet.name, totalReturn, txHash }, 'Puzzle revealed by smith');
 
     sse.broadcast('puzzle.revealed', {
         id: puzzle.id,
@@ -523,6 +607,7 @@ router.post('/:id/reveal', authenticate, async (req, res) => {
         stakeReturned: puzzle.stake,
         reward,
         total: totalReturn,
+        txHash: txHash || null,
         message: `Puzzle revealed. Stake returned + ${reward} reward.`,
     });
 });

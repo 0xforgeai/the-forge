@@ -4,6 +4,8 @@ import prisma from '../db.js';
 import config from '../config.js';
 import { generateApiKey } from '../utils.js';
 import { authenticate } from '../middleware/auth.js';
+import { balanceOf } from '../chain/token.js';
+import { chainReady } from '../chain/index.js';
 import logger from '../logger.js';
 
 const router = Router();
@@ -16,6 +18,9 @@ const registerSchema = z.object({
         .min(2, 'Name must be at least 2 characters')
         .max(32, 'Name must be at most 32 characters')
         .regex(/^[a-zA-Z0-9_-]+$/, 'Name must be alphanumeric, hyphens, or underscores'),
+    address: z
+        .string()
+        .regex(/^0x[a-fA-F0-9]{40}$/, 'Must be a valid Ethereum address'),
     xHandle: z.string().optional(),
 });
 
@@ -25,7 +30,7 @@ router.post('/register', async (req, res) => {
         return res.status(400).json({ error: parsed.error.issues[0].message });
     }
 
-    const { name, xHandle } = parsed.data;
+    const { name, address, xHandle } = parsed.data;
 
     // Check uniqueness
     const existing = await prisma.wallet.findUnique({ where: { name } });
@@ -38,6 +43,7 @@ router.post('/register', async (req, res) => {
         data: {
             name,
             apiKey,
+            address: address.toLowerCase(),
             xHandle: xHandle || null,
         },
     });
@@ -52,26 +58,52 @@ router.post('/register', async (req, res) => {
         },
     });
 
-    logger.info({ walletId: wallet.id, name }, 'New agent registered');
+    logger.info({ walletId: wallet.id, name, address }, 'New agent registered');
 
     res.status(201).json({
         id: wallet.id,
         name: wallet.name,
+        address: wallet.address,
         apiKey: wallet.apiKey,
-        message: 'Welcome to The Forge. Link your on-chain wallet to start. Save your API key — it will not be shown again.',
+        message: 'Welcome to The Forge. Approve the ForgeArena contract to participate. Save your API key — it will not be shown again.',
     });
 });
 
 // ─── Balance ───────────────────────────────────────────────
 
 router.get('/balance', authenticate, async (req, res) => {
-    // req.wallet set by auth middleware
     const w = req.wallet;
+
+    let chainBalance = null;
+    if (chainReady && w.address) {
+        try {
+            chainBalance = (await balanceOf(w.address)).toString();
+        } catch (err) {
+            logger.warn({ err, address: w.address }, 'Failed to read on-chain balance');
+        }
+    }
+
     res.json({
         id: w.id,
         name: w.name,
         address: w.address,
         reputation: w.reputation,
+        chainBalance,
+    });
+});
+
+// ─── Contracts (public — frontend uses for approvals) ──────
+
+router.get('/contracts', (req, res) => {
+    const cc = config.chain;
+    res.json({
+        forgeToken: cc.forgeTokenAddress,
+        forgeArena: cc.forgeArenaAddress,
+        arenaVault: cc.arenaVaultAddress,
+        victoryEscrow: cc.victoryEscrowAddress || null,
+        forgeBonds: cc.forgeBondsAddress || null,
+        deployer: cc.deployerAddress,
+        chainReady,
     });
 });
 
@@ -84,6 +116,7 @@ router.get('/profile/:name', async (req, res) => {
             id: true,
             name: true,
             xHandle: true,
+            address: true,
             reputation: true,
             createdAt: true,
         },
@@ -99,7 +132,15 @@ router.get('/profile/:name', async (req, res) => {
         prisma.puzzle.count({ where: { solverId: wallet.id, status: 'SOLVED' } }),
     ]);
 
-    res.json({ ...wallet, puzzlesCreated: created, puzzlesSolved: solved });
+    // On-chain balance (best effort)
+    let chainBalance = null;
+    if (chainReady && wallet.address) {
+        try {
+            chainBalance = (await balanceOf(wallet.address)).toString();
+        } catch { /* swallow */ }
+    }
+
+    res.json({ ...wallet, puzzlesCreated: created, puzzlesSolved: solved, chainBalance });
 });
 
 export default router;

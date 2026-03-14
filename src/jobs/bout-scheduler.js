@@ -273,32 +273,38 @@ async function transitionBouts() {
 
         await prisma.$transaction(ops);
 
-        // ── On-chain: resolveBout on ForgeArena ──
-        // In hybrid mode, no agents entered on-chain (enterBout() is not called).
-        // The on-chain boutEntrants array is empty, so resolveBout() with any
-        // placement indices would revert ("Invalid placement idx").
-        // Only call resolveBout on-chain with empty placements (triggers no-solver path
-        // which adds agentPurse to protocolRake — acceptable for hybrid accounting).
+        // ── On-chain: resolveAndEscrow on ForgeArena ──
+        // Route all payouts through VictoryEscrow (winners choose instant or bond).
         if (chainReady && forgeArena && bout.onChainCreated) {
             try {
                 const boutBytes32 = bout.onChainBoutId || uuidToBytes32(bout.id);
 
-                // Pass empty placements — no on-chain entrants in hybrid mode
+                // Build placement indices from payout results
+                // placements[0] = entrant index of 1st place, placements[1] = 2nd, etc.
+                const placements = payouts.agentPayouts
+                    .filter(ap => ap.placement > 0 && ap.placement <= 3 && ap.payout > 0)
+                    .sort((a, b) => a.placement - b.placement)
+                    .map(ap => {
+                        // Find the entrant's on-chain index (creation order)
+                        return bout.entrants.findIndex(e => e.id === ap.entrantId);
+                    })
+                    .filter(idx => idx >= 0);
+
                 const resolveReceipt = await submitTx(
-                    () => forgeArena.resolveBout(boutBytes32, []),
-                    'resolveBout',
+                    () => forgeArena.resolveAndEscrow(boutBytes32, placements),
+                    'resolveAndEscrow',
                 );
-                logger.info({ boutId: bout.id, txHash: resolveReceipt.hash }, 'On-chain: resolveBout() confirmed (hybrid — empty placements)');
+                logger.info({ boutId: bout.id, txHash: resolveReceipt.hash, placements }, 'On-chain: resolveAndEscrow() confirmed');
 
                 await prisma.treasuryLedger.create({
                     data: {
                         action: 'ON_CHAIN_RESOLVE',
                         amount: 0,
-                        memo: `resolveBout tx: ${resolveReceipt.hash} — hybrid mode (empty placements)`,
+                        memo: `resolveAndEscrow tx: ${resolveReceipt.hash} — placements: [${placements.join(',')}]`,
                     },
                 });
             } catch (err) {
-                logger.error({ err, boutId: bout.id }, 'On-chain resolveBout failed — DB resolution still applied');
+                logger.error({ err, boutId: bout.id }, 'On-chain resolveAndEscrow failed — DB resolution still applied');
             }
         }
 

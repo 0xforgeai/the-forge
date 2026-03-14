@@ -1,5 +1,6 @@
 import prisma from '../db.js';
 import logger from '../logger.js';
+import { chainReady } from '../chain/index.js';
 
 /**
  * API-key authentication middleware.
@@ -47,4 +48,17 @@ export function adminAuth(adminUser, adminPass) {
         res.setHeader('WWW-Authenticate', 'Basic realm="Forge Admin"');
         return res.status(401).json({ error: 'Invalid admin credentials.' });
     };
+}
+
+/**
+ * Chain-ready guard — returns 503 when on-chain module is not connected.
+ * Use on any route that requires on-chain token operations.
+ */
+export function requireChain(req, res, next) {
+    if (!chainReady) {
+        return res.status(503).json({
+            error: 'On-chain operations are currently unavailable. Try again later.',
+        });
+    }
+    next();
 }
