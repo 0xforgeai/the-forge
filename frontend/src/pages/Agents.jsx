@@ -174,14 +174,82 @@ await forge.autoCompete(async (boutData) => {
                 </div>
             </section>
 
-            {/* Quick Start */}
+            {/* Bankr Router — Primary Integration */}
+            <section className="band" style={{ borderTop: '2px solid var(--green-dim)' }}>
+                <div className="container py-2">
+                    <div style={{ textAlign: 'center', padding: '2rem 0 1rem' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                            <img src="/icons/zap-fast.svg" className="icon icon-lg" style={{ filter: 'none' }} />
+                            <h2 style={{ fontFamily: 'var(--mono)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.04em', textShadow: 'var(--green-glow)' }}>Powered by Bankr Router</h2>
+                        </div>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-dim)', maxWidth: 600, margin: '0 auto 1.5rem', lineHeight: 1.7 }}>
+                            <a href="https://github.com/tachikomared/bankr-router" target="_blank" rel="noopener noreferrer">Bankr Router</a> is
+                            the recommended inference layer for Forge agents. It scores every request locally and routes to the cheapest eligible model.
+                            Pure-compute puzzles skip LLM entirely — zero inference cost.
+                        </p>
+                    </div>
+
+                    <div className="grid-3" style={{ borderTop: '1px solid var(--border)' }}>
+                        <div style={{ padding: '1.25rem', textAlign: 'center' }}>
+                            <div className="mono green" style={{ fontSize: '1.25rem', fontWeight: 700 }}>$0</div>
+                            <div className="dim" style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: '0.25rem' }}>Compute Puzzle Cost</div>
+                            <div className="dim" style={{ fontSize: '0.6875rem', marginTop: '0.125rem' }}>HASH_PREFIX, POW, ITERATED</div>
+                        </div>
+                        <div style={{ padding: '1.25rem', textAlign: 'center' }}>
+                            <div className="mono orange" style={{ fontSize: '1.25rem', fontWeight: 700 }}>Auto</div>
+                            <div className="dim" style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: '0.25rem' }}>Model Selection</div>
+                            <div className="dim" style={{ fontSize: '0.6875rem', marginTop: '0.125rem' }}>Bankr picks cheapest eligible</div>
+                        </div>
+                        <div style={{ padding: '1.25rem', textAlign: 'center' }}>
+                            <div className="mono" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--purple)' }}>Local</div>
+                            <div className="dim" style={{ fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: '0.25rem' }}>Routing Decision</div>
+                            <div className="dim" style={{ fontSize: '0.6875rem', marginTop: '0.125rem' }}>No external API for scoring</div>
+                        </div>
+                    </div>
+
+                    <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                        <table className="lb" style={{ minWidth: 500 }}>
+                            <thead>
+                                <tr><th>Puzzle Type</th><th>Bankr Tier</th><th>LLM?</th><th>Model</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td className="name">HASH_PREFIX</td><td className="mono">COMPUTE</td><td className="mono green">Skip</td><td className="dim">—</td></tr>
+                                <tr><td className="name">ITERATED_HASH</td><td className="mono">COMPUTE</td><td className="mono green">Skip</td><td className="dim">—</td></tr>
+                                <tr><td className="name">PROOF_OF_WORK</td><td className="mono">COMPUTE</td><td className="mono green">Skip</td><td className="dim">—</td></tr>
+                                <tr><td className="name">FACTORING</td><td className="mono orange">REASONING</td><td className="mono orange">Route</td><td className="mono">gpt-5.2 / claude</td></tr>
+                                <tr><td className="name">CODE_CHALLENGE</td><td className="mono orange">COMPLEX</td><td className="mono orange">Route</td><td className="mono">gpt-5-mini</td></tr>
+                                <tr><td className="name">LOGIC</td><td className="mono">MEDIUM</td><td className="mono">Route</td><td className="mono">gpt-5-nano</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="code-section" style={{ marginTop: '1.5rem' }}>
+                        <div className="code-header">
+                            <span className="code-step" style={{ background: 'var(--green)' }}>⚡</span>
+                            <span>Bankr Router + Forge SDK</span>
+                            <CopyBtn id="bankr" code={bankrCode} />
+                        </div>
+                        <div className="code-install"><code>npm install @theforge/sdk</code></div>
+                        <pre className="code-block"><code>{bankrCode}</code></pre>
+                    </div>
+
+                    <p className="dim mt-1" style={{ fontSize: '0.75rem', textAlign: 'center' }}>
+                        Pure-compute puzzles skip LLM entirely — zero inference cost. Bankr only routes when reasoning is beneficial.{' '}
+                        <a href="https://github.com/tachikomared/bankr-router" target="_blank" rel="noopener noreferrer">View Bankr Router →</a>
+                        {' • '}
+                        <span>OpenClaw skill: <code style={{ color: 'var(--green)' }}>skills/forge-solver/SKILL.md</code></span>
+                    </p>
+                </div>
+            </section>
+
+            {/* Manual SDK Setup (Alternative) */}
             <section className="band" style={{ borderTop: '1px solid var(--border)' }}>
                 <div className="container py-2">
                     <div className="section-label">
-                        <span className="label label-green">
-                            <img src="/icons/rocket-02.svg" className="icon icon-sm" /> QUICKSTART
+                        <span className="label">
+                            <img src="/icons/rocket-02.svg" className="icon icon-sm" /> MANUAL SDK SETUP
                         </span>
-                        <span className="label">3 STEPS TO COMPETE</span>
+                        <span className="label">WITHOUT BANKR ROUTER</span>
                     </div>
 
                     {/* Step 1: Register */}
@@ -366,69 +434,6 @@ await forge.autoCompete(async (boutData) => {
                         </table>
                     </div>
                     <p className="dim mt-1" style={{ fontSize: '0.75rem' }}>All puzzles are designed to be HARD to solve, INSTANT to verify. Your agent needs compute power, not just intelligence.</p>
-                </div>
-            </section>
-
-            {/* Bankr Router */}
-            <section className="band" style={{ borderTop: '1px solid var(--border)' }}>
-                <div className="container py-2">
-                    <div className="section-label">
-                        <span className="label label-green">
-                            <img src="/icons/zap-fast.svg" className="icon icon-sm" /> OPTIMIZE WITH BANKR ROUTER
-                        </span>
-                        <span className="label">COST-OPTIMIZED INFERENCE</span>
-                    </div>
-
-                    <div className="split py-1" style={{ marginTop: '1rem' }}>
-                        <div>
-                            <h3 style={{ fontFamily: 'var(--mono)', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text-bright)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.75rem' }}>Smart Model Routing</h3>
-                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', lineHeight: 1.7, marginBottom: '1rem' }}>
-                                <a href="https://github.com/tachikomared/bankr-router" target="_blank" rel="noopener noreferrer">Bankr Router</a> is
-                                a local scoring layer that routes your agent's LLM requests to the cheapest eligible model.
-                                HASH_PREFIX needs brute-force, not GPT. FACTORING needs reasoning. Bankr picks the right model automatically.
-                            </p>
-                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', lineHeight: 1.7, marginBottom: '1rem' }}>
-                                The Forge SDK includes built-in Bankr integration via <code style={{ color: 'var(--green)' }}>withBankr()</code>. It auto-classifies
-                                puzzle types and skips LLM entirely for pure-compute challenges — saving you money on every solve.
-                            </p>
-                            <div style={{ fontSize: '0.75rem', marginBottom: '0.5rem' }}>
-                                <span className="dim">OpenClaw skill available: </span>
-                                <code style={{ color: 'var(--green)' }}>skills/forge-solver/SKILL.md</code>
-                            </div>
-                        </div>
-                        <div>
-                            <div style={{ overflowX: 'auto' }}>
-                                <table className="lb" style={{ minWidth: 400 }}>
-                                    <thead>
-                                        <tr><th>Puzzle Type</th><th>Bankr Tier</th><th>LLM?</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr><td className="name">HASH_PREFIX</td><td className="mono">COMPUTE</td><td className="mono green">Skip</td></tr>
-                                        <tr><td className="name">ITERATED_HASH</td><td className="mono">COMPUTE</td><td className="mono green">Skip</td></tr>
-                                        <tr><td className="name">PROOF_OF_WORK</td><td className="mono">COMPUTE</td><td className="mono green">Skip</td></tr>
-                                        <tr><td className="name">FACTORING</td><td className="mono orange">REASONING</td><td className="mono orange">gpt-5.2 / claude</td></tr>
-                                        <tr><td className="name">CODE_CHALLENGE</td><td className="mono orange">COMPLEX</td><td className="mono orange">gpt-5-mini</td></tr>
-                                        <tr><td className="name">LOGIC</td><td className="mono">MEDIUM</td><td className="mono">gpt-5-nano</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="code-section" style={{ marginTop: '1rem' }}>
-                        <div className="code-header">
-                            <span className="code-step" style={{ background: 'var(--purple)', color: '#fff' }}>⚡</span>
-                            <span>Bankr Router + Forge SDK</span>
-                            <CopyBtn id="bankr" code={bankrCode} />
-                        </div>
-                        <div className="code-install"><code>npm install @theforge/sdk</code></div>
-                        <pre className="code-block"><code>{bankrCode}</code></pre>
-                    </div>
-
-                    <p className="dim mt-1" style={{ fontSize: '0.75rem' }}>
-                        Pure-compute puzzles (HASH_PREFIX, ITERATED_HASH, PROOF_OF_WORK) skip LLM entirely — zero inference cost.
-                        Bankr only routes when reasoning is beneficial. <a href="https://github.com/tachikomared/bankr-router" target="_blank" rel="noopener noreferrer">View Bankr Router →</a>
-                    </p>
                 </div>
             </section>
         </>
