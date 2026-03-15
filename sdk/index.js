@@ -482,6 +482,75 @@ export class ForgeClient {
             await sleep(pollInterval);
         }
     }
+
+    // ─── Bankr Router ─────────────────────────────
+
+    /**
+     * Configure Bankr Router for cost-optimized LLM inference.
+     * Returns a `solve` function that routes through Bankr based on puzzle type.
+     *
+     * @param {Object} opts
+     * @param {string} opts.bankrUrl - Bankr Router endpoint (default: http://127.0.0.1:8787/v1)
+     * @param {string} [opts.bankrKey] - Bankr API key (default: local-router)
+     * @param {string} [opts.defaultModel] - Default model (default: bankr-router/auto)
+     * @param {Function} [opts.promptBuilder] - Custom prompt builder (puzzle) => string
+     * @returns {{ solve: Function, solveBout: Function, classify: Function }}
+     */
+    withBankr({
+        bankrUrl = 'http://127.0.0.1:8787/v1',
+        bankrKey = 'local-router',
+        defaultModel = 'bankr-router/auto',
+        promptBuilder,
+    } = {}) {
+        const client = this;
+
+        async function bankrChat(prompt, model = defaultModel) {
+            const res = await fetch(`${bankrUrl}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${bankrKey}`,
+                },
+                body: JSON.stringify({
+                    model,
+                    messages: [{ role: 'user', content: prompt }],
+                }),
+            });
+            if (!res.ok) throw new Error(`Bankr error: ${res.status}`);
+            const data = await res.json();
+            return data.choices?.[0]?.message?.content || '';
+        }
+
+        return {
+            /** Classify puzzle complexity for routing */
+            classify: classifyPuzzle,
+
+            /** Solve a puzzle with Bankr-routed inference */
+            async solve(puzzle) {
+                const profile = classifyPuzzle(puzzle.puzzleType || puzzle.type);
+                if (profile.skipLLM) {
+                    return null; // pure compute — agent should use local solver
+                }
+                const prompt = promptBuilder
+                    ? promptBuilder(puzzle)
+                    : `Solve this ${puzzle.puzzleType || puzzle.type} puzzle:\n${puzzle.prompt}`;
+                return bankrChat(prompt, profile.model || defaultModel);
+            },
+
+            /** Solve a bout challenge with Bankr-routed inference */
+            async solveBout(boutData) {
+                const profile = classifyPuzzle(boutData.puzzleType);
+                if (profile.skipLLM) return null;
+                const prompt = promptBuilder
+                    ? promptBuilder(boutData)
+                    : `Solve this ${boutData.puzzleType} bout puzzle (tier ${boutData.tier}):\n${boutData.prompt}\n\nChallenge data: ${JSON.stringify(boutData.challengeData)}`;
+                return bankrChat(prompt, profile.model || defaultModel);
+            },
+
+            /** Raw Bankr chat for custom use */
+            chat: bankrChat,
+        };
+    }
 }
 
 // ─── Utilities ────────────────────────────────────
@@ -500,4 +569,28 @@ export function generateCommit(answer, secret) {
     return crypto.createHash('sha256').update(answer + secret).digest('hex');
 }
 
+/**
+ * Puzzle routing profiles for Bankr Router.
+ * Maps puzzle types to complexity tiers and recommended models.
+ */
+export const PUZZLE_ROUTING_PROFILES = {
+    HASH_PREFIX:    { tier: 'COMPUTE',   skipLLM: true,  model: null,                  description: 'Pure brute-force — no LLM needed' },
+    ITERATED_HASH:  { tier: 'COMPUTE',   skipLLM: true,  model: null,                  description: 'Sequential hash computation — no LLM needed' },
+    PROOF_OF_WORK:  { tier: 'COMPUTE',   skipLLM: true,  model: null,                  description: 'Nonce search — no LLM needed' },
+    FACTORING:      { tier: 'REASONING', skipLLM: false, model: 'bankr-router/auto',    description: 'Semiprime factoring — route to reasoning model' },
+    CODE_CHALLENGE: { tier: 'COMPLEX',   skipLLM: false, model: 'bankr-router/auto',    description: 'Code generation/analysis — route to complex model' },
+    LOGIC:          { tier: 'MEDIUM',    skipLLM: false, model: 'bankr-router/auto',    description: 'Logic puzzles — route to medium-tier model' },
+    DEFAULT:        { tier: 'SIMPLE',    skipLLM: false, model: 'bankr-router/auto',    description: 'Unknown type — let Bankr auto-route' },
+};
+
+/**
+ * Classify a puzzle type for Bankr routing.
+ * @param {string} puzzleType
+ * @returns {{ tier: string, skipLLM: boolean, model: string|null, description: string }}
+ */
+export function classifyPuzzle(puzzleType) {
+    return PUZZLE_ROUTING_PROFILES[puzzleType] || PUZZLE_ROUTING_PROFILES.DEFAULT;
+}
+
 export default ForgeClient;
+

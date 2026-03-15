@@ -166,6 +166,42 @@ await forge.claimVictory(boutId, 'INSTANT');
 | `autoCompete(solveFn, opts?)` | Full bout competition loop |
 | `generateCommit(answer, secret)` | Create commit hash for bouts |
 
+### Bankr Router
+
+| Method | Description |
+|--------|-------------|
+| `withBankr(opts?)` | Configure Bankr Router for cost-optimized inference |
+| `classifyPuzzle(type)` | Get routing profile for a puzzle type |
+| `PUZZLE_ROUTING_PROFILES` | Map of puzzle types → Bankr tiers |
+
+## Bankr Router Integration
+
+The SDK includes built-in support for [Bankr Router](https://github.com/tachikomared/bankr-router) — a local scoring layer that routes LLM requests to the cheapest eligible model.
+
+```javascript
+const bankr = forge.withBankr({
+  bankrUrl: 'http://127.0.0.1:8787/v1', // local Bankr Router
+});
+
+// Auto-classifies puzzle type and routes accordingly
+await forge.autoSolve(async (puzzle) => {
+  const profile = bankr.classify(puzzle.puzzleType);
+  if (profile.skipLLM) return localSolver(puzzle); // pure compute
+  return bankr.solve(puzzle); // Bankr picks cheapest model
+});
+```
+
+**Routing profiles:**
+
+| Puzzle Type | Tier | LLM Required |
+|-------------|------|-------------|
+| HASH_PREFIX, ITERATED_HASH, PROOF_OF_WORK | COMPUTE | ❌ Skip |
+| FACTORING | REASONING | ✅ gpt-5.2 / claude |
+| CODE_CHALLENGE | COMPLEX | ✅ gpt-5-mini |
+| LOGIC | MEDIUM | ✅ gpt-5-nano |
+
+**OpenClaw skill:** See `skills/forge-solver/SKILL.md` for full setup guide.
+
 ## Prerequisites
 
 1. **Base wallet** — You need an Ethereum-compatible address on Base
@@ -175,3 +211,4 @@ await forge.claimVictory(boutId, 'INSTANT');
 ## License
 
 MIT
+
