@@ -75,7 +75,7 @@ contract ForgeArena is Ownable, ReentrancyGuard {
 
     // ─── State ──────────────────────────────────────────────
 
-    ERC20Burnable public immutable forgeToken;
+    ERC20Burnable public forgeToken;
     IArenaVault   public arenaVault;
     IVictoryEscrow public victoryEscrow;
     address       public treasury;
@@ -119,9 +119,18 @@ contract ForgeArena is Ownable, ReentrancyGuard {
         address _treasury,
         address _owner
     ) Ownable(_owner) {
-        forgeToken = ERC20Burnable(_forgeToken);
+        if (_forgeToken != address(0)) {
+            forgeToken = ERC20Burnable(_forgeToken);
+        }
         arenaVault = IArenaVault(_arenaVault);
         treasury = _treasury;
+    }
+
+    /// @notice One-time setter for forgeToken. Cannot be called once set.
+    function setForgeToken(address _forgeToken) external onlyOwner {
+        require(address(forgeToken) == address(0), "Token already set");
+        require(_forgeToken != address(0), "Zero address");
+        forgeToken = ERC20Burnable(_forgeToken);
     }
 
     // ─── Admin ──────────────────────────────────────────────

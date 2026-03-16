@@ -31,7 +31,7 @@ contract VictoryEscrow is Ownable, ReentrancyGuard {
 
     // ─── State ──────────────────────────────────────────────
 
-    ERC20Burnable public immutable forgeToken;
+    ERC20Burnable public forgeToken;
     IForgeBonds   public forgeBonds;
     uint16        public instantBurnBps;   // 500 = 5% default
 
@@ -67,8 +67,17 @@ contract VictoryEscrow is Ownable, ReentrancyGuard {
         address _owner,
         uint16  _instantBurnBps
     ) Ownable(_owner) {
-        forgeToken = ERC20Burnable(_forgeToken);
+        if (_forgeToken != address(0)) {
+            forgeToken = ERC20Burnable(_forgeToken);
+        }
         instantBurnBps = _instantBurnBps;
+    }
+
+    /// @notice One-time setter for forgeToken. Cannot be called once set.
+    function setForgeToken(address _forgeToken) external onlyOwner {
+        require(address(forgeToken) == address(0), "Token already set");
+        require(_forgeToken != address(0), "Zero address");
+        forgeToken = ERC20Burnable(_forgeToken);
     }
 
     // ─── Admin ──────────────────────────────────────────────

@@ -50,7 +50,7 @@ contract ArenaVault is Ownable, ReentrancyGuard {
 
     // ─── State ──────────────────────────────────────────────
 
-    IERC20 public immutable forgeToken;
+    IERC20 public forgeToken;
 
     mapping(address => StakePosition) public positions;
 
@@ -105,12 +105,21 @@ contract ArenaVault is Ownable, ReentrancyGuard {
     // ─── Constructor ────────────────────────────────────────
 
     constructor(address _forgeToken, address _owner) Ownable(_owner) {
-        forgeToken = IERC20(_forgeToken);
+        if (_forgeToken != address(0)) {
+            forgeToken = IERC20(_forgeToken);
+        }
 
         covenantConfigs[Covenant.FLAME]    = CovenantConfig({ lockDays: 1,  apyBonusBps: 0,     rageQuitMulti: 100 });
         covenantConfigs[Covenant.STEEL]    = CovenantConfig({ lockDays: 3,  apyBonusBps: 5000,  rageQuitMulti: 200 });
         covenantConfigs[Covenant.OBSIDIAN] = CovenantConfig({ lockDays: 7,  apyBonusBps: 15000, rageQuitMulti: 300 });
         covenantConfigs[Covenant.ETERNAL]  = CovenantConfig({ lockDays: 30, apyBonusBps: 30000, rageQuitMulti: 10000 });
+    }
+
+    /// @notice One-time setter for forgeToken. Cannot be called once set.
+    function setForgeToken(address _forgeToken) external onlyOwner {
+        require(address(forgeToken) == address(0), "Token already set");
+        require(_forgeToken != address(0), "Zero address");
+        forgeToken = IERC20(_forgeToken);
     }
 
     // ─── Stake ──────────────────────────────────────────────

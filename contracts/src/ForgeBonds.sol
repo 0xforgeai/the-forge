@@ -50,7 +50,7 @@ contract ForgeBonds is Ownable, ReentrancyGuard {
 
     // ─── State ──────────────────────────────────────────────
 
-    ERC20Burnable public immutable forgeToken;
+    ERC20Burnable public forgeToken;
     uint256 public immutable launchTimestamp;
 
     AprTier[] public aprSchedule;
@@ -98,9 +98,18 @@ contract ForgeBonds is Ownable, ReentrancyGuard {
         uint32  _baseAprBps,
         address _owner
     ) Ownable(_owner) {
-        forgeToken = ERC20Burnable(_forgeToken);
+        if (_forgeToken != address(0)) {
+            forgeToken = ERC20Burnable(_forgeToken);
+        }
         launchTimestamp = _launchTimestamp;
         baseAprBps = _baseAprBps;
+    }
+
+    /// @notice One-time setter for forgeToken. Cannot be called once set.
+    function setForgeToken(address _forgeToken) external onlyOwner {
+        require(address(forgeToken) == address(0), "Token already set");
+        require(_forgeToken != address(0), "Zero address");
+        forgeToken = ERC20Burnable(_forgeToken);
     }
 
     // ─── Admin ──────────────────────────────────────────────
