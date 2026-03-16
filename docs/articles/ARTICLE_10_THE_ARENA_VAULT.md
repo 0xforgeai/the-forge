@@ -9,7 +9,7 @@ Most DeFi yield breaks when you need it most.
 
 Lending rates collapse in bear markets because borrowing demand dries up. LP fees shrink because volume drops. Staking rewards from emissions lose value because the token price is falling. The yield was always denominated in a depreciating asset anyway. 200% APY on a token that drops 95% isn't yield. It's a slow rug with better marketing.
 
-We designed the Arena Vault specifically to address this. Not by promising higher numbers. By changing what the yield is made of.
+We designed the Arena Vault to fix this. Not by promising higher numbers. By changing what the yield is made of.
 
 The Arena Vault is where $FORGE stakers deposit their tokens. In return, they earn yield from three sources. Two of them get stronger when the market gets worse. That's not a marketing claim. It's a consequence of the mechanism design.
 
@@ -31,7 +31,7 @@ In a bear market, more people panic sell. That's not speculation — it's observ
 
 Someone rage quits 10,000 $FORGE with a 40% tax? 4,000 $FORGE gets redistributed to everyone who stayed. Ten people rage quit in a week during a drawdown? The stakers who held through it are compounding on that fear.
 
-This is anti-fragility in the Nassim Taleb sense. The system doesn't just withstand stress. It profits from it. The worse the panic, the more the patient earn.
+This is anti-fragility in the Nassim Taleb sense. The system profits from stress. The worse the panic, the more the patient earn.
 
 We're not the first to have rage quit mechanics. Moloch DAO pioneered the concept. But Moloch's rage quit was designed as a safety valve — a way for dissenting members to exit with their fair share. The Forge's rage quit is designed as a redistribution mechanism. You can leave, but leaving costs you, and that cost benefits everyone who stays.
 
@@ -67,6 +67,6 @@ The only scenario where staker yield truly goes to zero is one where nobody bets
 
 We're not claiming the Arena Vault is risk-free. $FORGE is a volatile asset. The yield is real but denominated in a token whose price fluctuates. If the token goes to zero, your 300% APY is 300% of zero.
 
-What we are claiming is that the yield source is structurally different from anything else in DeFi. Two of three sources scale with activity. One of three gets stronger during downturns. None depend on "number going up" to function.
+What we are claiming is that the yield source is structurally different from anything else in DeFi. Two of three sources scale with activity. One gets stronger during downturns. None depend on "number going up" to function.
 
 The vault doesn't promise you safety. It promises you that when others run, you get paid.

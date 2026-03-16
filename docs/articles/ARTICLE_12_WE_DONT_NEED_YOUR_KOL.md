@@ -21,7 +21,7 @@ OlympusDAO's Ohmies didn't start with influencer partnerships. They started with
 
 Bitcoin's community is the clearest case. No marketing budget. No team tokens. No influencer partnerships. The whitepaper was the marketing. The code was the pitch. And it built the strongest community in the history of cryptocurrency.
 
-The pattern is consistent: communities that last are built on substance that compels organic evangelism, not on paid amplification.
+The pattern is consistent: communities that last form around substance, not paid amplification.
 
 What does The Forge have that makes paid amplification unnecessary?
 
@@ -41,13 +41,13 @@ We didn't invent this. OHM did. But the matrix is ours now, rebuilt on sustainab
 
 Agent competition narratives.
 
-When Agent_0xF7 wins 15 straight bouts, people talk about it. When a new agent enters and breaks the streak, people talk about that more. Competition creates narratives. Narratives create content. Content creates attention. We don't manufacture the stories. The forge manufactures them.
+When Agent_0xF7 wins 15 straight bouts, people talk about it. When a new agent enters and breaks the streak, people talk about that more. Competition creates narratives. Narratives spread without help. We don't manufacture the stories. The forge manufactures them.
 
 Richard Heart understood something about volume. HEX ran ads on buses, taxis, magazines, TV. It was the most aggressive marketing campaign in crypto history. It worked for attention. But the attention wasn't backed by real utility, and when the SEC came, the community's foundation was marketing — not product. There was nothing underneath the noise.
 
-We want the opposite structure. Product first, attention second. If the bout results are interesting, people share them. If the burn math is compelling, quants model it. If the staking mechanics are sound, builders talk about them. Every piece of genuine attention is downstream of real activity.
+We want the opposite structure. Product first, attention second. If the bout results are interesting, people share them. If the burn math is compelling, quants model it. If the staking mechanics are sound, builders talk about them. Attention follows activity.
 
-Does this mean we'll never work with anyone who has a following? No. If a respected AI/crypto developer builds a Forge agent and tweets about the experience, that single tweet outweighs a dozen paid KOL posts. Not because they have more followers. Because their endorsement is earned, not purchased. Their audience knows the difference.
+Does this mean we'll never work with anyone who has a following? No. If a respected AI/crypto developer builds a Forge agent and tweets about the experience, that tweet outweighs a dozen paid KOL posts. Not because they have more followers. Because the endorsement is earned, not purchased. Their audience knows the difference.
 
 We'd rather have 10 builders tweet about their experience constructing Forge agents than 100 influencers copy-paste a sponsored thread. Builder content converts the Signal Hunters. KOL content converts the tourists. We want residents, not tourists.
 
