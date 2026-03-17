@@ -542,6 +542,164 @@
             }
             html { scroll-behavior: auto; }
         }
+
+        /* ===========================================
+           PRINT / PDF EXPORT STYLES
+           =========================================== */
+        @media print {
+            /* Force dark backgrounds to render */
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+
+            html, body {
+                background: #0a0a0a !important;
+                color: #e8e8e8 !important;
+                height: auto !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            html { scroll-snap-type: none !important; }
+
+            /* Each slide = one printed page */
+            .slide {
+                width: 100vw !important;
+                height: 100vh !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                overflow: hidden !important;
+                position: relative !important;
+                background: #0a0a0a !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+
+            .slide:last-child {
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+
+            /* Force all reveal animations to visible */
+            .reveal, .reveal-scale, .reveal-left {
+                opacity: 1 !important;
+                transform: none !important;
+                transition: none !important;
+            }
+
+            /* Slide content fills the page */
+            .slide-content {
+                flex: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: center !important;
+                padding: 3rem 4rem !important;
+                position: relative !important;
+                z-index: 2 !important;
+            }
+
+            /* Background gradients */
+            .gradient-forge { background: linear-gradient(135deg, #0a0a0a 0%, #0d1a0f 50%, #0a0a0a 100%) !important; }
+            .gradient-heat { background: linear-gradient(135deg, #0a0a0a 0%, #1a0f0a 50%, #0a0a0a 100%) !important; }
+
+            /* Grid background effect - simplified for print */
+            .grid-bg::before {
+                content: '' !important;
+                position: absolute !important;
+                top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+                background-image:
+                    linear-gradient(rgba(74, 222, 128, 0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(74, 222, 128, 0.04) 1px, transparent 1px) !important;
+                background-size: 60px 60px !important;
+                z-index: 0 !important;
+            }
+
+            /* Section numbers */
+            .section-num {
+                color: rgba(74, 222, 128, 0.08) !important;
+                position: absolute !important;
+            }
+
+            /* Cards */
+            .forge-card {
+                background: #1a1a1a !important;
+                border: 1px solid rgba(74, 222, 128, 0.15) !important;
+            }
+
+            /* Stat values */
+            .stat-value {
+                color: #4ADE80 !important;
+            }
+
+            /* Tags */
+            .tag {
+                border-color: rgba(74, 222, 128, 0.3) !important;
+                color: #4ADE80 !important;
+            }
+            .tag.orange {
+                border-color: rgba(255, 107, 43, 0.3) !important;
+                color: #ff6b2b !important;
+            }
+
+            /* Text colors */
+            .green { color: #4ADE80 !important; }
+            .orange { color: #ff6b2b !important; }
+            .gold { color: #ffd700 !important; }
+            .muted { color: #888888 !important; }
+            .glow-green { color: #4ADE80 !important; }
+            .glow-orange { color: #ff6b2b !important; }
+
+            h1, h2, h3 { color: #e8e8e8 !important; }
+            p, li { color: #c8c8c8 !important; }
+
+            /* Matrix block */
+            .matrix-block {
+                background: #111111 !important;
+                border-color: rgba(74, 222, 128, 0.2) !important;
+                color: #4ADE80 !important;
+            }
+
+            /* Lists */
+            .forge-list li::before {
+                color: #4ADE80 !important;
+            }
+
+            /* Accent bars */
+            .accent-bar {
+                background: #4ADE80 !important;
+            }
+
+            /* Progress bar - hide */
+            .progress { display: none !important; }
+
+            /* Covenant cards */
+            .covenant-card {
+                background: #1a1a1a !important;
+                border: 1px solid rgba(74, 222, 128, 0.15) !important;
+            }
+
+            /* Two-col layout */
+            .two-col {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+            }
+
+            /* Title slide special treatment */
+            .title-slide {
+                background: #0a0a0a !important;
+            }
+
+            /* Closing slide */
+            .closing-slide {
+                background: #0a0a0a !important;
+            }
+
+            @page {
+                size: landscape;
+                margin: 0;
+            }
+        }
     </style>
 </head>
 <body>
