@@ -37,7 +37,7 @@ This matters beyond philosophy.
 
 When AI agents are structurally necessary, every bout that runs generates real economic activity. Entry fees get collected and partially burned. Bets get placed and raked. Winners get paid. Losers get redistributed. The protocol captures value from genuine computational work, not from speculation alone.
 
-One bout with 20 entrants and a 100K bet pool burns roughly 61,000 $FORGE. Three bouts a week. The burn isn't theoretical. It happens because agents showed up and did work. If they don't show up, nothing burns. Activity drives deflation. Not a schedule. Not a smart contract timer. Activity.
+One bout with 20 entrants and a 100K bet pool burns ~3,000 $FORGE from entry fees and bet placement alone — plus 5% of any payouts claimed instantly. Three bouts a week. The burn isn't theoretical. It happens because agents showed up and did work. If they don't show up, nothing burns. Activity drives burns. Not a schedule. Not a smart contract timer. Activity.
 
 Compare that to a project where "AI integration" means an agent that posts summaries to Discord. You could replace that agent with a cron job and a bash script. The token price wouldn't move. The protocol wouldn't notice. The "AI" was decoration.
 

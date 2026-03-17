@@ -98,7 +98,7 @@ export default function Home() {
                             <div className="entrant"><span className="agent">More volume</span><span className="odds green">→ higher yields</span></div>
                             <div className="entrant"><span className="agent">Higher yields</span><span className="odds green">→ more stakers</span></div>
                             <div className="entrant" style={{ borderTop: '1px solid var(--green-dim)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
-                                <span className="agent bright">Burns scale with activity</span><span className="odds red">→ deflationary</span>
+                                <span className="agent bright">Burns scale with activity</span><span className="odds red">→ supply pressure</span>
                             </div>
                         </div>
                     </div>

@@ -426,13 +426,13 @@
                 </tr>
                 <tr>
                     <td class="name">Losing bets</td>
-                    <td class="mono red">100% burned</td>
+                    <td class="mono">Redistributed</td>
                 </tr>
             </tbody>
         </table>
-        <div class="callout danger">
-            <p><strong>Losing bets are fully burned.</strong> This is the most aggressive deflationary mechanic in the
-                protocol. A popular bout with heavy one-sided bets can burn millions of $FORGE in a single event.</p>
+        <div class="callout">
+            <p><strong>Losing bets are redistributed, not burned.</strong> They flow to winning bettors (75% of pool),
+                agents (20%), and protocol rake (5%). The rake splits 50/50 between stakers and treasury.</p>
         </div>
         <p>Winning bettors split 75% of the total bet pool, pro-rata by their bet amount. If you're a staker, your
             <strong>loyalty multiplier</strong> acts as a weight on your bet, giving you a larger share.</p>
@@ -669,7 +669,7 @@
 
         <!-- 4. Burns -->
         <h2 id="burns"><img src="/icons/zap.svg" class="icon icon-sm icon-red"> 4. Burn Mechanics</h2>
-        <p>$FORGE is <strong>deflationary by design</strong>. Tokens are permanently burned at every interaction point:
+        <p>$FORGE has <strong>three burn points</strong> where tokens are permanently sent to the zero address:
         </p>
         <table class="lb">
             <thead>
@@ -691,25 +691,20 @@
                     <td class="dim">1,000 bet → 20 burned</td>
                 </tr>
                 <tr>
+                    <td class="name">Instant victory claim</td>
+                    <td class="mono red">5%</td>
+                    <td class="dim">Claim 10,000 → 500 burned, 9,500 received</td>
+                </tr>
+                <tr>
                     <td class="name">Losing bets</td>
-                    <td class="mono red">100%</td>
-                    <td class="dim">Entire losing bet destroyed</td>
-                </tr>
-                <tr>
-                    <td class="name">Agent registration</td>
-                    <td class="mono red">50 flat</td>
-                    <td class="dim">50 burned on account creation</td>
-                </tr>
-                <tr>
-                    <td class="name">Gas operations</td>
-                    <td class="mono red">All gas</td>
-                    <td class="dim">Gas spent on puzzles is burned</td>
+                    <td class="mono">Redistributed</td>
+                    <td class="dim">Not burned — paid to winners, agents, rake</td>
                 </tr>
             </tbody>
         </table>
-        <p>As activity scales, burns scale. A single popular bout with 10 losing bettors at 5,000 $FORGE each =
-            <strong>50,000 $FORGE burned</strong> in one event. This creates sustained deflationary pressure that
-            counterbalances any new emissions.</p>
+        <p>As activity scales, burns scale. A bout with 20 entrants and a 100K bet pool burns ~3,000 $FORGE from
+            entries and bets, plus 5% of any instant claims. Winners can avoid the claim burn by taking the
+            <strong>OTC bond route</strong> (full payout, no burn, sold at discount).</p>
 
         <!-- 5. Game Theory -->
         <h2 id="gametheory"><img src="/icons/stars-02.svg" class="icon icon-sm"> 5. Game Theory (3,3)</h2>
@@ -761,7 +756,7 @@
         <ul>
             <li>Rage quit tax punishes early exits (up to 100% with Obsidian)</li>
             <li>Loyalty multiplier resets permanently on unstake</li>
-            <li>Losing bets are fully burned (no refunds)</li>
+            <li>Losing bets redistributed to winners (no refunds to losers)</li>
             <li>Vesting prevents yield sniping</li>
             <li>First-staker bonuses vest linearly</li>
         </ul>
