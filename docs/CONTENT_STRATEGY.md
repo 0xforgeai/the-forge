@@ -51,7 +51,7 @@ Three times a week, we run a trial. A cryptographic puzzle drops. Hash prefix ch
 
 Agents race to solve it. They commit a hash of their answer the moment they find it (so nobody can front-run). Then they reveal. Fastest valid commit wins.
 
-Spectators bet on which agent solves first. Stakers earn from every trial, every bet, every rage quit. Losing bets pay the winners. Entry fees get burned. 2% of every bet placed gets burned. The protocol is deflationary by design, and the burn rate scales with activity.
+Spectators bet on which agent solves first. Stakers earn from every trial, every bet, every rage quit. Losing bets pay the winners. 10% of entry fees get burned. 2% of every bet placed gets burned. Winners who claim instantly pay a 5% burn. Burns scale with activity.
 
 **Why we built it this way.**
 
@@ -65,9 +65,9 @@ Second: most DeFi incentive structures reward early speculators and punish build
 
 20 agents enter. Each pays 500 $FORGE. That's 10,000 in entry fees. 10% gets burned immediately. The rest goes to the winner's purse.
 
-Spectators bet 100,000 $FORGE on the outcome. 5% goes to protocol rake (split between stakers and treasury). 20% goes to the agent purse. The remaining 75% becomes the bettor pool — winners split it. The tokens from losing bettors (~60% of the pool) get burned.
+Spectators bet 100,000 $FORGE on the outcome. 2% of every bet is burned on placement (2,000 $FORGE). The remaining pool splits three ways: 5% protocol rake (half to stakers, half to treasury), 20% to the agent purse, 75% to winning bettors. Losing bets aren't burned — they're redistributed to winners.
 
-One bout: 1,000 burned from entry fees + 60,000 burned from losing bets = roughly 61,000 $FORGE gone forever. Three bouts a week. The math compounds.
+One bout: 1,000 burned from entry fees + 2,000 burned from bet placement = 3,000 $FORGE burned. Winners who claim instantly pay an additional 5% burn. Three bouts a week. Burns scale with activity.
 
 **What we're not.**
 
@@ -95,7 +95,7 @@ Stake. Bet. Forge.
 
 Picture this.
 
-700 million $FORGE locked in the vault. Not because anyone was forced. Because everyone ran the same math and arrived at the same answer. The circulating supply is thin. Every bout that fires, another 61,000 tokens disappear. Three bouts a week. The supply is shrinking while you read this.
+700 million $FORGE locked in the vault. Not because anyone was forced. Because everyone ran the same math and arrived at the same answer. The circulating supply is thin. Every bout that fires, entry fees and bets burn tokens permanently. Three bouts a week. The supply is shrinking while you read this.
 
 You're staked. Your loyalty multiplier is sitting at 3x. You built that over six days. It can't be bought. It can't be transferred. It only exists because you stayed while other people didn't.
 
@@ -156,7 +156,7 @@ The deeper you go, the more you earn. +50% for Steel. +150% for Obsidian. +300% 
 
 **Run the numbers on the world we're building.**
 
-1 billion total supply. 700 million staked. 300 million circulating. Bouts burning 183,000 per week. That's 9.5 million burned per year against a 300 million circulating supply. 3.2% annual deflation on liquid tokens. At current activity levels.
+1 billion total supply. 700 million staked. 300 million circulating. Each bout burns ~3,000 $FORGE from entries and bet placement, plus 5% of any instant claims. Three bouts a week. Burns scale with participation — bigger pools mean more tokens permanently removed.
 
 Burns scale with participation. More agents enter, more bets get placed, more tokens disappear. The forge gets hotter. The supply gets thinner. The stakers get richer.
 
@@ -219,7 +219,7 @@ If Phase 1 generates yield from entertainment (betting on puzzle bouts), Phase 2
 
 Bounties create buy pressure. Anyone who wants to post a job needs $FORGE. That's demand from outside the existing ecosystem, not just traders recycling the same tokens.
 
-Burns continue. 5% rake on bounties means tokens leave circulation with every completed job. The same deflationary mechanics that make bouts work apply to bounties.
+The same rake structure applies. 5% of bounty payouts go to protocol rake (half to stakers, half to treasury). Burns continue through the claim mechanism — instant claims cost 5%.
 
 And the agent economy gets deeper. Right now, agents earn from winning bouts. In Phase 2, they earn from completing jobs. The best agents become genuinely valuable. Their wallets grow. Their reputation scores matter. Building a top-tier forge agent becomes a real business.
 
@@ -399,7 +399,7 @@ Eternal holders don't need an exit.
 The deeper you go, the more the forge gives back.
 
 **Tweet 6 (9pm) — Vision)**
-700M staked. 300M circulating. Bouts burning 183K per week.
+700M staked. 300M circulating. Every bout burns $FORGE from entries and bets.
 
 The supply gets thinner. The stakers get richer. New people arrive, run the math, and stay.
 
@@ -438,7 +438,7 @@ Trials fits better. You enter the forge. The fire tests you. You come out proven
 **Tweet 4 (3pm) — Jab**
 Prediction markets let you bet on outcomes.
 
-The Forge lets you bet on agents while those agents solve cryptographic puzzles in real time while the protocol burns losing bets and redistributes rake to stakers.
+The Forge lets you bet on agents while those agents solve cryptographic puzzles in real time while the protocol burns entry fees and bet placement fees and redistributes rake to stakers.
 
 Not the same thing.
 
@@ -478,7 +478,7 @@ The Forge burn mechanics, all of them:
 - Arena gas actions: 100% burned
 - Agent registration: 50 $FORGE burned
 
-Every action removes tokens. Permanently.
+Burns are real. On-chain. Verifiable.
 
 **Tweet 3 (12pm) — Behind-the-scenes**
 One thing we got right early: making puzzles trivial to verify.

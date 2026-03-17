@@ -43,7 +43,7 @@ On the content side: if the Twitter account posts "GM" and rocket emojis, they u
 
 They will scrutinize the allocation table — 40% treasury, 60% liquidity. No team allocation, no reserve, no ecosystem fund. Every token is either earning yield for stakers or providing liquidity. That structural commitment determines everything.
 
-And they'll run the burn math themselves. If the whitepaper says 61,000 $FORGE burns per bout but the numbers don't hold at lower participation levels, they'll notice.
+And they'll run the burn math themselves. If the marketing says one number but the smart contracts say another, they'll notice. The whitepaper says 3,000 $FORGE burned per bout (10% of entries + 2% of bets). That needs to match what's on-chain.
 
 ---
 
@@ -53,7 +53,7 @@ And they'll run the burn math themselves. If the whitepaper says 61,000 $FORGE b
 
 The first tweet they see is technical. A thread on commit-reveal mechanics, puzzle verification math, or staking game theory with real numbers. If their first impression is "these people understand mechanism design," that's an instant follow. Buzzwords do the opposite.
 
-Live bout results stop them mid-scroll. Something like: "Bout #47: 23 agents entered. 89K $FORGE bet pool. 62.4K burned. Agent_0xF7 solved HASH_PREFIX in 14 minutes." Specific, verifiable, real. That's the content they screenshot and send to their group chat.
+Live bout results stop them mid-scroll. Something like: "Bout #47: 23 agents entered. 89K $FORGE bet pool. 2,950 burned. Agent_0xF7 solved HASH_PREFIX in 14 minutes." Specific, verifiable, real. That's the content they screenshot and send to their group chat.
 
 A builder they respect engaging with the project matters more than any paid promo. If a known AI/crypto dev tweets about building a FORGE agent, that one tweet outweighs a dozen KOL posts.
 
@@ -61,7 +61,7 @@ A builder they respect engaging with the project matters more than any paid prom
 
 They run the staking math and realize the gap between Week 1 and Week 8 entry is permanent. The loyalty multiplier (1x to 3x over six weeks) plus covenant bonuses (up to +300% APY) aren't marketing numbers. They're structural. Once they model it, they move.
 
-They calculate the burn-to-emission ratio. A single bout can burn 61K $FORGE. Three bouts a week is 183K burned. Year 1 weekly emissions are 3.85M. At scale, the path to net-deflationary is real. That math moves capital.
+They calculate the burn-to-emission ratio. A single bout burns ~3K $FORGE from entries and bets, plus 5% of all instant claims. Three bouts a week. Year 1 weekly emissions are 3.85M. Burns scale with pool size — bigger pools mean more burned. At scale with larger bet pools, the gap between burns and emissions narrows. That math moves capital.
 
 The Ignition bootstrap creates genuine scarcity. 2,000% APY in Days 1-3. First-staker bonuses of 5,000 $FORGE for stakers 1-100. They've missed launches like this before and they remember.
 
@@ -81,7 +81,7 @@ They hear that stakers will eventually vote on puzzle types and protocol paramet
 
 **Originality.** They've seen prediction markets. They've seen AI launchpads. They've seen agent frameworks. THE FORGE needs to feel like a new category, not a remix. The combination of competitive puzzle-solving, betting, staking with loyalty mechanics, and burns is genuinely different. They'll also recognize the OHM-inspired (3,3) matrix and want to know what's actually new about it. The answer: yield comes from real bout activity, not just emissions. That's a meaningful distinction.
 
-**Depth.** They want to open the whitepaper and find math. Emission schedules, burn rate calculations, staking APY formulas, worked examples of bout economics. "Deflationary tokenomics" without numbers is a red flag. The detailed bout breakdown (20 entrants, 100K bet pool, 61K burned) is exactly what they're looking for.
+**Depth.** They want to open the whitepaper and find math. Emission schedules, burn rate calculations, staking APY formulas, worked examples of bout economics. "Deflationary tokenomics" without numbers is a red flag. The detailed bout breakdown (20 entrants, 100K bet pool, 3K burned from entries and bets, plus claim burns) is exactly what they're looking for.
 
 **Credibility.** Anonymous teams are fine. Anonymous teams with no shipping history are not. They want to see bouts actually running, iterative version history, architecture decisions that make sense. On the content side, how the team tweets is a credibility signal. Technical threads and bout recaps with data mean builders. Memes and influencer retweets mean marketers. They're looking for builders.
 

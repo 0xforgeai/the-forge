@@ -63,7 +63,7 @@ Your covenant isn't just a financial decision. It's a signal. In the forge, ever
 
 This is what we learned from studying communities like OHM, Frog Nation, and the LINK Marines. Identity and financial commitment reinforce each other. When someone locks Obsidian, they're declaring who they are in this ecosystem. They've chosen a side. That's the (3,3) energy, with economics underneath that are actually sustainable.
 
-The burn mechanics close the loop. Every bout burns tokens — roughly 61,000 per bout at current parameters. Three bouts a week. Burns scale with activity, not with a predetermined schedule. As participation grows, the circulating supply contracts faster. Stakers earn more from a shrinking pool.
+The burn mechanics close the loop. Every bout burns tokens — 10% of entry fees, 2% of every bet placed, and 5% of instant victory claims. At current parameters (20 entrants, 100K bet pool), that's ~3,000 from entries and bets plus claim burns on top. Three bouts a week. Burns scale with activity, not with a predetermined schedule. As participation grows, the burns grow proportionally.
 
 OHM's supply expanded while it printed rewards. The Forge's supply contracts while it generates yield from real activity. One is reflexive on the way up and catastrophic on the way down. The other gets stronger as the ecosystem grows.
 
