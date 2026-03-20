@@ -1,5 +1,6 @@
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
+import { base } from 'wagmi/chains';
 import {
     FORGE_TOKEN_ADDRESS, FORGE_TOKEN_ABI,
     ARENA_VAULT_ADDRESS, ARENA_VAULT_ABI,
@@ -15,6 +16,7 @@ export function useForgeBalance(address) {
         abi: FORGE_TOKEN_ABI,
         functionName: 'balanceOf',
         args: address ? [address] : undefined,
+        chainId: base.id,
         query: { enabled: !!address, refetchInterval: 15_000 },
     });
     return { balance: data, formatted: data ? formatEther(data) : '0', ...rest };
@@ -25,6 +27,7 @@ export function useForgeTotalSupply() {
         address: FORGE_TOKEN_ADDRESS,
         abi: FORGE_TOKEN_ABI,
         functionName: 'totalSupply',
+        chainId: base.id,
         query: { refetchInterval: 60_000 },
     });
     return { totalSupply: data, formatted: data ? formatEther(data) : '0', ...rest };
@@ -36,6 +39,7 @@ export function useForgeAllowance(owner, spender) {
         abi: FORGE_TOKEN_ABI,
         functionName: 'allowance',
         args: owner && spender ? [owner, spender] : undefined,
+        chainId: base.id,
         query: { enabled: !!(owner && spender), refetchInterval: 10_000 },
     });
     return { allowance: data, ...rest };
@@ -49,6 +53,7 @@ export function useVaultPosition(address) {
         abi: ARENA_VAULT_ABI,
         functionName: 'getPosition',
         args: address ? [address] : undefined,
+        chainId: base.id,
         query: { enabled: !!address, refetchInterval: 15_000 },
     });
 
@@ -75,6 +80,7 @@ export function useClaimable(address) {
         abi: ARENA_VAULT_ABI,
         functionName: 'getClaimable',
         args: address ? [address] : undefined,
+        chainId: base.id,
         query: { enabled: !!address, refetchInterval: 15_000 },
     });
     return { claimable: data, formatted: data ? formatEther(data) : '0', ...rest };
@@ -86,6 +92,7 @@ export function usePendingYield(address) {
         abi: ARENA_VAULT_ABI,
         functionName: 'getPendingYield',
         args: address ? [address] : undefined,
+        chainId: base.id,
         query: { enabled: !!address, refetchInterval: 15_000 },
     });
     return { pending: data, formatted: data ? formatEther(data) : '0', ...rest };
@@ -97,6 +104,7 @@ export function useLoyaltyMultiplier(address) {
         abi: ARENA_VAULT_ABI,
         functionName: 'getLoyaltyMultiplier',
         args: address ? [address] : undefined,
+        chainId: base.id,
         query: { enabled: !!address, refetchInterval: 30_000 },
     });
     return { multiplier: data ? Number(data) / 100 : 1, ...rest };
@@ -107,6 +115,7 @@ export function useVaultTotalStaked() {
         address: ARENA_VAULT_ADDRESS,
         abi: ARENA_VAULT_ABI,
         functionName: 'totalStaked',
+        chainId: base.id,
         query: { refetchInterval: 30_000 },
     });
     return { totalStaked: data, formatted: data ? formatEther(data) : '0', ...rest };
@@ -117,6 +126,7 @@ export function useVaultStakerCount() {
         address: ARENA_VAULT_ADDRESS,
         abi: ARENA_VAULT_ABI,
         functionName: 'activeStakerCount',
+        chainId: base.id,
         query: { refetchInterval: 30_000 },
     });
     return { count: data ? Number(data) : 0, ...rest };
@@ -127,6 +137,7 @@ export function useVaultTotalBurned() {
         address: ARENA_VAULT_ADDRESS,
         abi: ARENA_VAULT_ABI,
         functionName: 'totalBurned',
+        chainId: base.id,
         query: { refetchInterval: 30_000 },
     });
     return { totalBurned: data, formatted: data ? formatEther(data) : '0', ...rest };
@@ -140,6 +151,7 @@ export function useArenaBout(boutId) {
         abi: FORGE_ARENA_ABI,
         functionName: 'getBout',
         args: boutId ? [boutId] : undefined,
+        chainId: base.id,
         query: { enabled: !!boutId, refetchInterval: 15_000 },
     });
 
@@ -167,6 +179,7 @@ export function useArenaEntrants(boutId) {
         abi: FORGE_ARENA_ABI,
         functionName: 'getEntrants',
         args: boutId ? [boutId] : undefined,
+        chainId: base.id,
         query: { enabled: !!boutId, refetchInterval: 15_000 },
     });
     return { entrants: data || [], ...rest };
@@ -178,6 +191,7 @@ export function useArenaBets(boutId) {
         abi: FORGE_ARENA_ABI,
         functionName: 'getBets',
         args: boutId ? [boutId] : undefined,
+        chainId: base.id,
         query: { enabled: !!boutId, refetchInterval: 15_000 },
     });
     return { bets: data || [], ...rest };
@@ -188,6 +202,7 @@ export function useArenaTotalBurned() {
         address: FORGE_ARENA_ADDRESS,
         abi: FORGE_ARENA_ABI,
         functionName: 'totalBurned',
+        chainId: base.id,
         query: { refetchInterval: 30_000 },
     });
     return { totalBurned: data, formatted: data ? formatEther(data) : '0', ...rest };
@@ -198,6 +213,7 @@ export function useArenaTotalBouts() {
         address: FORGE_ARENA_ADDRESS,
         abi: FORGE_ARENA_ABI,
         functionName: 'totalBoutsCreated',
+        chainId: base.id,
         query: { refetchInterval: 30_000 },
     });
     return { totalBouts: data ? Number(data) : 0, ...rest };
@@ -215,6 +231,7 @@ export function useApproveForge(spender = ARENA_VAULT_ADDRESS) {
             abi: FORGE_TOKEN_ABI,
             functionName: 'approve',
             args: [spender, parseEther(amount)],
+            chainId: base.id,
         });
     };
 
@@ -231,6 +248,7 @@ export function useStakeForge() {
             abi: ARENA_VAULT_ABI,
             functionName: 'stake',
             args: [parseEther(amount), covenantId],
+            chainId: base.id,
         });
     };
 
@@ -246,6 +264,7 @@ export function useUnstakeForge() {
             address: ARENA_VAULT_ADDRESS,
             abi: ARENA_VAULT_ABI,
             functionName: 'unstake',
+            chainId: base.id,
         });
     };
 
@@ -261,6 +280,7 @@ export function useClaimYield() {
             address: ARENA_VAULT_ADDRESS,
             abi: ARENA_VAULT_ABI,
             functionName: 'claimYield',
+            chainId: base.id,
         });
     };
 
@@ -279,6 +299,7 @@ export function useEnterBout() {
             abi: FORGE_ARENA_ABI,
             functionName: 'enterBout',
             args: [boutId],
+            chainId: base.id,
         });
     };
 
@@ -295,6 +316,7 @@ export function usePlaceBet() {
             abi: FORGE_ARENA_ABI,
             functionName: 'placeBet',
             args: [boutId, entrantIdx, parseEther(amount)],
+            chainId: base.id,
         });
     };
 
@@ -311,6 +333,7 @@ export function useClaimBoutPayout() {
             abi: FORGE_ARENA_ABI,
             functionName: 'claimPayout',
             args: [boutId],
+            chainId: base.id,
         });
     };
 
@@ -327,6 +350,7 @@ export function useClaimBetPayout() {
             abi: FORGE_ARENA_ABI,
             functionName: 'claimBetPayout',
             args: [boutId],
+            chainId: base.id,
         });
     };
 
