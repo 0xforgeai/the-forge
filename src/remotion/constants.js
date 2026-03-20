@@ -21,9 +21,9 @@ export const FONTS = {
   sans: "'Inter', -apple-system, sans-serif",
 };
 
-// Video specs: 10 seconds at 30fps = 300 frames
+// Video specs: 12 seconds at 30fps = 360 frames
 export const FPS = 30;
-export const DURATION_SECONDS = 10;
+export const DURATION_SECONDS = 12;
 export const DURATION_FRAMES = FPS * DURATION_SECONDS;
 export const WIDTH = 1920;
 export const HEIGHT = 1080;
