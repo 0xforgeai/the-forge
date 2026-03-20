@@ -10,7 +10,9 @@
     "db:migrate": "npx prisma migrate dev",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
-    "db:seed": "node src/seed.js"
+    "db:seed": "node src/seed.js",
+    "video:studio": "npx remotion studio src/remotion/index.js",
+    "video:render": "node src/remotion/render.mjs"
   },
   "keywords": [
     "forge",
