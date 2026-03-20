@@ -1,7 +1,7 @@
-// ─── Contract Addresses (Base Mainnet — V2) ────────────────
-export const FORGE_TOKEN_ADDRESS = '0xC446d1796006e53294A2402e55DEd018D0155150';
-export const ARENA_VAULT_ADDRESS = '0x42795b1E9965A54a9E54A9c504F7B48D5a2dE32f';
-export const FORGE_ARENA_ADDRESS = '0x132c8b38ca8E0c6D204B2fFEa6260753Bc9e2687';
+// ─── Contract Addresses (Base Mainnet — V3) ────────────────
+export const FORGE_TOKEN_ADDRESS = '0xf6c2965295ce2178f64832163a9a97ccf61a3aee';
+export const ARENA_VAULT_ADDRESS = '0x77917FD54484552F7d2c8bace5270C40c3fc1380';
+export const FORGE_ARENA_ADDRESS = '0x22FFDf9E88cEFE2781b9Ebe17eabd4388Ab6cff4';
 
 // ─── ForgeToken ABI (minimal) ──────────────────────────────
 export const FORGE_TOKEN_ABI = [
