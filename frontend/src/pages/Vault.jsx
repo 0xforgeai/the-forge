@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
+import { useSwitchChain, useAccount } from 'wagmi';
+import { base } from 'wagmi/chains';
 import { useToast } from '../components/Toast';
 import { apiFetch } from '../hooks/useApi';
 import StatsBar from '../components/StatsBar';
@@ -15,6 +17,8 @@ export default function Vault() {
     const { authenticated, user } = usePrivy();
     const walletAddress = user?.wallet?.address;
     const { show: toast } = useToast();
+    const { chainId } = useAccount();
+    const { switchChain } = useSwitchChain();
 
     // API data
     const [vaultInfo, setVaultInfo] = useState(null);
@@ -30,10 +34,10 @@ export default function Vault() {
     const { count: stakerCount } = useVaultStakerCount();
 
     // Write hooks
-    const { approve, isPending: approving, isSuccess: approved } = useApproveForge();
-    const { stake, isPending: staking, isConfirming: stakingConfirming, isSuccess: staked } = useStakeForge();
-    const { unstake, isPending: unstaking, isConfirming: unstakeConfirming, isSuccess: unstaked } = useUnstakeForge();
-    const { claim, isPending: claiming, isConfirming: claimConfirming, isSuccess: claimed } = useClaimYield();
+    const { approve, isPending: approving, isSuccess: approved, error: approveError } = useApproveForge();
+    const { stake, isPending: staking, isConfirming: stakingConfirming, isSuccess: staked, error: stakeError } = useStakeForge();
+    const { unstake, isPending: unstaking, isConfirming: unstakeConfirming, isSuccess: unstaked, error: unstakeError } = useUnstakeForge();
+    const { claim, isPending: claiming, isConfirming: claimConfirming, isSuccess: claimed, error: claimError } = useClaimYield();
 
     // Stake form
     const [amount, setAmount] = useState('');
@@ -45,6 +49,12 @@ export default function Vault() {
         return () => clearInterval(id);
     }, []);
 
+    // Surface contract errors as toasts
+    useEffect(() => { if (approveError) toast(approveError.shortMessage || approveError.message, 'error'); }, [approveError]);
+    useEffect(() => { if (stakeError) toast(stakeError.shortMessage || stakeError.message, 'error'); }, [stakeError]);
+    useEffect(() => { if (unstakeError) toast(unstakeError.shortMessage || unstakeError.message, 'error'); }, [unstakeError]);
+    useEffect(() => { if (claimError) toast(claimError.shortMessage || claimError.message, 'error'); }, [claimError]);
+
     async function loadVault() {
         try {
             const data = await apiFetch('/api/vault/info');
@@ -52,8 +62,21 @@ export default function Vault() {
         } catch (e) { toast(e.message || 'Failed to load vault info', 'error'); }
     }
 
-    function handleStake() {
+    async function ensureBase() {
+        if (chainId !== base.id) {
+            try {
+                await switchChain({ chainId: base.id });
+            } catch (e) {
+                toast('Please switch your wallet to Base network', 'error');
+                return false;
+            }
+        }
+        return true;
+    }
+
+    async function handleStake() {
         if (!amount || Number(amount) <= 0) return;
+        if (!(await ensureBase())) return;
         const needed = BigInt(Math.floor(Number(amount) * 1e18));
         if (!allowance || allowance < needed) {
             approve(amount);
@@ -68,6 +91,7 @@ export default function Vault() {
             stake(amount, covenant);
         }
     }, [approved]);
+
 
     return (
         <>
