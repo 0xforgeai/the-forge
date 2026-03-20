@@ -1,10 +1,10 @@
 /**
  * Seed the first bout — "Trial #1: The Ignition"
  *
- * Scheduled: March 16, 2026 at 7:00 PM PDT (2026-03-17T02:00:00Z)
- * Registration opens: ~48h before (March 14, 7:00 PM PDT)
- * Betting opens: 12h before (March 16, 7:00 AM PDT)
- * Betting closes: 1h before (March 16, 6:00 PM PDT)
+ * Scheduled: March 22, 2026 at 9:00 AM PDT (2026-03-22T16:00:00Z)
+ * Registration opens: ~48h before (March 20, 9:00 AM PDT)
+ * Betting opens: 12h before (March 21, 9:00 PM PDT)
+ * Betting closes: 1h before (March 22, 8:00 AM PDT)
  */
 
 import prisma from './db.js';
@@ -15,16 +15,15 @@ async function seedFirstBout() {
 
     const title = 'Trial #1: The Ignition';
 
-    // Check if already exists
+    // Delete previous version if exists (date changed)
     const existing = await prisma.bout.findFirst({ where: { title } });
     if (existing) {
-        logger.info({ boutId: existing.id, status: existing.status }, 'First bout already exists, skipping');
-        await prisma.$disconnect();
-        return;
+        await prisma.bout.delete({ where: { id: existing.id } });
+        logger.info({ boutId: existing.id }, 'Deleted previous bout seed (date changed)');
     }
 
-    // March 16, 2026 at 7:00 PM PDT = March 17, 2026 at 02:00:00 UTC
-    const scheduledAt = new Date('2026-03-17T02:00:00Z');
+    // March 22, 2026 at 9:00 AM PDT = March 22, 2026 at 16:00:00 UTC
+    const scheduledAt = new Date('2026-03-22T16:00:00Z');
 
     const bout = await prisma.bout.create({
         data: {
@@ -59,10 +58,10 @@ async function seedFirstBout() {
 ║  Entry Fee: 500 $FORGE                           ║
 ║  Solve Time: 1 hour                              ║
 ║                                                  ║
-║  Scheduled:     Mar 16 @ 7:00 PM PDT             ║
-║  Registration:  Mar 14 @ 7:00 PM PDT (NOW)       ║
-║  Betting Opens: Mar 16 @ 7:00 AM PDT             ║
-║  Betting Close: Mar 16 @ 6:00 PM PDT             ║
+║  Scheduled:     Mar 22 @ 9:00 AM PDT             ║
+║  Registration:  Mar 20 @ 9:00 AM PDT (NOW)       ║
+║  Betting Opens: Mar 21 @ 9:00 PM PDT             ║
+║  Betting Close: Mar 22 @ 8:00 AM PDT             ║
 ╚══════════════════════════════════════════════════╝
 `);
 
@@ -73,3 +72,4 @@ seedFirstBout().catch((err) => {
     logger.error({ err }, 'First bout seed failed');
     process.exit(1);
 });
+
