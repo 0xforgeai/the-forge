@@ -7,6 +7,7 @@ import "../src/ArenaVault.sol";
 import "../src/ForgeArena.sol";
 import "../src/VictoryEscrow.sol";
 import "../src/ForgeBonds.sol";
+import "../src/ForgeTreasury.sol";
 
 /**
  * @title DeployAll — Full Forge Ecosystem Deployment
@@ -51,6 +52,8 @@ contract DeployAll is Script {
 
         uint16 instantBurnBps = uint16(vm.envOr("INSTANT_BURN_BPS", uint256(500)));
         uint32 baseAprBps     = uint32(vm.envOr("BASE_APR_BPS", uint256(1000)));
+        // 5M tokens/week initial emission cap (in wei)
+        uint256 weeklyEmissionCap = vm.envOr("WEEKLY_EMISSION_CAP", uint256(5_000_000 ether));
 
         console.log("");
         console.log("=== Forge Ecosystem Deployment ===");
@@ -77,8 +80,15 @@ contract DeployAll is Script {
         console.log("[3/4] ForgeBonds:      ", address(bonds));
 
         // ─── 4. Deploy ForgeArena ────────────────────────
-        ForgeArena arena = new ForgeArena(tokenAddr, address(vault), treasury, deployer);
-        console.log("[4/4] ForgeArena:      ", address(arena));
+        ForgeArena arena = new ForgeArena(tokenAddr, address(vault), address(0), deployer);
+        console.log("[4/5] ForgeArena:      ", address(arena));
+
+        // --- 5. Deploy ForgeTreasury ---
+        ForgeTreasury treasury_ = new ForgeTreasury(deployer, weeklyEmissionCap);
+        console.log("[5/5] ForgeTreasury:   ", address(treasury_));
+
+        // Set ForgeArena treasury to ForgeTreasury contract
+        arena.setTreasury(address(treasury_));
 
         // ─── 5. Wire contracts ───────────────────────────
         console.log("");
@@ -113,7 +123,7 @@ contract DeployAll is Script {
         console.log("  VictoryEscrow:   ", address(escrow));
         console.log("  ForgeBonds:      ", address(bonds));
         console.log("  ForgeArena:      ", address(arena));
-        console.log("  Treasury:        ", treasury);
+        console.log("  ForgeTreasury:   ", address(treasury_));
         console.log("  Deployer:        ", deployer);
         console.log("========================================");
         console.log("");
@@ -122,6 +132,7 @@ contract DeployAll is Script {
         console.log("  VICTORY_ESCROW_ADDRESS=", address(escrow));
         console.log("  FORGE_BONDS_ADDRESS=", address(bonds));
         console.log("  FORGE_ARENA_ADDRESS=", address(arena));
+        console.log("  FORGE_TREASURY_ADDRESS=", address(treasury_));
         console.log("========================================");
     }
 }
@@ -140,14 +151,11 @@ contract SetToken is Script {
         address escrowAddr = vm.envAddress("VICTORY_ESCROW_ADDRESS");
         address bondsAddr = vm.envAddress("FORGE_BONDS_ADDRESS");
         address arenaAddr = vm.envAddress("FORGE_ARENA_ADDRESS");
+        address treasuryAddr = vm.envAddress("FORGE_TREASURY_ADDRESS");
 
         console.log("");
         console.log("=== Phase 2: Setting ForgeToken ===");
         console.log("Token:           ", tokenAddr);
-        console.log("ArenaVault:      ", vaultAddr);
-        console.log("VictoryEscrow:   ", escrowAddr);
-        console.log("ForgeBonds:      ", bondsAddr);
-        console.log("ForgeArena:      ", arenaAddr);
         console.log("");
 
         vm.startBroadcast(deployerPrivateKey);
@@ -164,6 +172,14 @@ contract SetToken is Script {
         ForgeArena(arenaAddr).setForgeToken(tokenAddr);
         console.log("[set] ForgeArena.setForgeToken     -> done");
 
+        ForgeTreasury(treasuryAddr).setForgeToken(tokenAddr);
+        console.log("[set] ForgeTreasury.setForgeToken  -> done");
+
+        // Authorize ArenaVault and ForgeArena as treasury recipients
+        ForgeTreasury(treasuryAddr).setRecipient(vaultAddr, true);
+        ForgeTreasury(treasuryAddr).setRecipient(arenaAddr, true);
+        console.log("[treasury] ArenaVault + ForgeArena authorized as recipients");
+
         // Set approvals for deployer
         ForgeToken token = ForgeToken(tokenAddr);
         token.approve(vaultAddr, type(uint256).max);
@@ -176,7 +192,12 @@ contract SetToken is Script {
         console.log("");
         console.log("========================================");
         console.log("  TOKEN SET ON ALL CONTRACTS");
+        console.log("  Treasury authorized for vault + arena");
         console.log("  Contracts are now fully operational");
+        console.log("========================================");
+        console.log("");
+        console.log("  Next: Send 40%% of tokens to treasury:");
+        console.log("  ForgeTreasury:   ", treasuryAddr);
         console.log("========================================");
     }
 }
