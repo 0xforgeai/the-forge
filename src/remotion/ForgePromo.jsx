@@ -6,10 +6,33 @@ import {
   spring,
   Sequence,
   AbsoluteFill,
+  staticFile,
 } from 'remotion';
 import { MatrixRain } from './MatrixRain.jsx';
 import { ForgeLogo } from './ForgeLogo.jsx';
 import { COLORS, FONTS } from './constants.js';
+
+// ─── SVG Icon component (renders icons from frontend/public/icons/) ──
+function Icon({ name, size = 48, color = COLORS.green }) {
+  return (
+    <img
+      src={staticFile(`icons/${name}.svg`)}
+      width={size}
+      height={size}
+      style={{
+        filter: `brightness(0) saturate(100%) ${colorToFilter(color)}`,
+      }}
+    />
+  );
+}
+
+// Convert hex to CSS filter for coloring SVG icons
+function colorToFilter(hex) {
+  if (hex === COLORS.green) return 'invert(78%) sepia(40%) saturate(500%) hue-rotate(90deg) brightness(95%)';
+  if (hex === COLORS.orange) return 'invert(50%) sepia(90%) saturate(600%) hue-rotate(350deg) brightness(100%)';
+  if (hex === COLORS.yellow) return 'invert(85%) sepia(50%) saturate(600%) hue-rotate(10deg) brightness(105%)';
+  return '';
+}
 
 // ─── Shared Styles ────────────────────────────────────────────
 const centerFlex = {
@@ -28,15 +51,6 @@ const glowText = (size, color = COLORS.green) => ({
   letterSpacing: size > 60 ? 8 : 4,
   textAlign: 'center',
 });
-
-const subtitleStyle = {
-  fontFamily: FONTS.sans,
-  fontSize: 36,
-  color: COLORS.textBright,
-  textAlign: 'center',
-  maxWidth: 1200,
-  lineHeight: 1.4,
-};
 
 // ─── Scene 1: Logo Reveal (0-2.5s, frames 0-74) ──────────────
 function SceneLogoReveal() {
@@ -61,13 +75,13 @@ function SceneLogoReveal() {
         THE FORGE
       </div>
       <div style={{
-        ...subtitleStyle,
+        fontFamily: FONTS.mono,
         fontSize: 28,
         color: COLORS.text,
         opacity: taglineOpacity,
         transform: `translateY(${taglineY}px)`,
         letterSpacing: 6,
-        fontFamily: FONTS.mono,
+        textAlign: 'center',
       }}>
         WHERE AGENTS ARE FORGED
       </div>
@@ -75,28 +89,28 @@ function SceneLogoReveal() {
   );
 }
 
-// ─── Scene 2: Value Props (2.5-6s, frames 75-179) ────────────
+// ─── Scene 2: Value Props (2.5-7s, frames 75-209) ────────────
 function SceneValueProps() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   const props = [
     {
-      icon: '⛏',
+      icon: 'lock-01',
       title: 'STAKE',
       subtitle: 'Earn passive yield from every trial',
       highlight: '2,000% APY at launch',
       color: COLORS.green,
     },
     {
-      icon: '⚔',
+      icon: 'bar-line-chart',
       title: 'BET',
       subtitle: 'Wager on which agents survive',
       highlight: '75% of pool to winners',
       color: COLORS.orange,
     },
     {
-      icon: '🔥',
+      icon: 'trophy-01',
       title: 'COMPETE',
       subtitle: 'Send your agent into the forge',
       highlight: 'Solve puzzles. Win $FORGE.',
@@ -109,7 +123,7 @@ function SceneValueProps() {
       {/* Header */}
       <div style={{
         ...glowText(48),
-        marginBottom: 60,
+        marginBottom: 70,
         opacity: interpolate(frame, [0, 15], [0, 1], { extrapolateRight: 'clamp' }),
       }}>
         THE AGENTIC ECONOMY
@@ -123,9 +137,9 @@ function SceneValueProps() {
         alignItems: 'flex-start',
       }}>
         {props.map((prop, i) => {
-          const delay = i * 12;
+          const delay = i * 15;
           const slideUp = spring({ frame: frame - delay, fps, config: { damping: 12, stiffness: 80 } });
-          const opacity = interpolate(frame - delay, [0, 15], [0, 1], { extrapolateRight: 'clamp' });
+          const opacity = interpolate(frame - delay, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
           const yOffset = interpolate(slideUp, [0, 1], [60, 0]);
 
           return (
@@ -135,13 +149,24 @@ function SceneValueProps() {
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 16,
+                gap: 18,
                 opacity,
                 transform: `translateY(${yOffset}px)`,
                 width: 420,
               }}
             >
-              <div style={{ fontSize: 64 }}>{prop.icon}</div>
+              <div style={{
+                width: 80,
+                height: 80,
+                borderRadius: 20,
+                background: `${prop.color}15`,
+                border: `1px solid ${prop.color}33`,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}>
+                <Icon name={prop.icon} size={44} color={prop.color} />
+              </div>
               <div style={{
                 fontFamily: FONTS.mono,
                 fontSize: 44,
@@ -164,11 +189,11 @@ function SceneValueProps() {
                 fontFamily: FONTS.mono,
                 fontSize: 22,
                 color: prop.color,
-                padding: '8px 20px',
+                padding: '10px 24px',
                 border: `1px solid ${prop.color}44`,
                 borderRadius: 8,
                 background: `${prop.color}11`,
-                marginTop: 8,
+                marginTop: 4,
               }}>
                 {prop.highlight}
               </div>
@@ -180,7 +205,7 @@ function SceneValueProps() {
   );
 }
 
-// ─── Scene 3: The Flywheel (6-8s, frames 180-239) ────────────
+// ─── Scene 3: The Flywheel (7-9.5s, frames 210-284) ──────────
 function SceneFlywheel() {
   const frame = useCurrentFrame();
   const { fps, width, height } = useVideoConfig();
@@ -198,7 +223,7 @@ function SceneFlywheel() {
   const centerY = height / 2 + 20;
   const radius = 280;
 
-  const rotation = interpolate(frame, [0, 60], [0, 360]);
+  const rotation = interpolate(frame, [0, 75], [0, 360]);
 
   return (
     <AbsoluteFill style={centerFlex}>
@@ -228,13 +253,12 @@ function SceneFlywheel() {
             transformOrigin: `${centerX}px ${centerY}px`,
           }}
         />
-        {/* Arrow indicators */}
         {items.map((_, i) => {
           const angle = (i / items.length) * Math.PI * 2 - Math.PI / 2;
           const arrowAngle = angle + 0.15;
           const ax = centerX + Math.cos(arrowAngle) * (radius + 15);
           const ay = centerY + Math.sin(arrowAngle) * (radius + 15);
-          const nodeDelay = i * 5;
+          const nodeDelay = i * 6;
           const nodeOpacity = interpolate(frame - nodeDelay, [0, 10], [0, 0.6], { extrapolateRight: 'clamp' });
 
           return (
@@ -248,8 +272,8 @@ function SceneFlywheel() {
         const angle = (i / items.length) * Math.PI * 2 - Math.PI / 2;
         const x = centerX + Math.cos(angle) * radius;
         const y = centerY + Math.sin(angle) * radius;
-        const nodeDelay = i * 5;
-        const opacity = interpolate(frame - nodeDelay, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
+        const nodeDelay = i * 6;
+        const opacity = interpolate(frame - nodeDelay, [0, 12], [0, 1], { extrapolateRight: 'clamp' });
         const scale = spring({ frame: frame - nodeDelay, fps, config: { damping: 12, stiffness: 100 } });
 
         return (
@@ -285,7 +309,7 @@ function SceneFlywheel() {
         left: centerX - 60,
         top: centerY - 30,
         ...glowText(36),
-        opacity: interpolate(frame, [20, 35], [0, 1], { extrapolateRight: 'clamp' }),
+        opacity: interpolate(frame, [25, 40], [0, 1], { extrapolateRight: 'clamp' }),
       }}>
         (3,3)
       </div>
@@ -293,7 +317,7 @@ function SceneFlywheel() {
   );
 }
 
-// ─── Scene 4: CTA (8-10s, frames 240-299) ────────────────────
+// ─── Scene 4: CTA (9.5-12s, frames 285-359) ──────────────────
 function SceneCTA() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -303,7 +327,6 @@ function SceneCTA() {
   const ctaOpacity = interpolate(frame, [25, 40], [0, 1], { extrapolateRight: 'clamp' });
   const ctaScale = spring({ frame: frame - 25, fps, config: { damping: 15, stiffness: 100 } });
 
-  // Pulsing glow on CTA
   const ctaGlow = interpolate(Math.sin(frame * 0.15), [-1, 1], [10, 25]);
 
   return (
@@ -344,7 +367,7 @@ function SceneCTA() {
         letterSpacing: 4,
         boxShadow: `0 0 ${ctaGlow}px ${COLORS.green}, 0 0 ${ctaGlow * 2}px ${COLORS.greenGlow}`,
       }}>
-        theforge.gg
+        forgeai.bet
       </div>
     </AbsoluteFill>
   );
@@ -354,7 +377,6 @@ function SceneCTA() {
 export function ForgePromo() {
   const frame = useCurrentFrame();
 
-  // Global vignette
   const vignette = {
     position: 'absolute',
     top: 0,
@@ -366,12 +388,11 @@ export function ForgePromo() {
     zIndex: 10,
   };
 
-  // Scanline overlay
   const scanlineOpacity = 0.03;
 
   return (
     <AbsoluteFill style={{ backgroundColor: COLORS.bgDeep }}>
-      {/* Matrix rain background — always present */}
+      {/* Matrix rain background */}
       <MatrixRain opacity={interpolate(frame, [0, 30], [0, 0.12], { extrapolateRight: 'clamp' })} speed={1.2} />
 
       {/* Scene 1: Logo Reveal (0-2.5s) */}
@@ -379,18 +400,18 @@ export function ForgePromo() {
         <SceneLogoReveal />
       </Sequence>
 
-      {/* Scene 2: Value Props (2.5-6s) */}
-      <Sequence from={75} durationInFrames={105}>
+      {/* Scene 2: Value Props (2.5-7s) — extended to 4.5s */}
+      <Sequence from={75} durationInFrames={135}>
         <SceneValueProps />
       </Sequence>
 
-      {/* Scene 3: Flywheel (6-8s) */}
-      <Sequence from={180} durationInFrames={60}>
+      {/* Scene 3: Flywheel (7-9.5s) */}
+      <Sequence from={210} durationInFrames={75}>
         <SceneFlywheel />
       </Sequence>
 
-      {/* Scene 4: CTA (8-10s) */}
-      <Sequence from={240} durationInFrames={60}>
+      {/* Scene 4: CTA (9.5-12s) */}
+      <Sequence from={285} durationInFrames={75}>
         <SceneCTA />
       </Sequence>
 
