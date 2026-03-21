@@ -148,15 +148,23 @@ export default function Vault() {
                                         </button>
                                         <button
                                             className="btn btn-ghost btn-full"
-                                            onClick={() => unstake()}
-                                            disabled={unstaking || unstakeConfirming}
+                                            onClick={async () => { if (await ensureBase()) unstake(); }}
+                                            disabled={unstaking || unstakeConfirming || position.lockExpires > Date.now() / 1000}
                                             style={{ marginTop: '0.5rem' }}
                                         >
-                                            {unstaking ? 'Signing...' : unstakeConfirming ? 'Confirming...' : unstaked ? '✓ Unstaked' : 'Unstake (Rage Quit)'}
+                                            {unstaking ? 'Signing...' : unstakeConfirming ? 'Confirming...' : unstaked ? '✓ Unstaked'
+                                                : position.lockExpires > Date.now() / 1000
+                                                    ? `🔒 Locked until ${new Date(position.lockExpires * 1000).toLocaleString()}`
+                                                    : 'Unstake (Rage Quit)'}
                                         </button>
                                         {position.lockExpires > Date.now() / 1000 && (
-                                            <div style={{ fontSize: '0.6875rem', color: 'var(--red)', marginTop: '0.375rem' }}>
-                                                <img src="/icons/lock-04.svg" className="icon icon-sm icon-red" style={{ verticalAlign: '-3px' }} /> Lock active — cannot unstake until {new Date(position.lockExpires * 1000).toLocaleDateString()}
+                                            <div style={{ fontSize: '0.6875rem', color: 'var(--orange)', marginTop: '0.375rem' }}>
+                                                <img src="/icons/lock-04.svg" className="icon icon-sm icon-red" style={{ verticalAlign: '-3px' }} /> Lock active — unstake available {new Date(position.lockExpires * 1000).toLocaleString()}
+                                            </div>
+                                        )}
+                                        {position.lockExpires <= Date.now() / 1000 && position.covenant !== 'ETERNAL' && (
+                                            <div style={{ fontSize: '0.6875rem', color: 'var(--green-dim)', marginTop: '0.375rem' }}>
+                                                ✓ Lock expired — you can unstake freely (no rage quit tax)
                                             </div>
                                         )}
                                     </div>
