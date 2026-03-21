@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useWriteContract, useAccount } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { parseEther } from 'viem';
 import { apiFetch } from '../hooks/useApi';
@@ -18,6 +18,7 @@ const CONTRACT_MAP = {
 
 export default function ForgeChat() {
     const { authenticated } = usePrivy();
+    const { address: walletAddress } = useAccount();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
         { role: 'assistant', text: 'Welcome to The Forge. Ask me anything — stake, bet, check your position, or enter a bout.' },
@@ -46,7 +47,7 @@ export default function ForgeChat() {
         try {
             const result = await apiFetch('/api/bankr/command', {
                 method: 'POST',
-                body: JSON.stringify({ message: userMsg }),
+                body: JSON.stringify({ message: userMsg, walletAddress }),
             });
 
             if (result.type === 'write' && result.txSteps) {

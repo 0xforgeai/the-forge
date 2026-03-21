@@ -374,15 +374,31 @@ async function executeAction(toolName, args, walletAddress) {
 
 // ─── Route ──────────────────────────────────────────────────
 
-router.post('/command', authenticate, async (req, res) => {
-    const { message } = req.body;
+router.post('/command', async (req, res) => {
+    const { message, walletAddress: bodyWallet } = req.body;
     if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: 'message is required' });
     }
 
-    const walletAddress = req.wallet?.address;
+    // Auth: try API key first, then fall back to walletAddress from body (for Privy frontend users)
+    let walletAddress;
+    const apiKey = req.headers['x-api-key'];
+    if (apiKey) {
+        try {
+            const wallet = await prisma.wallet.findUnique({ where: { apiKey } });
+            if (wallet) {
+                walletAddress = wallet.address;
+                req.wallet = wallet;
+            }
+        } catch { /* fall through */ }
+    }
+
+    if (!walletAddress && bodyWallet && typeof bodyWallet === 'string') {
+        walletAddress = bodyWallet;
+    }
+
     if (!walletAddress) {
-        return res.status(401).json({ error: 'Wallet address required' });
+        return res.status(401).json({ error: 'Provide x-api-key header or walletAddress in body.' });
     }
 
     try {
