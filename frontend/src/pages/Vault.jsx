@@ -129,7 +129,7 @@ export default function Vault() {
                                     <div className="dash-stat"><span className="ds-key">Covenant</span><span className="ds-val orange">{position.covenant}</span></div>
                                     <div className="dash-stat"><span className="ds-key">Staked</span><span className="ds-val green">{Number(position.amount).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
                                     <div className="dash-stat"><span className="ds-key">Loyalty</span><span className="ds-val">{loyaltyMultiplier}x</span></div>
-                                    <div className="dash-stat"><span className="ds-key">Lock Expires</span><span className="ds-val dim">{new Date(position.lockExpires * 1000).toLocaleDateString()}</span></div>
+                                    <div className="dash-stat"><span className="ds-key">Lock Expires</span><span className={`ds-val ${position.lockExpires > Date.now() / 1000 ? 'orange' : 'green'}`}>{new Date(position.lockExpires * 1000).toLocaleString()}</span></div>
                                     <div className="dash-stat"><span className="ds-key">Claimable Yield</span><span className="ds-val green">{Number(claimable).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
                                     <div className="dash-stat"><span className="ds-key">Pending Yield</span><span className="ds-val dim">{Number(pending).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
                                     <div className="dash-stat"><span className="ds-key">Total Earned</span><span className="ds-val">{Number(position.totalEarned).toLocaleString(undefined, { maximumFractionDigits: 2 })} $FORGE</span></div>
@@ -199,6 +199,9 @@ export default function Vault() {
                                             </button>
                                         ))}
                                     </div>
+                                    <div style={{ fontSize: '0.6875rem', color: 'var(--orange)', marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(255,165,0,0.05)', border: '1px solid rgba(255,165,0,0.15)', borderRadius: '6px' }}>
+                                        <strong>⚠ Lock Period:</strong> Your tokens will be <strong>fully locked</strong> for the covenant duration. You <strong>cannot unstake or withdraw</strong> until the lock expires. Choose your covenant carefully.
+                                    </div>
                                     <button
                                         className="btn btn-green btn-full"
                                         onClick={handleStake}
@@ -230,12 +233,12 @@ export default function Vault() {
                                 <span className="bout-title">
                                     <img src="/icons/zap-fast.svg" className="icon icon-sm icon-orange" /> FLAME
                                 </span>
-                                <span className="bout-tag tag-betting">1 DAY</span>
+                                <span className="bout-tag tag-betting">🔒 1 DAY LOCK</span>
                             </div>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Entry tier. Minimal lock. Start earning from the forge immediately.</div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Entry tier. <strong style={{ color: 'var(--text)' }}>Locked for 24 hours</strong> — no withdrawals until lock expires. Start earning immediately.</div>
                             <div className="bout-pool">
                                 <div><div className="bp-val" style={{ color: 'var(--text)' }}>—</div><div className="bp-label">APY Bonus</div></div>
-                                <div><div className="bp-val" style={{ color: 'var(--text)' }}>1×</div><div className="bp-label">Rage Tax</div></div>
+                                <div><div className="bp-val" style={{ color: 'var(--text)' }}>0%</div><div className="bp-label">Post-Lock Tax</div></div>
                             </div>
                         </div>
                         {/* Steel */}
@@ -244,12 +247,12 @@ export default function Vault() {
                                 <span className="bout-title">
                                     <img src="/icons/shield-02.svg" className="icon icon-sm" /> STEEL
                                 </span>
-                                <span className="bout-tag tag-live" style={{ animation: 'none' }}>3 DAYS</span>
+                                <span className="bout-tag tag-live" style={{ animation: 'none' }}>🔒 3 DAY LOCK</span>
                             </div>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Committed. You believe in what's being built here.</div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Committed. <strong style={{ color: 'var(--text)' }}>Locked for 3 days</strong> — no withdrawals during lock. Higher yield for conviction.</div>
                             <div className="bout-pool">
                                 <div><div className="bp-val green">+50%</div><div className="bp-label">APY Bonus</div></div>
-                                <div><div className="bp-val orange">2×</div><div className="bp-label">Rage Tax</div></div>
+                                <div><div className="bp-val orange">2×</div><div className="bp-label">Post-Lock Tax</div></div>
                             </div>
                         </div>
                         {/* Obsidian */}
@@ -258,12 +261,12 @@ export default function Vault() {
                                 <span className="bout-title">
                                     <img src="/icons/shield-03.svg" className="icon icon-sm icon-purple" /> OBSIDIAN
                                 </span>
-                                <span className="bout-tag" style={{ color: 'var(--purple)', borderColor: 'var(--purple)' }}>7 DAYS</span>
+                                <span className="bout-tag" style={{ color: 'var(--purple)', borderColor: 'var(--purple)' }}>🔒 7 DAY LOCK</span>
                             </div>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Maximum conviction. Top-tier yield. You're part of the foundation.</div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>Maximum conviction. <strong style={{ color: 'var(--text)' }}>Locked for 7 days</strong> — no access to your tokens. Top-tier yield in return.</div>
                             <div className="bout-pool">
                                 <div><div className="bp-val purple">+150%</div><div className="bp-label">APY Bonus</div></div>
-                                <div><div className="bp-val red">3×</div><div className="bp-label">Rage Tax</div></div>
+                                <div><div className="bp-val red">3×</div><div className="bp-label">Post-Lock Tax</div></div>
                             </div>
                         </div>
                     </div>
@@ -337,17 +340,20 @@ export default function Vault() {
 
                             <div className="section-label mt-2 mb-1">
                                 <span className="label label-green">
-                                    <img src="/icons/shield-dollar.svg" className="icon icon-sm icon-red" /> RAGE QUIT TAX
+                                    <img src="/icons/shield-dollar.svg" className="icon icon-sm icon-red" /> HOW UNSTAKING WORKS
                                 </span>
                             </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--orange)', marginBottom: '0.5rem', padding: '0.375rem 0.5rem', background: 'rgba(255,165,0,0.05)', border: '1px solid rgba(255,165,0,0.15)', borderRadius: '4px' }}>
+                                🔒 <strong>During lock:</strong> Unstaking is completely blocked. Your tokens are locked in the contract and cannot be withdrawn.
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>
+                                After your lock expires, you can unstake freely. The rage quit tax only applies if you unstake early in your overall staking period:
+                            </div>
                             {[
-                                ['Unstake Day 1', '50% lost', 'red'],
-                                ['Unstake Day 2', '40% lost', 'red'],
-                                ['Unstake Day 3', '30% lost', 'orange'],
-                                ['Unstake Day 4', '20% lost', 'orange'],
-                                ['Unstake Day 5', '10% lost', 'dim'],
-                                ['Unstake Day 6', '5% lost', 'dim'],
-                                ['After Day 6', '0% — free', 'green'],
+                                ['After lock (Day 1–2)', '50% tax', 'red'],
+                                ['After lock (Day 3–4)', '30% tax', 'orange'],
+                                ['After lock (Day 5–6)', '10% tax', 'dim'],
+                                ['After lock (Day 7+)', '0% — free', 'green'],
                             ].map(([day, tax, cls]) => (
                                 <div className="entrant" key={day}><span className="agent">{day}</span><span className={`odds ${cls}`}>{tax}</span></div>
                             ))}
