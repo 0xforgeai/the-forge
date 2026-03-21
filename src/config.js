@@ -44,7 +44,7 @@ const config = {
     bout: {
         entryFee: 500,
         minBalanceToEnter: 1000,
-        minAccountAgeDays: 7,
+        minAccountAgeDays: 0,
         minSolvesToEnter: 3,
         protocolRakePercent: 5,
         agentPursePercent: 20,
