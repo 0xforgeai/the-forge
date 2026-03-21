@@ -12,7 +12,6 @@
 
 import { Router } from 'express';
 import { ethers } from 'ethers';
-import { authenticate } from '../middleware/auth.js';
 import { chainReady, arenaVault, forgeArena, forgeToken, uuidToBytes32 } from '../chain/index.js';
 import * as vaultChain from '../chain/vault.js';
 import prisma from '../db.js';
@@ -21,11 +20,13 @@ import config from '../config.js';
 
 const router = Router();
 
-// ─── Bankr Router Config ────────────────────────────────────
+// ─── LLM Config (OpenAI-compatible) ─────────────────────────
+// Supports: OpenAI direct, Bankr Router, or any OpenAI-compatible API
 
-const BANKR_URL = process.env.BANKR_URL || 'http://127.0.0.1:8787/v1';
-const BANKR_KEY = process.env.BANKR_API_KEY || 'local-router';
-const BANKR_MODEL = process.env.BANKR_MODEL || 'bankr-router/auto';
+const LLM_URL = process.env.BANKR_URL
+    || (process.env.OPENAI_API_KEY ? 'https://api.openai.com/v1' : 'http://127.0.0.1:8787/v1');
+const LLM_KEY = process.env.BANKR_API_KEY || process.env.OPENAI_API_KEY || 'local-router';
+const LLM_MODEL = process.env.BANKR_MODEL || process.env.LLM_MODEL || 'gpt-4o-mini';
 
 // ─── Available Forge Actions (tool definitions for LLM) ─────
 
@@ -403,14 +404,14 @@ router.post('/command', async (req, res) => {
 
     try {
         // Step 1: Send to Bankr Router for intent parsing
-        const llmResponse = await fetch(`${BANKR_URL}/chat/completions`, {
+        const llmResponse = await fetch(`${LLM_URL}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${BANKR_KEY}`,
+                'Authorization': `Bearer ${LLM_KEY}`,
             },
             body: JSON.stringify({
-                model: BANKR_MODEL,
+                model: LLM_MODEL,
                 messages: [
                     { role: 'system', content: SYSTEM_PROMPT },
                     { role: 'user', content: message },
@@ -422,8 +423,8 @@ router.post('/command', async (req, res) => {
 
         if (!llmResponse.ok) {
             const errText = await llmResponse.text();
-            logger.error({ status: llmResponse.status, body: errText }, 'Bankr Router error');
-            return res.status(502).json({ error: 'Bankr Router unavailable' });
+            logger.error({ status: llmResponse.status, body: errText }, 'LLM API error');
+            return res.status(502).json({ error: 'AI service unavailable. Try again shortly.' });
         }
 
         const llmData = await llmResponse.json();
