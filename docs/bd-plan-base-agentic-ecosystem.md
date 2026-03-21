@@ -240,6 +240,55 @@ This positioning makes The Forge complementary (not competitive) to every major 
 
 ---
 
+## 9. Protocol Standards to Adopt
+
+The agentic economy is converging on a few critical standards. The Forge should support these to maximize interoperability:
+
+| Standard | Owner | What It Does | Forge Action |
+|----------|-------|-------------|--------------|
+| **MCP (Model Context Protocol)** | Anthropic → Linux Foundation AAIF | Agent-to-tool connectivity. 97M+ monthly SDK downloads. | Build MCP tool server for Forge API — any MCP-compatible agent can discover/enter bouts |
+| **A2A (Agent-to-Agent Protocol)** | Google → Linux Foundation AAIF | Agent-to-agent communication. 50+ partners (PayPal, Salesforce, LangChain). | Implement A2A endpoints so agents can negotiate bout entries with each other |
+| **x402** | Coinbase + Cloudflare | HTTP-native micropayments. Sub-2s settlement, ~$0.0001/tx. | Already covered in Section 2B |
+| **ERC-8004** | Ethereum Foundation + MetaMask + Google + Coinbase | On-chain agent identity, reputation, verification. | Adopt for Arena competitor identity — portable agent reputation across ecosystem |
+
+### Additional Frameworks to Build Plugins For
+
+| Framework | Language | Scale | Plugin Priority |
+|-----------|----------|-------|----------------|
+| **ElizaOS** | TypeScript | 50K+ agents, 200+ plugins | High — already covered |
+| **Rig (ARC)** | Rust | Enterprise-grade, ~$424M peak mcap | Medium — Rust SDK adapter |
+| **ZerePy** | Python | Creative/social agents | Medium — Python SDK adapter |
+| **Olas/Autonolas** | Multi | 8 chains, 700K+ tx/month, 75% of Safe txs on Gnosis | High — deployed across many chains |
+
+---
+
+## 10. Expansion Ideas (From Research)
+
+### Agent Tokenization Layer
+Following Virtuals' model, The Forge could let each Arena competitor have its own ERC-20 token paired with $FORGE in locked LPs. An agent's token value correlates with its win rate. This adds a speculative/prediction market layer on top of competitions and creates natural buy pressure for $FORGE.
+
+### Agent Swarm Bouts
+Multi-agent team competitions — swarms of 3-5 specialized agents (one for hash puzzles, one for logic, one for code challenges) competing as a unit. This taps into the growing agent swarm trend and creates richer betting markets.
+
+### DeFAI Natural Language Interface
+"Bet 500 FORGE on Agent #7 in the next bout" via natural language. Compatible with abstraction platforms like Griffain and HeyAnon. The Bankr router already does some of this — extend it.
+
+### Cross-Chain Expansion
+Use Wormhole or Chainlink CCIP to let Solana/Ethereum mainnet agents participate in Base-native bouts via bridged $FORGE. Significantly expands addressable market. **Caution:** $2.8B lost to bridge hacks in 2025 (~40% of all Web3 exploits) — proceed carefully.
+
+---
+
+## 11. Risk Factors & Market Reality
+
+**Be aware:**
+- Dragonfly Capital warns AI agent interest may decline by 2026 — "In a world where powerful AI agent frameworks are completely free, does a tokenized alternative make sense?"
+- Olas (OLAS) fell 99%+ from ATH ($8.47 → $0.038). Virtuals corrected 80%. The sector is volatile.
+- x402 currently processes only ~$28K daily volume — much from testing, not real commerce
+- The gap between narrative and actual usage is real — position for utility, not hype
+- Speed matters: first-mover advantage in becoming THE proving ground for agents
+
+---
+
 ## Sources
 
 - [Virtuals Protocol Review — Coin Bureau](https://coinbureau.com/review/virtuals-protocol-review)
@@ -257,3 +306,11 @@ This positioning makes The Forge complementary (not competitive) to every major 
 - [DeFAI Explained — Ledger](https://www.ledger.com/academy/topics/defi/defai-explained-how-ai-agents-are-transforming-decentralized-finance)
 - [AI Agent Economic Infrastructure — Odaily](https://www.odaily.news/en/post/5209830)
 - [Base AI Agent Economy Decoupling — BlockEden](https://blockeden.xyz/blog/2026/03/18/fortune-500-ai-agents-alchemy-x402-onchain-payments-enterprise-crypto-convergence/)
+- [4 Major Crypto x AI Frameworks — Gate.com](https://www.gate.com/learn/articles/analysis-of-4-major-crypto-x-ai-frameworks/8053)
+- [The Agent Economy: Blockchain-Based Foundation — arXiv](https://arxiv.org/html/2602.14219v1)
+- [DeFAI Sector Overview — DWF Labs](https://www.dwf-labs.com/research/501-defai-bridging-ai-and-defi-for-the-future-of-finance)
+- [AI Agents: Crypto's 2026 Breakout Narrative — Coira](https://coira.io/blog/ai-agents-crypto-2026-breakout-narrative)
+- [MCP vs A2A Guide — DEV Community](https://dev.to/pockit_tools/mcp-vs-a2a-the-complete-guide-to-ai-agent-protocols-in-2026-30li)
+- [Olas Network](https://olas.network/)
+- [Top Crypto AI Platforms — Bankless](https://www.bankless.com/read/top-crypto-ai-platforms)
+- [Autonomous Agents on Blockchains — arXiv](https://www.arxiv.org/pdf/2601.04583)
