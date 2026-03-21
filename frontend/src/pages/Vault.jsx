@@ -340,23 +340,52 @@ export default function Vault() {
 
                             <div className="section-label mt-2 mb-1">
                                 <span className="label label-green">
-                                    <img src="/icons/shield-dollar.svg" className="icon icon-sm icon-red" /> HOW UNSTAKING WORKS
+                                    <img src="/icons/shield-dollar.svg" className="icon icon-sm icon-red" /> RAGE QUIT TAX
                                 </span>
                             </div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--orange)', marginBottom: '0.5rem', padding: '0.375rem 0.5rem', background: 'rgba(255,165,0,0.05)', border: '1px solid rgba(255,165,0,0.15)', borderRadius: '4px' }}>
-                                🔒 <strong>During lock:</strong> Unstaking is completely blocked. Your tokens are locked in the contract and cannot be withdrawn.
+                                🔒 <strong>During lock period:</strong> Unstaking is <strong>completely blocked</strong>. Your tokens are locked in the contract and cannot be withdrawn for any reason.
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>
-                                After your lock expires, you can unstake freely. The rage quit tax only applies if you unstake early in your overall staking period:
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: '0.5rem' }}>
+                                After your lock expires, a <strong style={{ color: 'var(--text)' }}>rage quit tax</strong> applies based on <strong style={{ color: 'var(--text)' }}>total days staked</strong> and your <strong style={{ color: 'var(--text)' }}>covenant multiplier</strong>. Tax = base rate × covenant multiplier. Taxed tokens are redistributed to remaining stakers.
+                            </div>
+
+                            {/* FLAME tax breakdown */}
+                            <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--orange)', marginTop: '0.75rem', marginBottom: '0.25rem', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                🔥 Flame (1× multiplier, unlocks day 1)
                             </div>
                             {[
-                                ['After lock (Day 1–2)', '50% tax', 'red'],
-                                ['After lock (Day 3–4)', '30% tax', 'orange'],
-                                ['After lock (Day 5–6)', '10% tax', 'dim'],
-                                ['After lock (Day 7+)', '0% — free', 'green'],
+                                ['Day 1 (unlock)', '40%', 'red'],
+                                ['Day 2', '30%', 'orange'],
+                                ['Day 3', '20%', 'orange'],
+                                ['Day 4', '10%', 'dim'],
+                                ['Day 5', '5%', 'dim'],
+                                ['Day 6+', '0% — free exit', 'green'],
                             ].map(([day, tax, cls]) => (
-                                <div className="entrant" key={day}><span className="agent">{day}</span><span className={`odds ${cls}`}>{tax}</span></div>
+                                <div className="entrant" key={`flame-${day}`}><span className="agent">{day}</span><span className={`odds ${cls}`}>{tax}</span></div>
                             ))}
+
+                            {/* STEEL tax breakdown */}
+                            <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--blue, #4a90d9)', marginTop: '0.75rem', marginBottom: '0.25rem', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                🛡 Steel (2× multiplier, unlocks day 3)
+                            </div>
+                            {[
+                                ['Day 3 (unlock)', '40%', 'red'],
+                                ['Day 4', '20%', 'orange'],
+                                ['Day 5', '10%', 'dim'],
+                                ['Day 6+', '0% — free exit', 'green'],
+                            ].map(([day, tax, cls]) => (
+                                <div className="entrant" key={`steel-${day}`}><span className="agent">{day}</span><span className={`odds ${cls}`}>{tax}</span></div>
+                            ))}
+
+                            {/* OBSIDIAN + ETERNAL */}
+                            <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--purple, #9b59b6)', marginTop: '0.75rem', marginBottom: '0.25rem', fontFamily: 'var(--mono)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                💎 Obsidian &amp; 🔒 Eternal
+                            </div>
+                            <div className="entrant"><span className="agent">At unlock (day 7 / day 30)</span><span className="odds green">0% — free exit</span></div>
+                            <div style={{ fontSize: '0.6875rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
+                                Lock period outlasts the tax window — you always exit tax-free.
+                            </div>
                         </div>
                     </div>
                 </div>
