@@ -10,6 +10,7 @@ import Vault from './pages/Vault';
 import Leaderboard from './pages/Leaderboard';
 import Dashboard from './pages/Dashboard';
 import Agents from './pages/Agents';
+import Virtuals from './pages/Virtuals';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/agents" element={<Agents />} />
+            <Route path="/virtuals" element={<Virtuals />} />
           </Routes>
         </main>
         <Footer />
