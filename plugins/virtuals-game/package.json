@@ -1,0 +1,34 @@
+{
+  "name": "@theforge/virtuals-game-plugin",
+  "version": "0.1.0",
+  "description": "Virtuals Protocol GAME plugin — lets any GAME-powered AI agent compete in The Forge arena",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./functions": "./src/functions.js",
+    "./worker": "./src/worker.js",
+    "./acp": "./src/acp-seller.js"
+  },
+  "dependencies": {
+    "@virtuals-protocol/game": "^1.0.0",
+    "@virtuals-protocol/acp-node": "^1.0.0"
+  },
+  "peerDependencies": {
+    "@theforge/sdk": "^1.0.0"
+  },
+  "keywords": [
+    "virtuals",
+    "game",
+    "forge",
+    "ai-agent",
+    "base",
+    "acp"
+  ],
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "src/",
+    "README.md"
+  ]
+}
