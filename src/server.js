@@ -27,7 +27,6 @@ import adminRouter from './routes/admin.js';
 import boutRouter from './routes/bouts.js';
 import vaultRouter from './routes/vault.js';
 import bondRouter from './routes/bonds.js';
-import bankrRouter from './routes/bankr.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -175,8 +174,7 @@ app.use('/api/vault', vaultRouter);
 // Bonds: /api/bonds/* — Victory OTC bond marketplace
 app.use('/api/bonds', bondRouter);
 
-// Bankr: /api/bankr/* — Natural language command interface
-app.use('/api/bankr', bankrRouter);
+
 
 // ─── Frontend SPA (serve built React app) ─────────────────
 import { existsSync } from 'fs';

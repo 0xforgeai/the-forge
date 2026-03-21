@@ -483,32 +483,6 @@ export class ForgeClient {
         }
     }
 
-    // ─── Natural Language Commands (via Bankr Router) ──
-
-    /**
-     * Send a natural language command to The Forge via Bankr Router.
-     * Returns structured intent + params for reads, or tx steps for writes.
-     *
-     * @param {string} message - Natural language command (e.g. "stake 5000 in Obsidian")
-     * @returns {Promise<{type: 'read'|'write'|'chat', intent?, message, data?, txSteps?}>}
-     *
-     * @example
-     * // Read action
-     * const result = await forge.command("what's my position?");
-     * console.log(result.message); // "You have 5,000 $FORGE staked in OBSIDIAN..."
-     *
-     * // Write action (execute txSteps on-chain)
-     * const result = await forge.command("stake 5000 in Obsidian");
-     * if (result.type === 'write') {
-     *     for (const step of result.txSteps) {
-     *         // Execute step.contract + step.method + step.args via ethers/wagmi
-     *     }
-     * }
-     */
-    async command(message) {
-        return this._req('POST', '/bankr/command', { message });
-    }
-
     // ─── Bankr Router ─────────────────────────────
 
     /**

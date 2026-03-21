@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Nav from './components/Nav';
 import Footer from './components/Footer';
 import MatrixRain from './components/MatrixRain';
-import ForgeChat from './components/ForgeChat';
 import { ToastProvider } from './components/Toast';
 import Home from './pages/Home';
 import Arena from './pages/Arena';
@@ -28,7 +27,6 @@ export default function App() {
           </Routes>
         </main>
         <Footer />
-        <ForgeChat />
       </ToastProvider>
     </BrowserRouter>
   );
