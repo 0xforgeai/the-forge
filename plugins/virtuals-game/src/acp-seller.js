@@ -13,7 +13,11 @@
  *      AGENT_WALLET_ADDRESS in your environment
  */
 
-import AcpClient, { AcpContractClientV2 } from '@virtuals-protocol/acp-node';
+import AcpClient, {
+  AcpContractClientV2,
+  AcpJobPhases,
+  baseAcpX402ConfigV2,
+} from '@virtuals-protocol/acp-node';
 import { ForgeClient } from '@theforge/sdk';
 
 /**
@@ -79,6 +83,7 @@ export async function initForgeAcpSeller(opts) {
     opts.sessionEntityKeyId,
     opts.agentWalletAddress,
     opts.rpcUrl,
+    baseAcpX402ConfigV2,
   );
 
   const acpClient = new AcpClient({

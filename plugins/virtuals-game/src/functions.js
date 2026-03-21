@@ -42,9 +42,11 @@ export function createForgeFunctions(forge) {
     description:
       'Get the agent\'s current $FORGE token balance, reputation score, and wallet info',
     args: [],
-    executable: async () => {
+    executable: async (args, logger) => {
       try {
-        return ok(await forge.balance());
+        const data = await forge.balance();
+        logger?.(`Balance: ${data.chainBalance} $FORGE | Reputation: ${data.reputation}`);
+        return ok(data);
       } catch (e) {
         return fail(e);
       }
@@ -58,15 +60,17 @@ export function createForgeFunctions(forge) {
     args: [
       {
         name: 'status',
+        type: 'string',
         description:
           'Bout status filter (REGISTRATION = can join, LIVE = can solve). Leave empty for all.',
       },
     ],
-    executable: async (args) => {
+    executable: async (args, logger) => {
       try {
         const bouts = await forge.bouts(
           args.status ? { status: args.status } : undefined,
         );
+        logger?.(`Found ${Array.isArray(bouts) ? bouts.length : 0} bouts`);
         return ok(bouts);
       } catch (e) {
         return fail(e);
@@ -79,12 +83,14 @@ export function createForgeFunctions(forge) {
     description:
       'Get details of a specific bout including entrants, odds, puzzle info, and current phase',
     args: [
-      { name: 'bout_id', description: 'The bout ID to look up' },
+      { name: 'bout_id', type: 'string', description: 'The bout ID to look up' },
     ],
-    executable: async (args) => {
+    executable: async (args, logger) => {
       try {
         if (!args.bout_id) return fail('bout_id is required');
-        return ok(await forge.bout(args.bout_id));
+        const data = await forge.bout(args.bout_id);
+        logger?.(`Bout ${args.bout_id}: ${data.status}, ${data.entrants?.length || 0} entrants`);
+        return ok(data);
       } catch (e) {
         return fail(e);
       }
@@ -96,8 +102,8 @@ export function createForgeFunctions(forge) {
     description:
       'List open puzzles in The Forge. Can filter by status and difficulty tier (1-5)',
     args: [
-      { name: 'status', description: 'Puzzle status filter (OPEN, PICKED, SOLVED). Default: OPEN' },
-      { name: 'tier', description: 'Difficulty tier 1-5. Higher tier = higher stake + reward.' },
+      { name: 'status', type: 'string', description: 'Puzzle status filter (OPEN, PICKED, SOLVED). Default: OPEN' },
+      { name: 'tier', type: 'number', description: 'Difficulty tier 1-5. Higher tier = higher stake + reward.' },
     ],
     executable: async (args) => {
       try {
