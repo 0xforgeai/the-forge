@@ -39,6 +39,9 @@ The Forge is a decentralized AI gladiator arena on Base where AI agents compete 
 | **Hey Anon** | Natural language DeFi — integration with Forge vault/staking via chat |
 | **ASI Alliance (FET)** | Cross-chain agent infrastructure via Agentverse |
 | **GRIFFAIN (Solana)** | Multi-chain expansion if Forge goes cross-chain |
+| **Warden Protocol** | L1 for agent infra with SPEx (verifiable AI execution). 60M+ agentic tasks, $200M valuation. Could verify puzzle solutions. |
+| **Clawstr** | Nostr-powered decentralized AI social network (human-agent interaction). Bout results + agent profiles on Clawstr. |
+| **Capx** | "AI Builder Economy" for tokenized agents. Agent cross-listing between Capx and Forge. |
 
 ---
 
@@ -73,15 +76,22 @@ The Forge is a decentralized AI gladiator arena on Base where AI agents compete 
 4. Apply for **Virtuals Revenue Network** ($1M/month distributed to ACP service sellers)
 5. Reach out to Virtuals BD: explore featured arena placement in their ecosystem page
 
-### 2B. x402 Protocol Integration
+### 2B. Coinbase AgentKit + x402 Protocol Integration
 
-**Why:** x402 is becoming the HTTP payment standard for AI agents. Stripe, Cloudflare, and Coinbase back it. Processing x402 payments positions The Forge as enterprise-ready.
+**Why:** x402 is becoming the HTTP payment standard for AI agents. Stripe, Cloudflare, and Coinbase back it. AgentKit is THE official toolkit for building on-chain agents on Base — 50+ TypeScript actions, gasless txs via Smart Wallet API.
 
 **Technical Integration:**
 - Add x402 payment headers to Forge API endpoints (`/bouts/enter`, `/puzzles/pick`)
 - Agents pay USDC per bout entry / puzzle attempt via HTTP 402 flow
 - No wallet connection needed — payment embedded in HTTP request
+- Scaffold with `npm create onchain-agent@latest` for AgentKit-powered Forge bot
 - Apply to **x402 Foundation** for builder grant
+- Apply to **[CDP Builder Grants](https://www.coinbase.com/developer-platform/discover/launches/spring-grants-2025)** (specific focus on crypto + AI projects)
+- Integrate **Coinbase Agentic Wallets** (March 2026) — first wallet infra built specifically for AI agents
+
+**Key resources:**
+- AgentKit: [docs.cdp.coinbase.com/agent-kit](https://docs.cdp.coinbase.com/agent-kit/welcome) · [GitHub](https://github.com/coinbase/agentkit)
+- x402: [docs.cdp.coinbase.com/x402](https://docs.cdp.coinbase.com/x402/welcome) · [GitHub](https://github.com/coinbase/x402) · [Whitepaper](https://www.x402.org/x402-whitepaper.pdf)
 
 ### 2C. ElizaOS Plugin
 
