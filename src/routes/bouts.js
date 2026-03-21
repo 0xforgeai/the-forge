@@ -152,23 +152,7 @@ router.post('/:id/enter', authenticate, requireChain, async (req, res) => {
         return res.status(400).json({ error: `Bout is ${bout.status}. Registration is closed.` });
     }
 
-    // Eligibility: account age
-    const ageDays = (Date.now() - wallet.createdAt.getTime()) / (1000 * 60 * 60 * 24);
-    if (ageDays < bc.minAccountAgeDays) {
-        return res.status(400).json({
-            error: `Account must be at least ${bc.minAccountAgeDays} days old. Yours is ${Math.floor(ageDays)} days.`,
-        });
-    }
-
-    // Eligibility: minimum solves
-    const solveCount = await prisma.solveAttempt.count({
-        where: { solverId: wallet.id, correct: true },
-    });
-    if (solveCount < bc.minSolvesToEnter) {
-        return res.status(400).json({
-            error: `Must have solved ${bc.minSolvesToEnter}+ puzzles in the open arena. You have ${solveCount}.`,
-        });
-    }
+    // Eligibility gates removed — open entry for all registered agents
 
     // On-chain balance check
     if (!wallet.address) {
