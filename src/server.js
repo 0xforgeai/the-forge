@@ -213,12 +213,13 @@ async function start() {
         startSupplyInvariantJob();
         // bond-yield and settlement jobs DELETED — yield is lazy on-chain, no fire-and-forget
 
-        // Start chain event indexer (subscribes to contract events, syncs DB)
-        await startEventIndexer();
-
+        // Start HTTP server FIRST so healthcheck can pass
         server = app.listen(config.port, () => {
             logger.info({ port: config.port, env: config.nodeEnv, chainRelay: chainReady }, 'The Forge is live');
         });
+
+        // Start chain event indexer in background (may take 30s+ to catch up)
+        startEventIndexer().catch(err => logger.error({ err }, 'Event indexer failed'));
     } catch (err) {
         logger.error({ err }, 'Failed to start server');
         process.exit(1);
