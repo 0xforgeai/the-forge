@@ -45,7 +45,7 @@ const config = {
         entryFee: 500,
         minBalanceToEnter: 1000,
         minAccountAgeDays: 0,
-        minSolvesToEnter: 3,
+        minSolvesToEnter: 0,
         protocolRakePercent: 5,
         agentPursePercent: 20,
         bettorPoolPercent: 75,
