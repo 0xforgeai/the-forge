@@ -13,7 +13,7 @@ import cron from 'node-cron';
 import { ethers } from 'ethers';
 import prisma from '../db.js';
 import config from '../config.js';
-import { forgeToken, arenaVault, chainReady } from '../chain/index.js';
+import { forgeToken, arenaVault, forgeTreasury, chainReady } from '../chain/index.js';
 import { submitTx } from '../chain/tx.js';
 import logger from '../logger.js';
 import sse from '../sse.js';
@@ -74,8 +74,8 @@ export async function runBootstrapEmission() {
     if (alreadyEmitted) return;
 
     // ── Get total staked from on-chain (source of truth) ──
-    if (!chainReady || !arenaVault || !forgeToken) {
-        logger.warn('Chain not ready — skipping emission');
+    if (!chainReady || !forgeTreasury) {
+        logger.warn('Chain not ready or ForgeTreasury not configured — skipping emission');
         return;
     }
 
@@ -117,36 +117,30 @@ export async function runBootstrapEmission() {
         }),
     ]);
 
-    // ── On-chain: deposit yield to ArenaVault ────────────
-    // The contract distributes proportionally via rewardPerToken
+    // ── On-chain: emit from ForgeTreasury to ArenaVault ────────────
+    // ForgeTreasury.emitTokens() transfers $FORGE from the 400M treasury reserve
+    // directly to ArenaVault, which distributes proportionally via rewardPerToken
     try {
         const emittedWei = ethers.parseEther(totalEmitted.toString());
-        const deployerAddr = config.chain.deployerAddress;
+        const vaultAddress = config.chain.arenaVaultAddress;
 
-        // Balance check: ensure deployer holds enough tokens
-        const balance = await forgeToken.balanceOf(deployerAddr);
-        if (balance < emittedWei) {
+        // Check treasury has sufficient balance
+        const treasuryBalance = await forgeTreasury.balance();
+        if (treasuryBalance < emittedWei) {
             logger.error({
                 required: totalEmitted,
-                balance: balance.toString(),
-            }, 'Deployer has insufficient $FORGE balance for depositYield — skipping on-chain deposit');
+                treasuryBalance: treasuryBalance.toString(),
+            }, 'ForgeTreasury has insufficient balance — skipping on-chain emission');
         } else {
-            const vaultAddress = config.chain.arenaVaultAddress;
-
-            await submitTx(
-                () => forgeToken.approve(vaultAddress, emittedWei),
-                'approve for depositYield',
+            const memo = `Day ${daysSinceLaunch} bootstrap: ${activeTier.apyPercent}% APY on ${totalStakedTokens} staked`;
+            const emitReceipt = await submitTx(
+                () => forgeTreasury.emitTokens(vaultAddress, emittedWei, memo),
+                'emitTokens',
             );
-
-            const depositReceipt = await submitTx(
-                () => arenaVault.depositYield(emittedWei),
-                'depositYield',
-            );
-
-            logger.info({ totalEmitted, txHash: depositReceipt.hash }, 'On-chain: depositYield() confirmed');
+            logger.info({ totalEmitted, txHash: emitReceipt.hash }, 'On-chain: ForgeTreasury.emitTokens() confirmed');
         }
     } catch (err) {
-        logger.error({ err, totalEmitted }, 'On-chain depositYield failed — treasury ledger still updated');
+        logger.error({ err, totalEmitted }, 'On-chain ForgeTreasury.emitTokens() failed — treasury ledger still updated');
     }
 
     // ── Also update DB stake positions if any exist ────────

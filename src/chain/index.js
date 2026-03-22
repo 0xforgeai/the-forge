@@ -113,6 +113,18 @@ const FORGE_BONDS_ABI = [
     'event YieldPoolFunded(address indexed funder, uint256 amount)',
 ];
 
+const FORGE_TREASURY_ABI = [
+    'function emitTokens(address recipient, uint256 amount, string memo)',
+    'function weeklyEmissionCap() view returns (uint256)',
+    'function emittedThisWeek() view returns (uint256)',
+    'function totalEmitted() view returns (uint256)',
+    'function remainingThisWeek() view returns (uint256)',
+    'function balance() view returns (uint256)',
+    'function timeUntilWeekReset() view returns (uint256)',
+    'function authorizedRecipients(address) view returns (bool)',
+    'event Emitted(address indexed recipient, uint256 amount, string memo)',
+];
+
 // ─── Helpers ────────────────────────────────────────────────
 
 /**
@@ -150,6 +162,7 @@ let forgeArena = null;
 let arenaVault = null;
 let victoryEscrow = null;
 let forgeBonds = null;
+let forgeTreasury = null;
 let chainReady = false;
 
 if (rpcUrl && privateKey) {
@@ -167,6 +180,9 @@ if (rpcUrl && privateKey) {
         if (chainCfg.forgeBondsAddress) {
             forgeBonds = new ethers.Contract(chainCfg.forgeBondsAddress, FORGE_BONDS_ABI, deployerWallet);
         }
+        if (chainCfg.forgeTreasuryAddress) {
+            forgeTreasury = new ethers.Contract(chainCfg.forgeTreasuryAddress, FORGE_TREASURY_ABI, deployerWallet);
+        }
 
         chainReady = true;
         logger.info({
@@ -175,6 +191,7 @@ if (rpcUrl && privateKey) {
             arenaVault: chainCfg.arenaVaultAddress,
             victoryEscrow: chainCfg.victoryEscrowAddress || 'not set',
             forgeBonds: chainCfg.forgeBondsAddress || 'not set',
+            forgeTreasury: chainCfg.forgeTreasuryAddress || 'not set',
         }, 'Chain module initialized — connected to Base');
     } catch (err) {
         logger.error({ err }, 'Failed to initialize chain module');
@@ -194,5 +211,6 @@ export {
     arenaVault,
     victoryEscrow,
     forgeBonds,
+    forgeTreasury,
     chainReady,
 };
