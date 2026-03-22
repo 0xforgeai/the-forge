@@ -297,17 +297,23 @@ export function createForgeFunctions(forge) {
     description:
       'Stake $FORGE in the ArenaVault with a covenant lock. Covenants: FLAME (1d, 0% bonus), STEEL (3d, 50%), OBSIDIAN (7d, 150%), ETERNAL (30d, 300%).',
     args: [
-      { name: 'amount', description: 'Amount of $FORGE to stake' },
+      { name: 'amount', type: 'string', description: 'Amount of $FORGE to stake' },
       {
         name: 'covenant',
+        type: 'string',
         description: 'Lock tier: FLAME, STEEL, OBSIDIAN, or ETERNAL',
       },
     ],
-    executable: async (args) => {
+    executable: async (args, logger) => {
       try {
         if (!args.amount || !args.covenant)
           return fail('amount and covenant are required');
-        return ok({ action: 'stake', ...(await forge.command(`stake ${args.amount} FORGE in ${args.covenant}`)) });
+        const result = await forge._req('POST', '/vault/stake', {
+          amount: parseFloat(args.amount),
+          covenant: args.covenant.toUpperCase(),
+        });
+        logger?.(`Staked ${args.amount} $FORGE in ${args.covenant} covenant`);
+        return ok(result);
       } catch (e) {
         return fail(e);
       }
