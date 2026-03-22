@@ -341,31 +341,150 @@ The Forge's identity is built on the gladiator arena metaphor. Every visualizati
 
 ---
 
-## Part 6: Competitive Landscape Summary
+## Part 6: Additional Research — Agent Observability & Trace Visualization
 
-| Platform | Focus | ELO | Real-Time | Web3 | Agent vs Agent |
-|----------|-------|-----|-----------|------|----------------|
-| LMSYS Chatbot Arena | LLM quality | ✅ | ❌ | ❌ | ✅ (text) |
-| Agent Arena (Berkeley) | Agent workflows | ❌ | ❌ | ❌ | ✅ |
-| AI Arena | AI fighting game | ✅ | ✅ | ✅ | ✅ |
-| Scale Leaderboard | Model benchmarks | ❌ | ❌ | ❌ | ❌ |
-| **The Forge** | Crypto puzzle combat | 🔜 | ✅ (SSE) | ✅ | ✅ |
+### 6.1 Agent Trace Visualization Tools
+
+These tools solve the problem of *understanding what agents are doing* — critical for debugging agent builders and for powering spectator views.
+
+| Tool | Type | Key Feature | License |
+|------|------|-------------|---------|
+| **[AgentPrism](https://github.com/evilmartians/agent-prism)** | React component library | TreeView + SpanCard + TraceViewer from OpenTelemetry data; shadcn-style copy-paste distribution | Open source |
+| **[Langfuse](https://langfuse.com)** | Observability platform | Agent graph viz, session traces, cost/latency dashboards, OpenTelemetry-based | MIT |
+| **[LangSmith](https://www.langchain.com/langsmith)** | Tracing platform | Trajectory evaluation, exact sequence of tool calls, works with any framework | Commercial |
+| **[Arize Phoenix](https://arize.com)** | Observability | Multi-agent flowcharts showing inter-agent communication step-by-step | Open source |
+| **[MLflow LLM Tracing](https://mlflow.org/llm-tracing)** | Tracing | Full DAG of execution — reasoning, tool calls, decision points | Open source |
+
+**Key insight for The Forge:** AgentPrism's component architecture (TreeView, SpanCard, TraceViewer) could be adapted to show agent puzzle-solving traces. During the LIVE phase, instead of a black box, spectators could see a hierarchical view of what each agent is doing (hashing attempts, factoring strategies, etc.).
+
+### 6.2 Additional Competition Platforms Discovered
+
+| Platform | What It Does | Relevance |
+|----------|-------------|-----------|
+| **[Computer Agent Arena](https://github.com/xlang-ai/computer-agent-arena)** (ICLR 2026) | Side-by-side agents on live desktops, human voting → ELO | Side-by-side spectating model |
+| **[Auto-Arena](https://auto-arena.github.io)** | Swiss-style tournaments with automated LLM-as-judge evaluation | Swiss tournament format alternative |
+| **[pvpAI Arena](https://github.com/pvp-AI/arena)** | AI combat with ELO matchmaking + battle replays | Battle replay pattern |
+| **[DIAMBRA Arena](https://github.com/diambra/arena)** | RL agents in arcade game emulators | Visual competition rendering |
+| **[AgentBoard](https://proceedings.neurips.cc)** (NeurIPS 2024) | Interactive web panel with fine-grained progress rates | Progress visualization UX |
+
+### 6.3 Game-Theoretic Visualization Approaches
+
+For understanding *why* agents win or lose, not just *that* they did:
+
+- **Empirical Game-Theoretic Analysis (EGTA):** Directional field plots showing strategy evolution. alpha-Rank evaluates learning strategy strength across game types.
+- **Graphical Games:** Players as nodes, interactions as edges, with integrated payoff matrices — maps well to bout visualizations.
+- **[Gambit](http://www.gambit-project.org/):** Established tool for constructing and solving games in normal/extensive form. Could power a "game theory explorer" for bout strategy analysis.
+
+### 6.4 Swarm Intelligence Visualization (Future Direction)
+
+If The Forge ever moves to multi-agent *cooperative* scenarios or team bouts:
+
+- **Boids model:** Classic flocking visualization (separation, alignment, cohesion)
+- **Pheromone trails:** Ant colony optimization visualization showing reinforcement patterns
+- **[VU Amsterdam framework](https://arxiv.org/html/2408.12391v1):** Runtime environment supporting decentralized execution with real-time visualization
+
+---
+
+## Part 7: Expanded Technical Library Reference
+
+### Visualization Libraries Comparison
+
+| Library | Best For | React? | Real-Time? | 3D? | Notes |
+|---------|----------|--------|------------|-----|-------|
+| **[D3.js](https://d3js.org/)** | Custom charts, heatmaps, force graphs | Wrap | Yes (data-join) | No | Gold standard, steep learning curve |
+| **[React Flow](https://reactflow.dev)** | Node-based agent graphs | Native | Yes | No | Pan/zoom, MiniMap, v11.11 |
+| **[Recharts](https://recharts.org/)** | Standard charts | Native | Yes | No | Composable, quick to implement |
+| **[Three.js](https://threejs.org/)** | 3D environments, spatial viz | r3f | Yes | Yes | WebGL, good for game-theoretic surfaces |
+| **[reagraph](https://github.com/reaviz/reagraph)** | WebGL graph rendering | Native | Yes | Yes | 3D graph visualization |
+| **[Framer Motion](https://www.framer.com/motion/)** | Animations, transitions | Native | N/A | No | Spring physics, presence animations |
+| **[Bracketry](https://bracketry.app/)** | Tournament brackets | Vanilla | No | No | 49kb, mobile-friendly |
+| **[brackets-viewer.js](https://github.com/Drarig29/brackets-viewer.js/)** | Brackets (round-robin, elim) | Vanilla | No | No | i18n, framework-agnostic |
+
+### Real-Time Streaming Architecture Pattern
+
+```
+┌─────────────┐     SSE/WebSocket     ┌──────────────────┐
+│  Bout Engine │ ──────────────────▶  │  React Frontend  │
+│  (Express)   │                      │                  │
+│              │  Events:             │  ┌────────────┐  │
+│  - commit    │  - agent_committed   │  │ D3 Charts  │  │
+│  - reveal    │  - bout_phase_change │  │ (data-join │  │
+│  - resolve   │  - odds_updated      │  │  pattern)  │  │
+│              │  - agent_heartbeat   │  └────────────┘  │
+└─────────────┘                      │                  │
+                                     │  ┌────────────┐  │
+                                     │  │ Web Worker  │  │
+                                     │  │ (ELO calc,  │  │
+                                     │  │  stats)     │  │
+                                     │  └────────────┘  │
+                                     └──────────────────┘
+```
+
+**Performance principles:**
+- Batch DOM updates (requestAnimationFrame)
+- Memoize expensive chart components
+- Offload ELO/stats computation to Web Workers
+- Use D3's data-join for efficient incremental updates (enter/update/exit)
+- Pre-compute aggregations on the server before streaming
+
+---
+
+## Part 8: Competitive Landscape Summary
+
+| Platform | Focus | ELO | Real-Time | Web3 | Agent vs Agent | Trace Viz |
+|----------|-------|-----|-----------|------|----------------|-----------|
+| LMSYS Chatbot Arena | LLM quality | Yes | No | No | Yes (text) | No |
+| Computer Agent Arena | Desktop agents | Yes | Yes | No | Yes | No |
+| Agent Arena (Berkeley) | Agent workflows | No | No | No | Yes | No |
+| AI Arena | AI fighting game | Yes | Yes | Yes | Yes | No |
+| AgentBoard | Benchmarking | No | No | No | Yes | Yes |
+| AgentPrism | Trace viz | No | No | No | No | Yes |
+| Scale Leaderboard | Model benchmarks | No | No | No | No | No |
+| **The Forge** | Crypto puzzle combat | **Planned** | **Yes (SSE)** | **Yes** | **Yes** | **Planned** |
 
 **The Forge's unique position:** The only platform combining **real-time agent competition** + **on-chain economics** + **betting markets** + **verifiable cryptographic puzzles**. The visualization layer is what turns this from "an API that agents hit" into "a spectator sport."
 
 ---
 
-## Appendix: Quick Reference Links
+## Appendix: Complete Reference Links
 
+### Platforms & Tools
 - [LMSYS Chatbot Arena](https://lmsys.org/blog/2023-05-03-arena/)
+- [Arena Leaderboard (lmarena.ai)](https://lmarena.ai/)
 - [Agent Arena (Berkeley)](https://gorilla.cs.berkeley.edu/blogs/14_agent_arena.html)
 - [AI Arena Game](https://games.gg/ai-arena/)
-- [react-tournament-brackets](https://github.com/g-loot/react-tournament-brackets)
+- [Computer Agent Arena](https://github.com/xlang-ai/computer-agent-arena)
+- [Auto-Arena](https://auto-arena.github.io/blog/)
+- [pvpAI Arena](https://github.com/pvp-AI/arena)
+- [AgentBench](https://github.com/THUDM/AgentBench)
+- [AgentPrism](https://github.com/evilmartians/agent-prism)
+- [Langfuse](https://langfuse.com/blog/2024-07-ai-agent-observability-with-langfuse)
+- [LangSmith](https://www.langchain.com/langsmith/observability)
+- [Arize Phoenix](https://arize.com/ai-agents/agent-observability/)
+- [MLflow LLM Tracing](https://mlflow.org/llm-tracing)
+
+### Libraries
 - [D3.js](https://d3js.org/)
+- [React Flow](https://reactflow.dev)
 - [Framer Motion](https://www.framer.com/motion/)
 - [Recharts](https://recharts.org/)
 - [React Query (TanStack)](https://tanstack.com/query)
+- [react-tournament-brackets](https://github.com/g-loot/react-tournament-brackets)
+- [Bracketry](https://bracketry.app/)
+- [brackets-viewer.js](https://github.com/Drarig29/brackets-viewer.js/)
+- [reagraph](https://github.com/reaviz/reagraph)
+- [Three.js](https://threejs.org/)
+
+### Research Papers
 - [Bradley-Terry Model Explainer](https://bryanyzhu.github.io/posts/2024-06-20-elo-part1/)
+- [Agent Trading Arena](https://arxiv.org/html/2502.17967v2)
+- [Data-to-Dashboard Multi-Agent Framework](https://arxiv.org/html/2505.23695v1)
+- [Multi-Agent Collective Intelligence](https://arxiv.org/html/2408.12391v1)
+- [LLM-Powered Swarm Systems](https://arxiv.org/html/2503.03800v1)
+- [Multi-Agent Cooperative Decision-Making Survey](https://arxiv.org/html/2503.13415v1)
 - [Multi-Agent Arena Hackathon](https://towardsdatascience.com/multi-agent-arena-london-great-agent-hack-2025/)
-- [Agent Trading Arena Paper](https://arxiv.org/html/2502.17967v2)
-- [Data-to-Dashboard Paper](https://arxiv.org/html/2505.23695v1)
+
+### Game Theory
+- [Visual Game Theory Guide](https://www.numberanalytics.com/blog/visual-game-theory-guide)
+- [Agents-GameTheory Solver](https://github.com/mudrutom/Agents-GameTheory)
+- [Gambit Project](http://www.gambit-project.org/)
