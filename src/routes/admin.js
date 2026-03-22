@@ -4,7 +4,7 @@ import prisma from '../db.js';
 import { adminAuth } from '../middleware/auth.js';
 import config from '../config.js';
 import logger from '../logger.js';
-import { chainReady, forgeToken } from '../chain/index.js';
+import { chainReady, forgeToken, arenaVault } from '../chain/index.js';
 import { submitTx } from '../chain/tx.js';
 import { totalSupply } from '../chain/token.js';
 import { getTotalBurned } from '../chain/arena.js';
@@ -282,6 +282,97 @@ router.post('/treasury/emit', async (req, res) => {
         logger.error({ err }, 'Manual emission trigger failed');
         res.status(500).json({ error: err.message });
     }
+});
+
+// ─── Vault Sync (read on-chain positions → DB) ────────────
+
+router.post('/vault/sync', async (req, res) => {
+    if (!chainReady || !arenaVault) {
+        return res.status(503).json({ error: 'Chain not ready' });
+    }
+
+    const covenantNames = ['FLAME', 'STEEL', 'OBSIDIAN', 'ETERNAL'];
+    const covConfigs = {
+        FLAME: { lockDays: 1, apyBonus: 0, rageQuitMulti: 1.0 },
+        STEEL: { lockDays: 3, apyBonus: 50, rageQuitMulti: 2.0 },
+        OBSIDIAN: { lockDays: 7, apyBonus: 150, rageQuitMulti: 3.0 },
+        ETERNAL: { lockDays: 30, apyBonus: 300, rageQuitMulti: 999 },
+    };
+
+    // Get all wallets with addresses
+    const wallets = await prisma.wallet.findMany({
+        where: { address: { not: null } },
+    });
+
+    let synced = 0;
+    let skipped = 0;
+    const results = [];
+
+    for (const wallet of wallets) {
+        try {
+            const pos = await arenaVault.getPosition(wallet.address);
+            const onChainActive = pos.active;
+            const amount = Number(pos.amount / 10n ** 18n);
+
+            if (!onChainActive || amount === 0) {
+                skipped++;
+                continue;
+            }
+
+            const covenant = covenantNames[Number(pos.covenant)] || 'FLAME';
+            const covConfig = covConfigs[covenant];
+            const lockExpiresAt = new Date(Number(pos.lockExpiresAt) * 1000);
+            const stakedAt = new Date(Number(pos.stakedAt) * 1000);
+            const daysStaked = Math.floor((Date.now() - stakedAt.getTime()) / (24 * 60 * 60 * 1000));
+
+            // Check for existing active position
+            const existing = await prisma.stakePosition.findFirst({
+                where: { walletId: wallet.id, active: true },
+            });
+
+            if (existing) {
+                // Update amount to match chain
+                await prisma.stakePosition.update({
+                    where: { id: existing.id },
+                    data: {
+                        amount,
+                        covenant,
+                        lockExpiresAt,
+                        stakedAt,
+                        apyBonus: covConfig.apyBonus,
+                        rageQuitMulti: covConfig.rageQuitMulti,
+                    },
+                });
+                results.push({ wallet: wallet.name, action: 'updated', amount, covenant });
+            } else {
+                // Create new position from chain data
+                const loyaltySchedule = config.vault.loyaltySchedule;
+                const loyaltyIdx = Math.min(daysStaked, loyaltySchedule.length - 1);
+
+                await prisma.stakePosition.create({
+                    data: {
+                        walletId: wallet.id,
+                        amount,
+                        covenant,
+                        lockDays: covConfig.lockDays,
+                        apyBonus: covConfig.apyBonus,
+                        rageQuitMulti: covConfig.rageQuitMulti,
+                        lockExpiresAt,
+                        stakedAt,
+                        loyaltyMulti: loyaltySchedule[loyaltyIdx],
+                        loyaltyWeek: 0,
+                    },
+                });
+                results.push({ wallet: wallet.name, action: 'created', amount, covenant, daysStaked });
+            }
+            synced++;
+        } catch (err) {
+            results.push({ wallet: wallet.name, error: err.message });
+        }
+    }
+
+    logger.info({ synced, skipped, total: wallets.length }, 'Vault sync completed');
+    res.json({ synced, skipped, total: wallets.length, results });
 });
 
 // ─── Reset Event Cursor (force reindex) ────────────────────
