@@ -49,6 +49,7 @@ export async function runBootstrapEmission() {
 
     const launchDate = launchEntry.createdAt;
     const daysSinceLaunch = Math.floor((Date.now() - launchDate.getTime()) / (1000 * 60 * 60 * 24));
+    logger.info({ launchDate, daysSinceLaunch, action: launchEntry.action }, 'Bootstrap: launch date resolved');
 
     // Find the active schedule tier
     const activeTier = bootstrap.schedule.find(
