@@ -42,11 +42,45 @@ async function transitionBouts() {
         where: { status: 'SCHEDULED', registrationOpensAt: { lte: now } },
     });
     for (const bout of toRegistration) {
+        // ── On-chain: create bout on ForgeArena so agents can enter ──
+        const boutBytes32 = uuidToBytes32(bout.id);
+        let onChainCreated = false;
+        if (chainReady && forgeArena) {
+            try {
+                // Idempotency check
+                const existing = await forgeArena.getBout(boutBytes32);
+                if (existing.status !== 0n) {
+                    logger.info({ boutId: bout.id }, 'Bout already exists on-chain — skipping createBout');
+                    onChainCreated = true;
+                } else {
+                    const cc = config.chain;
+                    const entryFeeWei = ethers.parseEther(bout.entryFee.toString());
+
+                    const createReceipt = await submitTx(
+                        () => forgeArena.createBout(
+                            boutBytes32, entryFeeWei,
+                            cc.entryBurnBps, cc.betBurnBps, cc.protocolRakeBps,
+                            cc.agentPurseBps, cc.bettorPoolBps, cc.maxEntrants,
+                        ),
+                        'createBout',
+                    );
+                    logger.info({ boutId: bout.id, txHash: createReceipt.hash }, 'On-chain: createBout() confirmed');
+                    onChainCreated = true;
+                }
+            } catch (err) {
+                logger.error({ err, boutId: bout.id }, 'On-chain createBout failed — agents will not be able to enter');
+            }
+        }
+
         await prisma.bout.update({
             where: { id: bout.id },
-            data: { status: 'REGISTRATION' },
+            data: {
+                status: 'REGISTRATION',
+                onChainBoutId: boutBytes32,
+                onChainCreated,
+            },
         });
-        logger.info({ boutId: bout.id, title: bout.title }, 'Bout → REGISTRATION');
+        logger.info({ boutId: bout.id, title: bout.title, onChainCreated }, 'Bout → REGISTRATION');
         sse.broadcast('bout.registration', { boutId: bout.id, title: bout.title });
     }
 
@@ -71,40 +105,17 @@ async function transitionBouts() {
         // Generate the computational puzzle
         const generated = generatePuzzle(bout.puzzleType, bout.difficultyTier);
 
-        // ── On-chain: create bout + set live on ForgeArena ──
-        const boutBytes32 = uuidToBytes32(bout.id);
-        let onChainCreated = false;
-        if (chainReady && forgeArena) {
+        // ── On-chain: set bout live (createBout already called in REGISTRATION) ──
+        const boutBytes32 = bout.onChainBoutId || uuidToBytes32(bout.id);
+        if (chainReady && forgeArena && bout.onChainCreated) {
             try {
-                // Idempotency check: verify bout doesn't already exist on-chain
-                const existing = await forgeArena.getBout(boutBytes32);
-                if (existing.status !== 0n) {
-                    logger.info({ boutId: bout.id }, 'Bout already exists on-chain — skipping createBout');
-                    onChainCreated = true;
-                } else {
-                    const cc = config.chain;
-                    const entryFeeWei = ethers.parseEther(bout.entryFee.toString());
-
-                    const createReceipt = await submitTx(
-                        () => forgeArena.createBout(
-                            boutBytes32, entryFeeWei,
-                            cc.entryBurnBps, cc.betBurnBps, cc.protocolRakeBps,
-                            cc.agentPurseBps, cc.bettorPoolBps, cc.maxEntrants,
-                        ),
-                        'createBout',
-                    );
-                    logger.info({ boutId: bout.id, txHash: createReceipt.hash }, 'On-chain: createBout() confirmed');
-
-                    const liveReceipt = await submitTx(
-                        () => forgeArena.setBoutLive(boutBytes32),
-                        'setBoutLive',
-                    );
-                    logger.info({ boutId: bout.id, txHash: liveReceipt.hash }, 'On-chain: setBoutLive() confirmed');
-
-                    onChainCreated = true;
-                }
+                const liveReceipt = await submitTx(
+                    () => forgeArena.setBoutLive(boutBytes32),
+                    'setBoutLive',
+                );
+                logger.info({ boutId: bout.id, txHash: liveReceipt.hash }, 'On-chain: setBoutLive() confirmed');
             } catch (err) {
-                logger.error({ err, boutId: bout.id }, 'On-chain createBout/setBoutLive failed — proceeding with DB only');
+                logger.error({ err, boutId: bout.id }, 'On-chain setBoutLive failed — proceeding with DB only');
             }
         }
 
@@ -117,7 +128,6 @@ async function transitionBouts() {
                 challengeData: generated.challenge,
                 answerHash: generated.answerHash,
                 onChainBoutId: boutBytes32,
-                onChainCreated,
             },
         });
 
