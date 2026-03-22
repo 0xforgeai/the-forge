@@ -111,7 +111,7 @@ const config = {
         forgeArenaAddress: process.env.FORGE_ARENA_ADDRESS || '0x22FFDf9E88cEFE2781b9Ebe17eabd4388Ab6cff4',
         victoryEscrowAddress: process.env.VICTORY_ESCROW_ADDRESS || '0x0d5ba0f83fC31c24b6a461F238d697D42510f507',
         forgeBondsAddress: process.env.FORGE_BONDS_ADDRESS || '0x67eade0109180c16B3e6b5c65c963aD821AE505c',
-        deployerAddress: process.env.DEPLOYER_ADDRESS || '0x64A4eA07B1caAE927FD2ecACd4d295db38049c39',
+        deployerAddress: process.env.DEPLOYER_ADDRESS || '0x64A4Ea07b1caaC927fD2ECacD4D295DB38049C39',
         confirmations: 1,
         maxEntrants: 16,
         entryBurnBps: 1000,   // 10%

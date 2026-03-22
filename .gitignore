@@ -11,6 +11,10 @@ contracts/out/
 contracts/cache/
 contracts/lib/
 
+# Agent manifests (contain private keys!)
+agents-manifest.json
+output/agents-manifest.json
+
 # OS
 .DS_Store
 
