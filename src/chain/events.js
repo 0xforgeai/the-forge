@@ -218,6 +218,99 @@ async function handleEvent(contractName, event) {
         block: event.log?.blockNumber,
         txHash: event.log?.transactionHash,
     }, `Event: ${contractName}.${eventName}`);
+
+    // ── Vault: Staked event → upsert DB stakePosition ──
+    if (contractName === 'ArenaVault' && eventName === 'Staked') {
+        try {
+            const [user, amountWei, covenantIdx, lockExpires] = event.args || [];
+            const covenantNames = ['FLAME', 'STEEL', 'OBSIDIAN', 'ETERNAL'];
+            const covenant = covenantNames[Number(covenantIdx)] || 'FLAME';
+            const amount = Number(amountWei / 10n ** 18n); // wei → whole tokens
+            const lockExpiresAt = new Date(Number(lockExpires) * 1000);
+
+            // Find wallet by address (case-insensitive)
+            const wallet = await db.wallet.findFirst({
+                where: { address: { equals: user, mode: 'insensitive' } },
+            });
+
+            if (!wallet) {
+                logger.warn({ user, amount, covenant }, 'Staked event: no wallet found for address');
+                return;
+            }
+
+            const covConfig = {
+                FLAME: { lockDays: 1, apyBonus: 0, rageQuitMulti: 1.0 },
+                STEEL: { lockDays: 3, apyBonus: 50, rageQuitMulti: 2.0 },
+                OBSIDIAN: { lockDays: 7, apyBonus: 150, rageQuitMulti: 3.0 },
+                ETERNAL: { lockDays: 30, apyBonus: 300, rageQuitMulti: 999 },
+            }[covenant];
+
+            // Check if this wallet already has an active position
+            const existing = await db.stakePosition.findFirst({
+                where: { walletId: wallet.id, active: true },
+            });
+
+            if (existing) {
+                // Update amount if changed
+                if (Number(existing.amount) !== amount) {
+                    await db.stakePosition.update({
+                        where: { id: existing.id },
+                        data: { amount },
+                    });
+                    logger.info({ agent: wallet.name, amount, covenant }, 'Staked event: updated existing position');
+                }
+            } else {
+                await db.stakePosition.create({
+                    data: {
+                        walletId: wallet.id,
+                        amount,
+                        covenant,
+                        lockDays: covConfig.lockDays,
+                        apyBonus: covConfig.apyBonus,
+                        rageQuitMulti: covConfig.rageQuitMulti,
+                        lockExpiresAt,
+                        loyaltyMulti: 1.0,
+                        loyaltyWeek: 0,
+                    },
+                });
+                logger.info({ agent: wallet.name, amount, covenant, lockExpiresAt }, 'Staked event: created DB position from chain');
+            }
+        } catch (err) {
+            logger.error({ err }, 'Failed to handle Staked event');
+        }
+    }
+
+    // ── Vault: Unstaked event → deactivate DB stakePosition ──
+    if (contractName === 'ArenaVault' && eventName === 'Unstaked') {
+        try {
+            const [user, returnedWei, taxedWei, forfeitedWei] = event.args || [];
+
+            const wallet = await db.wallet.findFirst({
+                where: { address: { equals: user, mode: 'insensitive' } },
+            });
+
+            if (!wallet) return;
+
+            const active = await db.stakePosition.findFirst({
+                where: { walletId: wallet.id, active: true },
+            });
+
+            if (active) {
+                const taxed = Number(taxedWei / 10n ** 18n);
+                await db.stakePosition.update({
+                    where: { id: active.id },
+                    data: {
+                        active: false,
+                        unstakedAt: new Date(),
+                        totalTaxPaid: BigInt(taxed),
+                    },
+                });
+                logger.info({ agent: wallet.name, returned: Number(returnedWei / 10n ** 18n), taxed }, 'Unstaked event: deactivated DB position');
+            }
+        } catch (err) {
+            logger.error({ err }, 'Failed to handle Unstaked event');
+        }
+    }
 }
 
 async function updateCursor(address, blockNumber) {

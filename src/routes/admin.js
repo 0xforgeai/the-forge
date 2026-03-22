@@ -284,4 +284,17 @@ router.post('/treasury/emit', async (req, res) => {
     }
 });
 
+// ─── Reset Event Cursor (force reindex) ────────────────────
+
+router.post('/reindex', async (req, res) => {
+    try {
+        // Delete all event sync cursors so next restart replays all events
+        const deleted = await prisma.eventSyncCursor.deleteMany();
+        res.json({ message: `Reset ${deleted.count} event cursors. Restart or redeploy to replay events.` });
+    } catch (err) {
+        logger.error({ err }, 'Reindex cursor reset failed');
+        res.status(500).json({ error: err.message });
+    }
+});
+
 export default router;
