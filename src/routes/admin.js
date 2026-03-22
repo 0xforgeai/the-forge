@@ -397,4 +397,50 @@ router.post('/reindex', async (req, res) => {
     }
 });
 
+// ─── Clean Up Bouts ────────────────────────────────────────
+
+router.post('/bouts/cleanup', async (req, res) => {
+    const { before, boutIds } = req.body;
+    const results = [];
+
+    try {
+        if (boutIds && Array.isArray(boutIds)) {
+            // Delete or cancel specific bouts
+            for (const id of boutIds) {
+                const bout = await prisma.bout.findUnique({ where: { id } });
+                if (!bout) { results.push({ id, status: 'not found' }); continue; }
+
+                // Delete related records first
+                await prisma.boutEntrant.deleteMany({ where: { boutId: id } });
+                await prisma.boutBet.deleteMany({ where: { boutId: id } });
+                await prisma.boutSubmission.deleteMany({ where: { boutId: id } });
+                await prisma.bout.delete({ where: { id } });
+                results.push({ id, title: bout.title, status: 'deleted' });
+            }
+        }
+
+        if (before) {
+            // Delete all bouts created before the cutoff
+            const cutoff = new Date(before);
+            const oldBouts = await prisma.bout.findMany({
+                where: { createdAt: { lt: cutoff } },
+            });
+
+            for (const bout of oldBouts) {
+                await prisma.boutEntrant.deleteMany({ where: { boutId: bout.id } });
+                await prisma.boutBet.deleteMany({ where: { boutId: bout.id } });
+                await prisma.boutSubmission.deleteMany({ where: { boutId: bout.id } });
+                await prisma.bout.delete({ where: { id: bout.id } });
+                results.push({ id: bout.id, title: bout.title, status: 'deleted' });
+            }
+        }
+
+        logger.info({ count: results.length }, 'Bout cleanup completed');
+        res.json({ deleted: results.length, results });
+    } catch (err) {
+        logger.error({ err }, 'Bout cleanup failed');
+        res.status(500).json({ error: err.message, partialResults: results });
+    }
+});
+
 export default router;
