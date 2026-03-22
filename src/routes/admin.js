@@ -253,6 +253,15 @@ router.post('/treasury/seed', async (req, res) => {
     });
 
     if (existing) {
+        if (req.query.force === 'true' && req.body.launchDate) {
+            const newDate = new Date(req.body.launchDate);
+            await prisma.treasuryLedger.update({
+                where: { id: existing.id },
+                data: { createdAt: newDate },
+            });
+            logger.info({ oldDate: existing.createdAt, newDate }, 'Treasury launch date updated');
+            return res.json({ message: 'Treasury launch date updated', launchDate: newDate });
+        }
         return res.json({ message: 'Treasury already seeded', launchDate: existing.createdAt });
     }
 
