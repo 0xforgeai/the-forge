@@ -255,12 +255,18 @@ router.post('/treasury/seed', async (req, res) => {
     if (existing) {
         if (req.query.force === 'true' && req.body.launchDate) {
             const newDate = new Date(req.body.launchDate);
-            await prisma.treasuryLedger.update({
-                where: { id: existing.id },
-                data: { createdAt: newDate },
+            // Delete old entry and create new one (createdAt can't be updated via Prisma)
+            await prisma.treasuryLedger.delete({ where: { id: existing.id } });
+            await prisma.treasuryLedger.create({
+                data: {
+                    action: 'PROTOCOL_LAUNCH',
+                    amount: 0,
+                    memo: 'Protocol launch — bootstrap emission schedule begins',
+                    createdAt: newDate,
+                },
             });
-            logger.info({ oldDate: existing.createdAt, newDate }, 'Treasury launch date updated');
-            return res.json({ message: 'Treasury launch date updated', launchDate: newDate });
+            logger.info({ oldDate: existing.createdAt, newDate }, 'Treasury launch date reset');
+            return res.json({ message: 'Treasury launch date reset', launchDate: newDate });
         }
         return res.json({ message: 'Treasury already seeded', launchDate: existing.createdAt });
     }
