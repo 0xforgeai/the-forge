@@ -285,6 +285,17 @@ router.post('/treasury/seed', async (req, res) => {
 
 router.post('/treasury/emit', async (req, res) => {
     try {
+        // If force=true, delete today's emission entry first
+        if (req.query.force === 'true') {
+            const today = new Date();
+            today.setUTCHours(0, 0, 0, 0);
+            await prisma.treasuryLedger.deleteMany({
+                where: { action: 'BOOTSTRAP_EMISSION', createdAt: { gte: today } },
+            });
+            await prisma.treasuryLedger.deleteMany({
+                where: { action: 'TREASURY_DEDUCTION', createdAt: { gte: today } },
+            });
+        }
         await runBootstrapEmission();
         res.json({ message: 'Bootstrap emission triggered' });
     } catch (err) {
@@ -412,7 +423,7 @@ router.post('/bouts/cleanup', async (req, res) => {
 
                 // Delete related records first
                 await prisma.boutEntrant.deleteMany({ where: { boutId: id } });
-                await prisma.boutBet.deleteMany({ where: { boutId: id } });
+                await prisma.bet.deleteMany({ where: { boutId: id } });
                 await prisma.boutSubmission.deleteMany({ where: { boutId: id } });
                 await prisma.bout.delete({ where: { id } });
                 results.push({ id, title: bout.title, status: 'deleted' });
@@ -428,7 +439,7 @@ router.post('/bouts/cleanup', async (req, res) => {
 
             for (const bout of oldBouts) {
                 await prisma.boutEntrant.deleteMany({ where: { boutId: bout.id } });
-                await prisma.boutBet.deleteMany({ where: { boutId: bout.id } });
+                await prisma.bet.deleteMany({ where: { boutId: bout.id } });
                 await prisma.boutSubmission.deleteMany({ where: { boutId: bout.id } });
                 await prisma.bout.delete({ where: { id: bout.id } });
                 results.push({ id: bout.id, title: bout.title, status: 'deleted' });
