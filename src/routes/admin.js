@@ -8,6 +8,7 @@ import { chainReady, forgeToken } from '../chain/index.js';
 import { submitTx } from '../chain/tx.js';
 import { totalSupply } from '../chain/token.js';
 import { getTotalBurned } from '../chain/arena.js';
+import { runBootstrapEmission } from '../jobs/bootstrap.js';
 
 const router = Router();
 
@@ -242,6 +243,45 @@ router.post('/bouts', async (req, res) => {
 
     logger.info({ boutId: bout.id, title: bout.title }, 'Admin created bout');
     res.status(201).json(bout);
+});
+
+// ─── Treasury Seed ─────────────────────────────────────────
+
+router.post('/treasury/seed', async (req, res) => {
+    const existing = await prisma.treasuryLedger.findFirst({
+        orderBy: { createdAt: 'asc' },
+    });
+
+    if (existing) {
+        return res.json({ message: 'Treasury already seeded', launchDate: existing.createdAt });
+    }
+
+    // Default: launch 1 day ago, or use req.body.launchDate
+    const launchDate = req.body.launchDate ? new Date(req.body.launchDate) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    await prisma.treasuryLedger.create({
+        data: {
+            action: 'PROTOCOL_LAUNCH',
+            amount: 0,
+            memo: 'Protocol launch — bootstrap emission schedule begins',
+            createdAt: launchDate,
+        },
+    });
+
+    logger.info({ launchDate }, 'Treasury seeded');
+    res.status(201).json({ message: 'Treasury seeded', launchDate });
+});
+
+// ─── Trigger Emission ──────────────────────────────────────
+
+router.post('/treasury/emit', async (req, res) => {
+    try {
+        await runBootstrapEmission();
+        res.json({ message: 'Bootstrap emission triggered' });
+    } catch (err) {
+        logger.error({ err }, 'Manual emission trigger failed');
+        res.status(500).json({ error: err.message });
+    }
 });
 
 export default router;

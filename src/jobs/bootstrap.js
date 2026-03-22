@@ -32,7 +32,7 @@ export function startBootstrapJob() {
     logger.info('Bootstrap emission job started (every 6h)');
 }
 
-async function runBootstrapEmission() {
+export async function runBootstrapEmission() {
     // Get the protocol launch date from the first treasury ledger entry
     const firstEntry = await prisma.treasuryLedger.findFirst({
         orderBy: { createdAt: 'asc' },
