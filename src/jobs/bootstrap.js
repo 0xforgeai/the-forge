@@ -2,8 +2,8 @@
  * Bootstrap Emission Job
  *
  * Runs daily during the 10-day Ignition phase.
- * - Distributes APY emissions to active vault stakers
- * - Injects bonus $FORGE into upcoming bout purses
+ * - Computes APY emission based on on-chain totalStaked
+ * - Calls depositYield() on ArenaVault (contract distributes proportionally)
  * - Tracks all emissions in TreasuryLedger
  *
  * After day 10, the job stops emitting — yield becomes fully organic.
@@ -68,151 +68,141 @@ export async function runBootstrapEmission() {
 
     if (alreadyEmitted) return;
 
-    // ── Distribute APY to active stakers ──────────────
-    const activeStakes = await prisma.stakePosition.findMany({
-        where: { active: true },
-    });
+    // ── Get total staked from on-chain (source of truth) ──
+    if (!chainReady || !arenaVault || !forgeToken) {
+        logger.warn('Chain not ready — skipping emission');
+        return;
+    }
 
-    if (activeStakes.length === 0) {
-        logger.debug({ day: daysSinceLaunch }, 'No active stakers — skipping emission');
+    let totalStakedWei;
+    try {
+        totalStakedWei = await arenaVault.totalStaked();
+    } catch (err) {
+        logger.error({ err }, 'Failed to read totalStaked from chain');
+        return;
+    }
+
+    const totalStakedTokens = Number(totalStakedWei / 10n ** 18n);
+    if (totalStakedTokens === 0) {
+        logger.debug({ day: daysSinceLaunch }, 'No stakers on-chain — skipping emission');
         return;
     }
 
     // Daily APY = annualized rate / 365
     const dailyRate = activeTier.apyPercent / 365 / 100;
-    const ops = [];
-    let totalEmitted = 0;
+    const totalEmitted = Math.floor(totalStakedTokens * dailyRate);
 
-    for (const stake of activeStakes) {
-        // Convert BigInt → Number for arithmetic (DB amounts are internal tokens, well within safe int range)
-        const stakeAmount = Number(stake.amount);
-        const covenantBonus = 1 + (stake.apyBonus / 100);
-        const emission = Math.floor(stakeAmount * dailyRate * stake.loyaltyMulti * covenantBonus);
+    if (totalEmitted <= 0) return;
 
-        if (emission <= 0) continue;
-
-        totalEmitted += emission;
-
-        // Add to unvested rewards (vests linearly over 5 days)
-        ops.push(prisma.stakePosition.update({
-            where: { id: stake.id },
-            data: {
-                unvestedRewards: { increment: emission },
-            },
-        }));
-    }
-
-    // Treasury ledger entries (C-8 fix: track as treasury deduction + emission)
-    if (totalEmitted > 0) {
-        // Record the emission
-        ops.push(prisma.treasuryLedger.create({
+    // ── Record emission in treasury ledger ────────────
+    await prisma.$transaction([
+        prisma.treasuryLedger.create({
             data: {
                 action: 'BOOTSTRAP_EMISSION',
                 amount: totalEmitted,
-                memo: `Day ${daysSinceLaunch} emission: ${activeTier.apyPercent}% APY to ${activeStakes.length} stakers`,
+                memo: `Day ${daysSinceLaunch} emission: ${activeTier.apyPercent}% APY on ${totalStakedTokens} staked`,
             },
-        }));
-        // Record the corresponding treasury deduction (source of funds)
-        ops.push(prisma.treasuryLedger.create({
+        }),
+        prisma.treasuryLedger.create({
             data: {
                 action: 'TREASURY_DEDUCTION',
                 amount: -totalEmitted,
                 memo: `Treasury deduction for Day ${daysSinceLaunch} bootstrap emission`,
             },
-        }));
-    }
-
-    // ── Process vesting for all stakers ────────────
-    // Vest 1/vestingDays of unvested rewards per day
-    for (const stake of activeStakes) {
-        const unvested = Number(stake.unvestedRewards);
-        if (unvested <= 0) continue;
-
-        const vestAmount = Math.floor(unvested / vc.vestingDays);
-        if (vestAmount <= 0) continue;
-
-        ops.push(prisma.stakePosition.update({
-            where: { id: stake.id },
-            data: {
-                unvestedRewards: { decrement: vestAmount },
-                vestedAmount: { increment: vestAmount },
-            },
-        }));
-
-        // NOTE: Token credit handled on-chain via ArenaVault contract
-
-        ops.push(prisma.transaction.create({
-            data: {
-                toId: stake.walletId,
-                amount: vestAmount,
-                type: 'VAULT_VESTING',
-                memo: `Vested yield: ${vestAmount} $FORGE`,
-            },
-        }));
-    }
-
-    // ── Update loyalty multipliers ────────────────
-    for (const stake of activeStakes) {
-        const daysStaked = Math.floor((Date.now() - stake.stakedAt.getTime()) / (1000 * 60 * 60 * 24));
-        const scheduleIndex = Math.min(daysStaked, vc.loyaltySchedule.length - 1);
-        const newMulti = vc.loyaltySchedule[scheduleIndex];
-
-        if (newMulti !== stake.loyaltyMulti) {
-            ops.push(prisma.stakePosition.update({
-                where: { id: stake.id },
-                data: { loyaltyMulti: newMulti },
-            }));
-        }
-    }
-
-    if (ops.length > 0) {
-        await prisma.$transaction(ops);
-    }
+        }),
+    ]);
 
     // ── On-chain: deposit yield to ArenaVault ────────────
-    if (totalEmitted > 0 && chainReady && forgeToken && arenaVault) {
-        try {
-            const emittedWei = ethers.parseEther(totalEmitted.toString());
-            const deployerAddr = config.chain.deployerAddress;
+    // The contract distributes proportionally via rewardPerToken
+    try {
+        const emittedWei = ethers.parseEther(totalEmitted.toString());
+        const deployerAddr = config.chain.deployerAddress;
 
-            // Balance check: ensure deployer holds enough tokens
-            const balance = await forgeToken.balanceOf(deployerAddr);
-            if (balance < emittedWei) {
-                logger.error({
-                    required: totalEmitted,
-                    balance: balance.toString(),
-                }, 'Deployer has insufficient $FORGE balance for depositYield — skipping on-chain deposit');
-            } else {
-                const vaultAddress = config.chain.arenaVaultAddress;
+        // Balance check: ensure deployer holds enough tokens
+        const balance = await forgeToken.balanceOf(deployerAddr);
+        if (balance < emittedWei) {
+            logger.error({
+                required: totalEmitted,
+                balance: balance.toString(),
+            }, 'Deployer has insufficient $FORGE balance for depositYield — skipping on-chain deposit');
+        } else {
+            const vaultAddress = config.chain.arenaVaultAddress;
 
-                await submitTx(
-                    () => forgeToken.approve(vaultAddress, emittedWei),
-                    'approve for depositYield',
-                );
+            await submitTx(
+                () => forgeToken.approve(vaultAddress, emittedWei),
+                'approve for depositYield',
+            );
 
-                const depositReceipt = await submitTx(
-                    () => arenaVault.depositYield(emittedWei),
-                    'depositYield',
-                );
+            const depositReceipt = await submitTx(
+                () => arenaVault.depositYield(emittedWei),
+                'depositYield',
+            );
 
-                logger.info({ totalEmitted, txHash: depositReceipt.hash }, 'On-chain: depositYield() confirmed');
-            }
-        } catch (err) {
-            logger.error({ err, totalEmitted }, 'On-chain depositYield failed — DB emission still applied');
+            logger.info({ totalEmitted, txHash: depositReceipt.hash }, 'On-chain: depositYield() confirmed');
         }
+    } catch (err) {
+        logger.error({ err, totalEmitted }, 'On-chain depositYield failed — treasury ledger still updated');
+    }
+
+    // ── Also update DB stake positions if any exist ────────
+    const activeStakes = await prisma.stakePosition.findMany({ where: { active: true } });
+    if (activeStakes.length > 0) {
+        const ops = [];
+
+        for (const stake of activeStakes) {
+            const stakeAmount = Number(stake.amount);
+            const covenantBonus = 1 + (stake.apyBonus / 100);
+            const emission = Math.floor(stakeAmount * dailyRate * stake.loyaltyMulti * covenantBonus);
+            if (emission <= 0) continue;
+
+            ops.push(prisma.stakePosition.update({
+                where: { id: stake.id },
+                data: { unvestedRewards: { increment: emission } },
+            }));
+        }
+
+        // Update loyalty multipliers
+        for (const stake of activeStakes) {
+            const daysStaked = Math.floor((Date.now() - stake.stakedAt.getTime()) / (1000 * 60 * 60 * 24));
+            const scheduleIndex = Math.min(daysStaked, vc.loyaltySchedule.length - 1);
+            const newMulti = vc.loyaltySchedule[scheduleIndex];
+            if (newMulti !== stake.loyaltyMulti) {
+                ops.push(prisma.stakePosition.update({
+                    where: { id: stake.id },
+                    data: { loyaltyMulti: newMulti },
+                }));
+            }
+        }
+
+        // Process vesting
+        for (const stake of activeStakes) {
+            const unvested = Number(stake.unvestedRewards);
+            if (unvested <= 0) continue;
+            const vestAmount = Math.floor(unvested / vc.vestingDays);
+            if (vestAmount <= 0) continue;
+            ops.push(prisma.stakePosition.update({
+                where: { id: stake.id },
+                data: {
+                    unvestedRewards: { decrement: vestAmount },
+                    vestedAmount: { increment: vestAmount },
+                },
+            }));
+        }
+
+        if (ops.length > 0) await prisma.$transaction(ops);
     }
 
     logger.info({
         day: daysSinceLaunch,
         apyPercent: activeTier.apyPercent,
+        totalStakedTokens,
         totalEmitted,
-        stakers: activeStakes.length,
     }, 'Bootstrap emission distributed');
 
     sse.broadcast('bootstrap.emission', {
         day: daysSinceLaunch,
         apyPercent: activeTier.apyPercent,
         totalEmitted,
-        stakers: activeStakes.length,
+        totalStakedTokens,
     });
 }
