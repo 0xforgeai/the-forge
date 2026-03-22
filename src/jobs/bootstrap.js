@@ -34,16 +34,20 @@ export function startBootstrapJob() {
 
 export async function runBootstrapEmission() {
     // Get the protocol launch date from the first treasury ledger entry
-    const firstEntry = await prisma.treasuryLedger.findFirst({
+    // Look for the PROTOCOL_LAUNCH entry specifically
+    const launchEntry = await prisma.treasuryLedger.findFirst({
+        where: { action: 'PROTOCOL_LAUNCH' },
+        orderBy: { createdAt: 'asc' },
+    }) || await prisma.treasuryLedger.findFirst({
         orderBy: { createdAt: 'asc' },
     });
 
-    if (!firstEntry) {
+    if (!launchEntry) {
         logger.debug('No treasury entries — protocol not yet started');
         return;
     }
 
-    const launchDate = firstEntry.createdAt;
+    const launchDate = launchEntry.createdAt;
     const daysSinceLaunch = Math.floor((Date.now() - launchDate.getTime()) / (1000 * 60 * 60 * 24));
 
     // Find the active schedule tier
